@@ -36,7 +36,8 @@ class ImproperParmHolder : private DihedralParmHolder {
     /// \return True if no parameters
     bool empty()               const { return DihedralParmHolder::empty(); }
     /// \return Last parameter to be overwritten from AddParm()
-    DihedralParmType const& PreviousParm() const { return DihedralParmHolder::PreviousParm(); }
+//    DihedralParmType const& PreviousParm() const { return DihedralParmHolder::PreviousParm(); }
+    DihedralParmArray const& PreviousArray() const { return DihedralParmHolder::PreviousArray(); }
     /// \return Wildcard
     NameType const& Wildcard() const { return wc_; }
     /// \return True if an exact match is required to find a parameter
@@ -53,10 +54,12 @@ class ImproperParmHolder : private DihedralParmHolder {
     void SetWildcard(NameType const& wc) { wc_ = wc; }
     /// Indicate whether exact type matches are required to find parameters
     void SetRequireExactMatch(bool b) { require_exact_match_ = b; }
+/*
     /// Add (or update) a single improper parameter for given atom types.
     RetType AddParm(TypeNameHolder const& types, DihedralParmType const& dp, bool allowUpdate) {
       return DihedralParmHolder::AddParm( types, dp, allowUpdate );
     }
+*/
     /// Add array of improper parameters, one for each multiplicity.
     RetType AddParm(TypeNameHolder const& types, DihedralParmArray const& dpa, bool allowUpdate) {
       return DihedralParmHolder::AddParm( types, dpa, allowUpdate );

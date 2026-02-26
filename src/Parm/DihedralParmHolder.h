@@ -10,10 +10,7 @@ namespace Cpptraj {
 namespace Parm {
 // -----------------------------------------------------------------------------
 /// Specialized class for associating atom types with dihedral parameters.
-/** NOTE: Instead of using a specialize template here I'm creating a new
-  *       class because while I want AddParm() to accept DihedralParmType,
-  *       I want FindParam to return an array of DihedralParmType, one for
-  *       each unique multiplicity.
+/** Dihedrals are specialized because you may need to do wildcard matching.
   */
 class DihedralParmHolder {
     typedef std::pair<TypeNameHolder,DihedralParmArray> Bpair;
@@ -30,10 +27,11 @@ class DihedralParmHolder {
     /// \return true if no dihedral parameters
     bool empty()        const { return bpmap_.empty(); }
     /// \return Last parameter to be overwritten from AddParm()
-    DihedralParmType const& PreviousParm() const { return previousParm_; }
+//    DihedralParmType const& PreviousParm() const { return previousParm_; }
     DihedralParmArray const& PreviousArray() const { return previousArray_; }
     /// Set wildcard character
     void SetWildcard(char wc) { wc_ = NameType(std::string(1, wc)); }
+/*
     /// Add (or update) a single dihedral parameter for given atom types.
     RetType AddParm(TypeNameHolder const& types, DihedralParmType const& dp, bool allowUpdate) {
       // Check if parm for these types exist
@@ -96,6 +94,7 @@ class DihedralParmHolder {
       }
       return ADDED;
     }
+*/
     /// Add array of dihedral parameters with unique multiplicities
     RetType AddParm(TypeNameHolder const& types, DihedralParmArray const& dpa, bool allowUpdate) {
       // Check if parm for these types exist
@@ -173,7 +172,7 @@ class DihedralParmHolder {
     NameType wc_; ///< Wildcard character
   private:
     Bmap bpmap_;
-    DihedralParmType previousParm_; ///< When parameter is updated, store previous value. TODO remove?
+//    DihedralParmType previousParm_; ///< When parameter is updated, store previous value. TODO remove?
     DihedralParmArray previousArray_; ///< When array is updated, store previous value
 };
 } // END namespace Parm

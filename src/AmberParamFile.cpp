@@ -68,26 +68,6 @@ class AmberParamFile::OffdiagNB {
     LJparmType LJ2_;
 };
 
-/*static inline void printTypes(TypeNameHolder const& types) {
-  switch (types.Size()) {
-    case 1 : mprintf("%s", *(types[0])); break;
-    case 2 : mprintf("%s - %s", *(types[0]), *(types[1])); break;
-    case 3 : mprintf("%s - %s - %s", *(types[0]), *(types[1]), *(types[2])); break;
-    case 4 : mprintf("%s - %s - %s - %s", *(types[0]), *(types[1]), *(types[2]), *(types[3])); break;
-  }
-}*/
-
-static inline std::string typeNameStr(TypeNameHolder const& types, std::string const& desc) {
-  std::string OUT(desc);
-  switch (types.Size()) {
-    case 1 : OUT.append(" type " + types[0].Truncated()); break;
-    case 2 : OUT.append(" type " + types[0].Truncated() + " - " + types[1].Truncated()); break;
-    case 3 : OUT.append(" type " + types[0].Truncated() + " - " + types[1].Truncated() + " - " + types[2].Truncated()); break;
-    case 4 : OUT.append(" type " + types[0].Truncated() + " - " + types[1].Truncated() + " - " + types[2].Truncated() + " - " + types[3].Truncated());
-  }
-  return OUT;
-}
-
 /** Read input for atom symbols and masses. */
 int AmberParamFile::read_atype(ParameterSet& prm, const char* ptr)
 const
@@ -128,18 +108,18 @@ const
     return 1;
   }
   if (ret == Cpptraj::Parm::SAME)
-    mprintf("Warning: Duplicated %s\n", typeNameStr(types, "atom").c_str());
+    mprintf("Warning: Duplicated %s\n", types.TypeNameStr("atom").c_str());
   else if (ret == Cpptraj::Parm::UPDATED) {
     AtomType const& prev = prm.AT().PreviousParm();
     bool diff_mass = (prev.Mass() != amass);
     bool diff_pol  = (prev.Polarizability() != atpol);
-    mprintf("Warning: Redefining %s", typeNameStr(types, "atom").c_str());
+    mprintf("Warning: Redefining %s", types.TypeNameStr("atom").c_str());
              //prm.AT().PreviousParm().Mass(), prm.AT().PreviousParm().Polarizability(), amass, atpol);
     if (diff_mass) mprintf(" from mass %g to %g", prev.Mass(), amass);
     if (diff_pol)  mprintf(" from pol %g to %g", prev.Polarizability(), atpol);
     mprintf("\n");
   } else if (ret == Cpptraj::Parm::ERR) {
-    mprinterr("Error: Reading %s\n", typeNameStr(types, "atom").c_str());
+    mprinterr("Error: Reading %s\n", types.TypeNameStr("atom").c_str());
     return 1;
   }
 
@@ -175,13 +155,13 @@ const
   Cpptraj::Parm::RetType ret = prm.BP().AddParm(types, BondParmType(RK, REQ), true);
 
   if (ret == Cpptraj::Parm::SAME)
-    mprintf("Warning: Duplicated %s\n", typeNameStr(types, "bond").c_str());
+    mprintf("Warning: Duplicated %s\n", types.TypeNameStr("bond").c_str());
   else if (ret == Cpptraj::Parm::UPDATED)
     mprintf("Warning: Redefining %s from RK= %g REQ= %g to RK= %g REQ= %g\n",
-            typeNameStr(types, "bond").c_str(),
+            types.TypeNameStr("bond").c_str(),
             prm.BP().PreviousParm().Rk(), prm.BP().PreviousParm().Req(), RK, REQ);
   else if (ret == Cpptraj::Parm::ERR) {
-    mprinterr("Error: Reading %s\n", typeNameStr(types, "bond").c_str());
+    mprinterr("Error: Reading %s\n", types.TypeNameStr("bond").c_str());
     return 1;
   }
 
@@ -215,13 +195,13 @@ const
   types.AddName( symbols[2] );
   Cpptraj::Parm::RetType ret = prm.AP().AddParm(types, AngleParmType(TK, TEQ*Constants::DEGRAD), true);
   if (ret == Cpptraj::Parm::SAME)
-    mprintf("Warning: Duplicated %s\n", typeNameStr(types, "angle").c_str());
+    mprintf("Warning: Duplicated %s\n", types.TypeNameStr("angle").c_str());
   else if (ret == Cpptraj::Parm::UPDATED)
     mprintf("Warning: Redefining %s from TK= %g TEQ= %g to RK= %g REQ= %g\n",
-             typeNameStr(types, "angle").c_str(),
+             types.TypeNameStr("angle").c_str(),
              prm.AP().PreviousParm().Tk(), prm.AP().PreviousParm().Teq()*Constants::RADDEG, TK, TEQ);
   else if (ret == Cpptraj::Parm::ERR) {
-    mprinterr("Error: Reading %s\n", typeNameStr(types, "angle").c_str());
+    mprinterr("Error: Reading %s\n", types.TypeNameStr("angle").c_str());
     return 1;
   }
   //if (ret == Cpptraj::Parm::UPDATED)
@@ -302,13 +282,13 @@ const
   Cpptraj::Parm::RetType ret =
     prm.AddDihParm(types, DihedralParmType(PK / (double)IDIVF, PN, PHASE*Constants::DEGRAD, scee, scnb), true);
   if (ret == Cpptraj::Parm::SAME)
-    mprintf("Warning: Duplicated %s\n", typeNameStr(types, "dihedral").c_str());
+    mprintf("Warning: Duplicated %s\n", types.TypeNameStr("dihedral").c_str());
   else if (ret == Cpptraj::Parm::UPDATED) // TODO SCEE/SCNB?
     mprintf("Warning: Redefining %s (PN=%g) from PK= %g Phase= %g to PK= %g Phase= %g\n",
-             typeNameStr(types, "dihedral").c_str(), PN,
+             types.TypeNameStr("dihedral").c_str(), PN,
              prm.PreviousParm().Pk(), prm.PreviousParm().Phase()*Constants::RADDEG, PK/(double)IDIVF, PHASE);
   else if (ret == Cpptraj::Parm::ERR) {
-    mprinterr("Error: Reading %s\n", typeNameStr(types, "dihedral").c_str());
+    mprinterr("Error: Reading %s\n", types.TypeNameStr("dihedral").c_str());
     return 1;
   }
   //if (ret == Cpptraj::Parm::UPDATED) {
@@ -320,50 +300,8 @@ const
   return 0;
 }
 
-static inline void printdih(DihedralParmArray const& dpa)
-{
-  for (DihedralParmArray::const_iterator it = dpa.begin(); it != dpa.end(); ++it)
-    mprintf("Warning:\t\t%3g PK= %g Phase= %g\n", it->Pn(), it->Pk(), it->Phase()*Constants::RADDEG);
-}
-
-/** Put read-in dihedral parameters into the given ParameterSet.
-  * Warn about missing multiplicities.
-  */
-int AmberParamFile::dihparm_to_parmset(ParameterSet& prm, DihedralParmSet const& dihPrm)
-const
-{
-  for (DihedralParmSet::const_iterator it = dihPrm.begin(); it != dihPrm.end(); ++it)
-  {
-    // Check multiplicites; warn if one seems missing
-    if (it->second.size() > 1) {
-      DihedralParmArray::const_iterator dp = it->second.begin();
-      unsigned int next_expected_mult = (unsigned int)dp->Pn() + 1;
-      dp++;
-      for (; dp != it->second.end(); dp++) {
-        if ((unsigned int)dp->Pn() != next_expected_mult)
-          mprintf("Warning: %s does not have dihedral term for multiplicity %u\n",
-                  typeNameStr(it->first, "dihedral").c_str(), next_expected_mult);
-        next_expected_mult = (unsigned int)dp->Pn() + 1;
-      }
-    }
-    Cpptraj::Parm::RetType ret = prm.DP().AddParm( it->first, it->second, true );
-    if (ret == Cpptraj::Parm::SAME)
-      mprintf("Warning: Duplicated %s\n", typeNameStr(it->first, "dihedral").c_str());
-    else if (ret == Cpptraj::Parm::UPDATED) {// TODO SCEE/SCNB?
-      mprintf("Warning: Redefining %s from\n", typeNameStr(it->first, "dihedral").c_str());
-      printdih(prm.DP().PreviousArray());
-      mprintf("Warning: to\n");
-      printdih(it->second);
-    } else if (ret == Cpptraj::Parm::ERR) {
-      mprinterr("Error: Reading %s\n", typeNameStr(it->first, "dihedral").c_str());
-      return 1;
-    }
-  }
-  return 0;
-}
-
 /** Read input for improper. */
-int AmberParamFile::read_improper(ParameterSet& prm, const char* ptr)
+int AmberParamFile::read_improper(DihedralParmSet& prm, const char* ptr)
 const
 {
   // Improper parameters
@@ -395,15 +333,15 @@ const
   types.AddName( symbols[3] );
   //types.SortImproperByAlpha("X"); // FIXME wildcard should be a static var
   Cpptraj::Parm::RetType ret =
-    prm.IP().AddParm(types, DihedralParmType(PK, PN, PHASE*Constants::DEGRAD), true);
+    prm.AddDihParm(types, DihedralParmType(PK, PN, PHASE*Constants::DEGRAD), true);
   if (ret == Cpptraj::Parm::SAME)
-    mprintf("Warning: Duplicated %s\n", typeNameStr(types, "improper").c_str());
+    mprintf("Warning: Duplicated %s\n", types.TypeNameStr("improper").c_str());
   else if (ret == Cpptraj::Parm::UPDATED)
     mprintf("Warning: Redefining %s from PK= %g Phase= %g to PK= %g Phase= %g\n",
-             typeNameStr(types, "improper").c_str(),
-             prm.IP().PreviousParm().Pk(), prm.IP().PreviousParm().Phase()*Constants::RADDEG, PK, PHASE);
+             types.TypeNameStr("improper").c_str(),
+             prm.PreviousParm().Pk(), prm.PreviousParm().Phase()*Constants::RADDEG, PK, PHASE);
   else if (ret == Cpptraj::Parm::ERR) {
-    mprinterr("Error: Reading %s\n", typeNameStr(types, "improper").c_str());
+    mprinterr("Error: Reading %s\n", types.TypeNameStr("improper").c_str());
     return 1;
   }
 
@@ -440,14 +378,14 @@ const
   types.AddName( KT2 );
   Cpptraj::Parm::RetType ret = prm.HB().AddParm(types, HB_ParmType(A, B, HCUT), true);
   if (ret == Cpptraj::Parm::SAME)
-    mprintf("Warning: Duplicated %s\n", typeNameStr(types, "LJ 10-12 hbond").c_str());
+    mprintf("Warning: Duplicated %s\n", types.TypeNameStr("LJ 10-12 hbond").c_str());
   else if (ret == Cpptraj::Parm::UPDATED) {
     mprintf("Warning: Redefining %s from Asol= %g Bsol= %g Cut= %g to Asol= %g Bsol= %g Cut=%g\n",
-            typeNameStr(types, "LJ 10-12 hbond").c_str(),
+            types.TypeNameStr("LJ 10-12 hbond").c_str(),
             prm.HB().PreviousParm().Asol(), prm.HB().PreviousParm().Bsol(), prm.HB().PreviousParm().HBcut(),
             A, B, HCUT);
   } else if (ret == Cpptraj::Parm::ERR) {
-    mprinterr("Error: Reading %s\n", typeNameStr(types, "LJ 10-12 hbond").c_str());
+    mprinterr("Error: Reading %s\n", types.TypeNameStr("LJ 10-12 hbond").c_str());
     return 1;
   }
 
@@ -853,6 +791,7 @@ int AmberParamFile::ReadFrcmod(ParameterSet& prm, FileName const& fname) const
   NonbondSet nbset(title);
   Oarray Offdiag;
   DihedralParmSet dihPrm;
+  DihedralParmSet impPrm;
   // Read file
   SectionType section = UNKNOWN;
   CmapType currentCmapFlag = CMAP_INITIAL;
@@ -892,7 +831,7 @@ int AmberParamFile::ReadFrcmod(ParameterSet& prm, FileName const& fname) const
         else if (section == DIHEDRAL)
           err = read_dihedral(dihPrm, ptr, last_symbols, first_char_is_space);
         else if (section == IMPROPER)
-          err = read_improper(prm, ptr);
+          err = read_improper(impPrm, ptr);
         else if (section == LJ1012)
           err = read_lj1012(prm, ptr);
         else if (section == NONBOND)
@@ -918,7 +857,8 @@ int AmberParamFile::ReadFrcmod(ParameterSet& prm, FileName const& fname) const
     prm.CMAP().AddParm( currentCmap, true, debug_ );
   }
   // Add dihedrals
-  if (dihparm_to_parmset(prm, dihPrm)) return 1;
+  if (dihPrm.ToDihParm(prm.DP())) return 1;
+  if (impPrm.ToImpParm(prm.IP())) return 1;
   // Nonbonds
   if (assign_nb(prm, nbset)) return 1;
   // Off-diagonal NB modifications
@@ -965,6 +905,7 @@ int AmberParamFile::ReadParams(ParameterSet& prm, FileName const& fname,
   std::vector<std::string> last_symbols;
   last_symbols.reserve(4);
   DihedralParmSet dihPrm;
+  DihedralParmSet impPrm;
   // Read file
   int readNbType = 0;
   SectionType section = ATYPE;
@@ -1055,7 +996,7 @@ int AmberParamFile::ReadParams(ParameterSet& prm, FileName const& fname,
     } else if (section == DIHEDRAL) {
       read_err = read_dihedral(dihPrm, ptr, last_symbols, first_char_is_space);
     } else if (section == IMPROPER) {
-      read_err = read_improper(prm, ptr);
+      read_err = read_improper(impPrm, ptr);
     } else if (section == LJ1012) {
       read_err = read_lj1012(prm, ptr);
     } else if (section == NB_EQUIV) {
@@ -1090,8 +1031,8 @@ int AmberParamFile::ReadParams(ParameterSet& prm, FileName const& fname,
   } // END loop over file.
 
   // Add dihedrals
-  if (dihparm_to_parmset(prm, dihPrm)) return 1;
-
+  if (dihPrm.ToDihParm(prm.DP())) return 1;
+  if (impPrm.ToImpParm(prm.IP())) return 1;
   // Deal with nonbond and equivalence
   if (!NBsets.empty()) {
     int nbsetidx = 0;

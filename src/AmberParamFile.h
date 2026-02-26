@@ -46,9 +46,9 @@ class AmberParamFile {
     int read_angle(ParameterSet&, const char*) const;
     /// Read dihedral line
     int read_dihedral(DihedralParmSet&, const char*, std::vector<std::string>&, bool) const;
-    int dihparm_to_parmset(ParameterSet&, DihedralParmSet const&) const;
+//    int dihparm_to_parmset(ParameterSet&, DihedralParmSet const&) const;
     /// Read improper line
-    int read_improper(ParameterSet&, const char*) const;
+    int read_improper(DihedralParmSet&, const char*) const;
     /// Read LJ 10-12 hbond line
     int read_lj1012(ParameterSet&, const char*) const;
     /// Read IPOL line
