@@ -1,4 +1,5 @@
 #include "GetParams.h"
+#include "DihedralParmSet.h"
 #include "ParameterSet.h"
 #include "../Atom.h"
 #include "../AtomType.h"
@@ -62,6 +63,7 @@ void GetParams::GetAngleParams(ParmHolder<AngleParmType>& AP, std::vector<Atom> 
 // GetImproperParams()
 void GetParams::GetImproperParams(ImproperParmHolder& IP, std::vector<Atom> const& atoms, DihedralArray const& imp, DihedralParmArray const& ipa) {
   IP.SetRequireExactMatch(true);
+  DihedralParmSet impPrm;
   for (DihedralArray::const_iterator b = imp.begin(); b != imp.end(); ++b)
   {
     if (b->Idx() != -1) {
@@ -70,16 +72,21 @@ void GetParams::GetImproperParams(ImproperParmHolder& IP, std::vector<Atom> cons
       types.AddName( atoms[b->A2()].Type() );
       types.AddName( atoms[b->A3()].Type() );
       types.AddName( atoms[b->A4()].Type() );
-      Cpptraj::Parm::RetType ret = IP.AddParm( types, ipa[b->Idx()], false );
+      Cpptraj::Parm::RetType ret = impPrm.AddDihParm( types, ipa[b->Idx()], false );
       if (ret == Cpptraj::Parm::ERR)
         paramOverwriteWarning("improper");
     }
+  }
+  if (impPrm.ToImpParm(IP)) {
+    mprinterr("Internal Error: GetParams::GetImproperParams(): Could not transfer parameters from set to holder.\n");
   }
 }
 
 // GetDihedralParams()
 void GetParams::GetDihedralParams(DihedralParmHolder& DP, ImproperParmHolder& IP, std::vector<Atom> const& atoms, DihedralArray const& dih, DihedralParmArray const& dpa) {
   IP.SetRequireExactMatch(true);
+  DihedralParmSet dihPrm;
+  DihedralParmSet impPrm;
   for (DihedralArray::const_iterator b = dih.begin(); b != dih.end(); ++b)
   {
     if (b->Idx() != -1) {
@@ -94,9 +101,9 @@ void GetParams::GetDihedralParams(DihedralParmHolder& DP, ImproperParmHolder& IP
       //        dpa[b->Idx()].Pk(), dpa[b->Idx()].Pn(), dpa[b->Idx()].Phase(), dpa[b->Idx()].SCEE(), dpa[b->Idx()].SCNB());
       Cpptraj::Parm::RetType ret;
       if (b->IsImproper()) {
-        ret = IP.AddParm( types, dpa[b->Idx()], false );
+        ret = impPrm.AddDihParm( types, dpa[b->Idx()], false );
       } else {
-        ret = DP.AddParm( types, dpa[b->Idx()], false );
+        ret = dihPrm.AddDihParm( types, dpa[b->Idx()], false );
       }
       // DEBUG
       //if (ret == Cpptraj::Parm::ADDED) {
@@ -115,6 +122,12 @@ void GetParams::GetDihedralParams(DihedralParmHolder& DP, ImproperParmHolder& IP
         //          d->Pk(), d->Pn(), d->Phase(), d->SCEE(), d->SCNB());
       }
     }
+  }
+  if (impPrm.ToImpParm(IP)) {
+    mprinterr("Internal Error: GetParams::GetImproperParams(): Could not transfer parameters from set to holder.\n");
+  }
+  if (dihPrm.ToDihParm(DP)) {
+    mprinterr("Internal Error: GetParams::GetDihedralParams(): Could not transfer parameters from set to holder.\n");
   }
 }
 
