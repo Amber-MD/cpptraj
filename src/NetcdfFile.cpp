@@ -1632,13 +1632,16 @@ int NetcdfFile::WriteRemdValues(Frame const& frm) {
       if (remValType_.DimType(idx) == ReplicaDimArray::TEMPERATURE) {
         RemdValues_[idx] = frm.Temperature();
         //mprintf("DEBUG: T= %g\n", frm.Temperature());
+      } else if (remValType_.DimType(idx) == ReplicaDimArray::HAMILTONIAN) {
+        RemdValues_[idx] = (double)(frm.RemdIndices()[idx]);
       } else if (remValType_.DimType(idx) == ReplicaDimArray::PH) {
         RemdValues_[idx] = frm.pH();
         //mprintf("DEBUG: pH= %g\n", frm.pH());
       } else if (remValType_.DimType(idx) == ReplicaDimArray::REDOX) {
         RemdValues_[idx] = frm.RedOx();
         //mprintf("DEBUG: RedOx= %g\n", frm.RedOx());
-      }
+      } else
+        mprinterr("Internal Error: NetcdfFile::WriteRemdValues(): Unhandled remd value write for dim %i (%s)\n", idx, ReplicaDimArray::dimType(remValType_.DimType(idx)));
     }
     count_[1] = remd_dimension_; // # dimensions
     if ( NC::CheckErr(nc_put_vara_double(ncid_, RemdValuesVID_, start_, count_, &RemdValues_[0])) )
