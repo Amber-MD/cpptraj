@@ -760,8 +760,13 @@ const
   AP.SetDebug( debug_ );
   AP.SetVerbose( debug_ );
   Topology& topOut = *(crd.TopPtr());
-  if ( AP.AssignParameters( topOut, *(creator.MainParmSetPtr()) ) ) {
+  int nmissing = 0;
+  if ( AP.AssignParameters( topOut, *(creator.MainParmSetPtr()), nmissing ) ) {
     mprinterr("Error: Could not assign parameters for '%s'.\n", topOut.c_str());
+    return 1;
+  }
+  if (nmissing != 0) {
+    mprinterr("Error: Missing %i parameters for '%s'\n", nmissing, topOut.c_str());
     return 1;
   }
   // Assign GB parameters

@@ -41,9 +41,9 @@ class AssignParams {
     void SetVerbose(int);
     /// Replace existing parameters with those from given set
 #   ifdef TIMER
-    int AssignParameters(Topology&, ParameterSet const&);
+    int AssignParameters(Topology&, ParameterSet const&, int&);
 #   else
-    int AssignParameters(Topology&, ParameterSet const&) const;
+    int AssignParameters(Topology&, ParameterSet const&, int&) const;
 #   endif
     /// Update existing parameters with given parameter set
     int UpdateParameters(Topology&, ParameterSet const&)
@@ -61,14 +61,14 @@ class AssignParams {
   private:
     typedef std::vector<Atom> AtArray;
 
-    void AssignAtomTypeParm(AtArray&, ParmHolder<AtomType> const&) const;
-    void AssignBondParm(Topology const&, ParmHolder<BondParmType> const&,
+    int AssignAtomTypeParm(AtArray&, ParmHolder<AtomType> const&) const;
+    int AssignBondParm(Topology const&, ParmHolder<BondParmType> const&,
                         BondArray&, BondParmArray&, const char*) const;
     void AssignBondParams(Topology&, ParmHolder<BondParmType> const&) const;
     void AssignUBParams(Topology&, ParmHolder<BondParmType> const&) const;
 
     AngleArray AssignAngleParm(Topology const&, ParmHolder<AngleParmType> const&,
-                               AngleArray const&, AngleParmArray&) const;
+                               AngleArray const&, AngleParmArray&, int&) const;
     void AssignAngleParams(Topology&, ParmHolder<AngleParmType> const&) const;
 
     void warn_improper_reorder(AtArray const&, DihedralType const&, DihedralType const&) const;
@@ -79,7 +79,7 @@ class AssignParams {
     DihedralArray AssignDihedralParm(Topology&,
                                      DihedralParmHolder const&, ImproperParmHolder const&,
                                      ParmHolder<AtomType> const&, DihedralArray const&,
-                                     bool)  // TODO make the bool a class var?
+                                     bool, int&)  // TODO make the bool a class var?
 #   ifdef TIMER
       ;
 #   else

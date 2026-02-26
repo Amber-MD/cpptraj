@@ -37,9 +37,10 @@ void AssignParams::SetVerbose(int verboseIn) {
 }
 
 /** Set parameters for atoms via given atom type parameter holder. */
-void AssignParams::AssignAtomTypeParm(AtArray& atoms, ParmHolder<AtomType> const& newAtomTypeParams)
+int AssignParams::AssignAtomTypeParm(AtArray& atoms, ParmHolder<AtomType> const& newAtomTypeParams)
 const
 {
+  int nmissing = 0;
   for (AtArray::iterator iat = atoms.begin(); iat != atoms.end(); ++iat)
   {
     bool found;
@@ -50,17 +51,21 @@ const
       iat->SetMass( AT.Mass() );
       // Update polarizability
       iat->SetPolar( AT.Polarizability() );
-    } else
+    } else {
       mprintf("Warning: Atom type parameter not found for %s\n", *atype[0]);
+      nmissing++;
+    }
   }
+  return nmissing;
 }
 
 /** Set parameters for bonds in given bond array. */
-void AssignParams::AssignBondParm(Topology const& topOut,
+int AssignParams::AssignBondParm(Topology const& topOut,
                                   ParmHolder<BondParmType> const& newBondParams,
                                   BondArray& bonds, BondParmArray& bpa, const char* desc)
 const
 {
+  int nmissing = 0;
   ParmHolder<int> currentTypes;
   for (BondArray::iterator bnd = bonds.begin(); bnd != bonds.end(); ++bnd) {
     TypeNameHolder types(2);
@@ -78,6 +83,7 @@ const
                 topOut.TruncResAtomNameNum(bnd->A1()).c_str(),
                 topOut.TruncResAtomNameNum(bnd->A2()).c_str(),
                 *types[0], *types[1]);
+        nmissing++;
       } else {
         //idx = addBondParm( bpa, bp ); TODO handle array packing
         idx = (int)bpa.size();
@@ -106,6 +112,7 @@ const
     }
     bnd->SetIdx( idx );
   }*/
+  return nmissing;
 }
 
 /** Replace any current bond parameters with given bond parameters. */
@@ -124,7 +131,8 @@ void AssignParams::AssignUBParams(Topology& topOut, ParmHolder<BondParmType> con
 /** Set parameters for angles in given angle array. */
 AngleArray AssignParams::AssignAngleParm(Topology const& topOut,
                                          ParmHolder<AngleParmType> const& newAngleParams,
-                                         AngleArray const& angles, AngleParmArray& apa)
+                                         AngleArray const& angles, AngleParmArray& apa,
+                                         int& nmissing)
 const
 {
   AngleArray newAngles;
@@ -189,6 +197,7 @@ const
                 topOut.TruncResAtomNameNum(ang->A2()).c_str(),
                 topOut.TruncResAtomNameNum(ang->A3()).c_str(),
                 *types[0], *types[1], *types[2]);
+        nmissing++;
       } else {
         //idx = addAngleParm( angleparm_, ap ); // TODO uncomment for array packing
         idx = (int)apa.size();
@@ -227,8 +236,9 @@ const
 /** Replace any current angle parameters with given angle parameters. */
 void AssignParams::AssignAngleParams(Topology& topOut, ParmHolder<AngleParmType> const& newAngleParams) const {
   topOut.ModifyAngleParm().clear();
-  topOut.ModifyAngles() = AssignAngleParm( topOut, newAngleParams, topOut.Angles(), topOut.ModifyAngleParm() );
-  topOut.ModifyAnglesH() = AssignAngleParm( topOut, newAngleParams, topOut.AnglesH(), topOut.ModifyAngleParm() );
+  int nmissing = 0;
+  topOut.ModifyAngles() = AssignAngleParm( topOut, newAngleParams, topOut.Angles(), topOut.ModifyAngleParm(), nmissing );
+  topOut.ModifyAnglesH() = AssignAngleParm( topOut, newAngleParams, topOut.AnglesH(), topOut.ModifyAngleParm(), nmissing );
 }
 
 /** Warn if improper atoms have been reordered so they match the parameter. */
@@ -304,7 +314,8 @@ DihedralArray AssignParams::AssignDihedralParm(Topology& topOut,
                                                ImproperParmHolder const& newImproperParams,
                                                ParmHolder<AtomType> const& AT,
                                                DihedralArray const& dihedrals,
-                                               bool sort_improper_cache)
+                                               bool sort_improper_cache,
+                                               int& nmissing)
 #ifndef TIMER
 const
 #endif
@@ -515,6 +526,7 @@ const
         DihedralType mydih = *dih;
         mydih.SetIdx( -1 );
         dihedralsIn.push_back( mydih );
+        nmissing++;
       } else {
         // Actually add parameters for this dihedral.
         // Determine if this is actually a 1-4 interaction by making
@@ -626,10 +638,11 @@ const
   // multiplicities for a single dihedral type. In case multiplicities
   // change, start with a fresh dihedral array containing only unique
   // dihedrals.
+  int nmissing = 0;
   topOut.ModifyDihedrals()  = AssignDihedralParm( topOut, newDihedralParams, newImproperParams,
-                                                  AT, get_unique_dihedrals(topOut.Dihedrals()), false  );
+                                                  AT, get_unique_dihedrals(topOut.Dihedrals()), false, nmissing  );
   topOut.ModifyDihedralsH() = AssignDihedralParm( topOut, newDihedralParams, newImproperParams,
-                                                  AT, get_unique_dihedrals(topOut.DihedralsH()), false );
+                                                  AT, get_unique_dihedrals(topOut.DihedralsH()), false, nmissing );
 }
 
 /** Replace current nonbond parameters with given nonbond parameters. */
@@ -1140,13 +1153,16 @@ void AssignParams::AddToDihedralArrays(Topology& topOut, DihedralType const& dih
 
 /** Replace existing parameters with the given parameter set. */
 #ifdef TIMER
-int AssignParams::AssignParameters(Topology& topOut, ParameterSet const& set0)
+int AssignParams::AssignParameters(Topology& topOut, ParameterSet const& set0, int& nmissing)
 #else
-int AssignParams::AssignParameters(Topology& topOut, ParameterSet const& set0) const
+int AssignParams::AssignParameters(Topology& topOut, ParameterSet const& set0, int& nmissing) const
 #endif
 {
 # ifdef TIMER
   t_total_.Start();
+#endif
+  nmissing = 0;
+# ifdef TIMER
   t_bonds_.Start();
 # endif
   // Bond parameters
@@ -1156,7 +1172,7 @@ int AssignParams::AssignParameters(Topology& topOut, ParameterSet const& set0) c
   topOut.ModifyBonds().clear();
   topOut.ModifyBondsH().clear();
   BondArray allBonds = Cpptraj::Structure::GenerateBondArray(topOut.Residues(), topOut.Atoms());
-  AssignBondParm( topOut, set0.BP(), allBonds, topOut.ModifyBondParm(), "bond" );
+  nmissing += AssignBondParm( topOut, set0.BP(), allBonds, topOut.ModifyBondParm(), "bond" );
   for (BondArray::const_iterator bnd = allBonds.begin(); bnd != allBonds.end(); ++bnd)
     AddToBondArrays( topOut, *bnd );
 # ifdef TIMER
@@ -1170,7 +1186,7 @@ int AssignParams::AssignParameters(Topology& topOut, ParameterSet const& set0) c
   topOut.ModifyAngles().clear();
   topOut.ModifyAnglesH().clear();
   AngleArray allAngles = Cpptraj::Structure::GenerateAngleArray(topOut.Residues(), topOut.Atoms());
-  allAngles = AssignAngleParm( topOut, set0.AP(), allAngles, topOut.ModifyAngleParm() );
+  allAngles = AssignAngleParm( topOut, set0.AP(), allAngles, topOut.ModifyAngleParm(), nmissing );
   for (AngleArray::const_iterator ang = allAngles.begin(); ang != allAngles.end(); ++ang)
     AddToAngleArrays( topOut, *ang );
 # ifdef TIMER
@@ -1204,7 +1220,7 @@ int AssignParams::AssignParameters(Topology& topOut, ParameterSet const& set0) c
 # ifdef TIMER
   t_multi_.Start();
 # endif
-  allDihedrals = AssignDihedralParm( topOut, set0.DP(), set0.IP(), set0.AT(), allDihedrals, false );
+  allDihedrals = AssignDihedralParm( topOut, set0.DP(), set0.IP(), set0.AT(), allDihedrals, false, nmissing );
   for (DihedralArray::const_iterator dih = allDihedrals.begin(); dih != allDihedrals.end(); ++dih)
     AddToDihedralArrays( topOut, *dih );
 # ifdef TIMER
@@ -1226,7 +1242,7 @@ int AssignParams::AssignParameters(Topology& topOut, ParameterSet const& set0) c
     // Amber improper parameters
     mprintf("\tAssigning improper parameters.\n");
     DihedralArray allImpropers = Cpptraj::Structure::GenerateImproperArray(topOut.Residues(), topOut.Atoms());
-    allImpropers = AssignDihedralParm( topOut, set0.DP(), set0.IP(), set0.AT(), allImpropers, true );
+    allImpropers = AssignDihedralParm( topOut, set0.DP(), set0.IP(), set0.AT(), allImpropers, true, nmissing );
     for (DihedralArray::const_iterator imp = allImpropers.begin(); imp != allImpropers.end(); ++imp)
       AddToDihedralArrays( topOut, *imp );
   }
@@ -1236,7 +1252,7 @@ int AssignParams::AssignParameters(Topology& topOut, ParameterSet const& set0) c
 # endif
   // Atom types
   mprintf("\tAssigning atom type parameters.\n");
-  AssignAtomTypeParm( topOut.ModifyAtoms(), set0.AT() );
+  nmissing += AssignAtomTypeParm( topOut.ModifyAtoms(), set0.AT() );
 # ifdef TIMER
   t_atype_.Stop();
   t_nonbond_.Start();

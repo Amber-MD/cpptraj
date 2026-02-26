@@ -1264,8 +1264,13 @@ Exec::RetType Exec_Build::BuildAndParmStructure(DataSet* inCrdPtr, std::string c
   Cpptraj::Parm::AssignParams AP;
   AP.SetDebug( debug_ );
   AP.SetVerbose( verbose );
-  if ( AP.AssignParameters( topOut, *(creator.MainParmSetPtr()) ) ) {
+  int nmissing = 0;
+  if ( AP.AssignParameters( topOut, *(creator.MainParmSetPtr()), nmissing ) ) {
     mprinterr("Error: Could not assign parameters for '%s'.\n", topOut.c_str());
+    ret = CpptrajState::ERR;
+  }
+  if (nmissing != 0) {
+    mprinterr("Error: Missing %i parameters for '%s'\n", nmissing, topOut.c_str());
     ret = CpptrajState::ERR;
   }
   // Assign GB parameters
