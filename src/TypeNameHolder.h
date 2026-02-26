@@ -121,6 +121,18 @@ class TypeNameHolder {
         tstr.append( " " + std::string( *(*it) ) );
       return tstr;
     }
+    /// \return string containing a description and atom type names
+    std::string TypeNameStr(std::string const& desc) const {
+      std::string OUT(desc);
+      switch (Size()) {
+        case 1 : OUT.append(" type " + types_[0].Truncated()); break;
+        case 2 : OUT.append(" type " + types_[0].Truncated() + " - " + types_[1].Truncated()); break;
+        case 3 : OUT.append(" type " + types_[0].Truncated() + " - " + types_[1].Truncated() + " - " + types_[2].Truncated()); break;
+        case 4 : OUT.append(" type " + types_[0].Truncated() + " - " + types_[1].Truncated() + " - " + types_[2].Truncated() + " - " + types_[3].Truncated());
+        default: OUT.append(" type " + TypeString());
+      }
+      return OUT;
+    }
     /// Sort typenames so that the first typename < the last
     void SortNames(NameType const& wc) {
       if (types_.size() < 2) return;
