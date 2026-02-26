@@ -6,6 +6,7 @@
 #include "../TypeNameHolder.h"
 namespace Cpptraj {
 namespace Parm {
+class ParameterSet;
 /// Used for reading in dihedral parameters.
 /** When dihedral parameters are read in one at a time it is not
   * guaranteed that parameters for all multiplcities will be
@@ -25,6 +26,9 @@ class DihedralParmSet {
     typedef Dmap::const_iterator const_iterator;
     const_iterator begin() const { return dihparm_.begin(); }
     const_iterator end()   const { return dihparm_.end(); }
+
+    /// Put all dihedral parameters into given dihedral parameter holder.
+    int ToDihParm(ParameterSet&) const;
 
     /// Add (or update) a single dihedral parameter for given atom types.
     RetType AddDihParm(TypeNameHolder const& types, DihedralParmType const& dp, bool allowUpdate) {
