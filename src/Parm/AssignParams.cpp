@@ -456,22 +456,25 @@ const
           mprintf("Warning: No improper parameters for SP2 hybridized atom %s\n", topOut.AtomMaskName(dih->A3()).c_str());
         }
       } else {
-        if (ipa.size() > 1)
-          mprintf("Warning: %zu improper parameters found for types %s - %s - %s - %s, expected only one."
-                  "Warning: Only using first parameter.\n", ipa.size(), *(types[0]), *(types[1]), *(types[2]), *(types[3]));
+        //if (ipa.size() > 1)
+        //  mprintf("Warning: %zu improper parameters found for types %s - %s - %s - %s, expected only one."
+        //          "Warning: Only using first parameter.\n", ipa.size(), *(types[0]), *(types[1]), *(types[2]), *(types[3]));
         if (reordered) warn_improper_reorder( topOut.Atoms(), *dih, mydih );
-        idx = topOut.addTorsionParm( topOut.ModifyDihedralParm(), ipa.front() );
-        mydih.SetIdx( idx );
         mydih.SetImproper( true );
         // Always skip 1-4 for impropers
         mydih.SetSkip14( true );
-        dihedralsIn.push_back( mydih );
+        for (DihedralParmArray::const_iterator it = ipa.begin(); it != ipa.end(); ++it)
+        {
+          idx = topOut.addTorsionParm( topOut.ModifyDihedralParm(), *it );
+          mydih.SetIdx( idx );
+          dihedralsIn.push_back( mydih );
+        }
         // Add to the cache
         if (is_new_improper) {
           // To match leap behavior, make sure paramTypes are sorted alphabetically.
           //mprintf("DEBUG: Improper wildcard: %s\n", *(newImproperParams.Wildcard()));
           if (sort_improper_cache) paramTypes.SortImproperByAlpha( newImproperParams.Wildcard() );
-          improperCache.AddParm( paramTypes, ipa.front(), false );
+          improperCache.AddParm( paramTypes, ipa, false );
         }
       }
 #     ifdef TIMER
