@@ -11,23 +11,29 @@ static inline void printdih(DihedralParmArray const& dpa)
     mprintf("Warning:\t\t%3g PK= %g Phase= %g\n", it->Pn(), it->Pk(), it->Phase()*Constants::RADDEG);
 }
 
+/** Print multiplicity warning */
+void DihedralParmSet::check_mult(std::string const& desc, TypeNameHolder const& types, DihedralParmArray const& DPA) {
+  if (DPA.size() > 1) {
+    DihedralParmArray::const_iterator dp = DPA.begin();
+    unsigned int next_expected_mult = (unsigned int)dp->Pn() + 1;
+    dp++;
+    for (; dp != DPA.end(); dp++) {
+      if ((unsigned int)dp->Pn() != next_expected_mult)
+        mprintf("Warning: %s does not have term for multiplicity %u\n",
+                types.TypeNameStr(desc).c_str(), next_expected_mult);
+      next_expected_mult = (unsigned int)dp->Pn() + 1;
+    }
+  }
+}
+
 /** Add all dihedral parameters into the given dihedral parameter holder. */
 int DihedralParmSet::ToDihParm(DihedralParmHolder& DP) const
 {
   for (DihedralParmSet::const_iterator it = begin(); it != end(); ++it)
   {
     // Check multiplicites; warn if one seems missing
-    if (it->second.size() > 1) {
-      DihedralParmArray::const_iterator dp = it->second.begin();
-      unsigned int next_expected_mult = (unsigned int)dp->Pn() + 1;
-      dp++;
-      for (; dp != it->second.end(); dp++) {
-        if ((unsigned int)dp->Pn() != next_expected_mult)
-          mprintf("Warning: %s does not have dihedral term for multiplicity %u\n",
-                  it->first.TypeNameStr("dihedral").c_str(), next_expected_mult);
-        next_expected_mult = (unsigned int)dp->Pn() + 1;
-      }
-    }
+    check_mult("dihedral", it->first, it->second);
+
     Cpptraj::Parm::RetType ret = DP.AddParm( it->first, it->second, true );
     if (ret == Cpptraj::Parm::SAME)
       mprintf("Warning: Duplicated %s\n", it->first.TypeNameStr("dihedral").c_str());
@@ -50,17 +56,8 @@ int DihedralParmSet::ToImpParm(ImproperParmHolder& IP) const
   for (DihedralParmSet::const_iterator it = begin(); it != end(); ++it)
   {
     // Check multiplicites; warn if one seems missing
-    if (it->second.size() > 1) {
-      DihedralParmArray::const_iterator dp = it->second.begin();
-      unsigned int next_expected_mult = (unsigned int)dp->Pn() + 1;
-      dp++;
-      for (; dp != it->second.end(); dp++) {
-        if ((unsigned int)dp->Pn() != next_expected_mult)
-          mprintf("Warning: %s does not have improper term for multiplicity %u\n",
-                  it->first.TypeNameStr("improper").c_str(), next_expected_mult);
-        next_expected_mult = (unsigned int)dp->Pn() + 1;
-      }
-    }
+    check_mult("improper", it->first, it->second);
+
     Cpptraj::Parm::RetType ret = IP.AddParm( it->first, it->second, true );
     if (ret == Cpptraj::Parm::SAME)
       mprintf("Warning: Duplicated %s\n", it->first.TypeNameStr("improper").c_str());

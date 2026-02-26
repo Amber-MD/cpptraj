@@ -105,6 +105,8 @@ class DihedralParmSet {
       return ADDED;
     }
   private:
+    static inline void check_mult(std::string const&, TypeNameHolder const&, DihedralParmArray const&);
+
     Dmap dihparm_;
     DihedralParmType previousParm_; ///< When parameter is updated, store previous value.
 };
