@@ -128,7 +128,7 @@ class TypeNameHolder {
         case 1 : OUT.append(" type " + types_[0].Truncated()); break;
         case 2 : OUT.append(" type " + types_[0].Truncated() + " - " + types_[1].Truncated()); break;
         case 3 : OUT.append(" type " + types_[0].Truncated() + " - " + types_[1].Truncated() + " - " + types_[2].Truncated()); break;
-        case 4 : OUT.append(" type " + types_[0].Truncated() + " - " + types_[1].Truncated() + " - " + types_[2].Truncated() + " - " + types_[3].Truncated()); break
+        case 4 : OUT.append(" type " + types_[0].Truncated() + " - " + types_[1].Truncated() + " - " + types_[2].Truncated() + " - " + types_[3].Truncated()); break;
         default: OUT.append(" type " + TypeString());
       }
       return OUT;
