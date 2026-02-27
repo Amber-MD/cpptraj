@@ -7346,6 +7346,13 @@ fixatomorder
 
 \begin_layout Subsection
 sequence
+\begin_inset CommandInset label
+LatexCommand label
+name "subsec:cpptraj-sequence"
+
+\end_inset
+
+
 \end_layout
 
 \begin_layout LyX-Code
@@ -7487,9 +7494,75 @@ setname>}
 
 \end_deeper
 \begin_layout Standard
-Create a molecule from a sequence of units.
+Create a single molecule from a sequence of units.
  If parameter sets are loaded,
  parameters will be assigned to <output set name>.
+ Internal coordinates are used to try to determine the correct geometry around connection sites.
+ The COORDS sets must have connection information set,
+ either from reading in an Amber OFF library file or set manually via 
+\series bold
+\emph on
+dataset
+\series default
+\emph default
+ 
+\series bold
+connect
+\series default
+ (see 
+\begin_inset CommandInset ref
+LatexCommand vref
+reference "subsec:cpptraj-datasetcmd"
+plural "false"
+caps "false"
+noprefix "false"
+nolink "false"
+
+\end_inset
+
+).
+\end_layout
+
+\begin_layout Standard
+For example,
+ the following reads in two Mol2 files as COORDS sets,
+ sets up connection atoms,
+ then creates a molecule via 
+\series bold
+\emph on
+sequence:
+\end_layout
+
+\begin_layout LyX-Code
+parm MOC.mol2
+\end_layout
+
+\begin_layout LyX-Code
+loadcrd MOC.mol2 parm MOC.mol2 name MOC
+\end_layout
+
+\begin_layout LyX-Code
+dataset connect MOC tailmask @O5
+\end_layout
+
+\begin_layout LyX-Code
+parm CNALA.mol2 
+\end_layout
+
+\begin_layout LyX-Code
+loadcrd CNALA.mol2 parm CNALA.mol2 name CNALA
+\end_layout
+
+\begin_layout LyX-Code
+dataset connect CNALA headmask @N
+\end_layout
+
+\begin_layout LyX-Code
+sequence MOC CNALA name Mol
+\end_layout
+
+\begin_layout LyX-Code
+crdout Mol Mol.mol2
 \end_layout
 
 \begin_layout Subsection
@@ -7676,7 +7749,7 @@ The following COORDS data set commands are available:
 \begin_layout Standard
 \align center
 \begin_inset Tabular
-<lyxtabular version="3" rows="19" columns="2">
+<lyxtabular version="3" rows="18" columns="2">
 <features tabularvalignment="middle">
 <column alignment="center" valignment="top" width="25text%">
 <column alignment="center" valignment="top" width="75text%">
@@ -7999,26 +8072,6 @@ rotatedihedral
 
 \begin_layout Plain Layout
 Rotate specified dihedral to specified value or by given increment.
-\end_layout
-
-\end_inset
-</cell>
-</row>
-<row>
-<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
-\begin_inset Text
-
-\begin_layout Plain Layout
-sequence
-\end_layout
-
-\end_inset
-</cell>
-<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
-\begin_inset Text
-
-\begin_layout Plain Layout
-Create a new molecule from a sequence of COORDS sets.
 \end_layout
 
 \end_inset
@@ -10429,95 +10482,14 @@ crdout TZ2 tz2.rotate.1.mol2
 
 \begin_layout Subsection
 sequence
-\begin_inset CommandInset label
-LatexCommand label
-name "subsec:cpptraj-sequence"
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout LyX-Code
-sequence name <output set name> <unit0> <unit1> ...
-\end_layout
-
-\begin_layout LyX-Code
-         [{libset <libsetname>} ...]
-\end_layout
-
-\begin_deeper
-\begin_layout Description
-name
-\begin_inset space ~
-\end_inset
-
-<output
-\begin_inset space ~
-\end_inset
-
-set
-\begin_inset space ~
-\end_inset
-
-name> Name of final molecule.
-\end_layout
-
-\begin_layout Description
-<unit0>
-\begin_inset space ~
-\end_inset
-
-<unit1> Name of COORDS set (with connection info).
-\end_layout
-
-\begin_layout Description
-[{libset
-\begin_inset space ~
-\end_inset
-
-<libsetname>}
-\begin_inset space ~
-\end_inset
-
-...} One or more set name prefixes of data sets (libraries) containing units.
 \end_layout
 
 \begin_layout Standard
-Data sets created:
-\end_layout
-
-\begin_layout Description
-<output
-\begin_inset space ~
-\end_inset
-
-set
-\begin_inset space ~
-\end_inset
-
-name> COORDS set containing final molecule.
-\end_layout
-
-\end_deeper
-\begin_layout Standard
-Connect units in different COORDS sets together to form a single molecule.
- Internal coordinates are used to try to determine the correct geometry around connection sites.
- The COORDS sets must have connection information set,
- either from reading in an Amber OFF library file or set manually via 
-\series bold
-\emph on
-dataset
-\series default
-\emph default
+Syntax for this command is now located here:
  
-\series bold
-connect
-\series default
- (see 
 \begin_inset CommandInset ref
-LatexCommand vref
-reference "subsec:cpptraj-datasetcmd"
+LatexCommand ref
+reference "subsec:cpptraj-sequence"
 plural "false"
 caps "false"
 noprefix "false"
@@ -10525,49 +10497,7 @@ nolink "false"
 
 \end_inset
 
-).
-\end_layout
 
-\begin_layout Standard
-For example,
- the following reads in two Mol2 files as COORDS sets,
- sets up connection atoms,
- then creates a molecule via 
-\series bold
-\emph on
-sequence:
-\end_layout
-
-\begin_layout LyX-Code
-parm MOC.mol2
-\end_layout
-
-\begin_layout LyX-Code
-loadcrd MOC.mol2 parm MOC.mol2 name MOC
-\end_layout
-
-\begin_layout LyX-Code
-dataset connect MOC tailmask @O5
-\end_layout
-
-\begin_layout LyX-Code
-parm CNALA.mol2 
-\end_layout
-
-\begin_layout LyX-Code
-loadcrd CNALA.mol2 parm CNALA.mol2 name CNALA
-\end_layout
-
-\begin_layout LyX-Code
-dataset connect CNALA headmask @N
-\end_layout
-
-\begin_layout LyX-Code
-sequence MOC CNALA name Mol
-\end_layout
-
-\begin_layout LyX-Code
-crdout Mol Mol.mol2
 \end_layout
 
 \begin_layout Subsection
