@@ -6411,6 +6411,1120 @@ nolink "false"
 \end_layout
 
 \begin_layout Section
+System Build and Parameterization Commands
+\begin_inset CommandInset label
+LatexCommand label
+name "sec:Cpptraj-System-Build"
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+As of version 7.0,
+ CPPTRAJ has the ability to create full coordinates and Amber Topology files for MD simulations.
+\end_layout
+
+\begin_layout Standard
+The following build and parameterization commands are available:
+\end_layout
+
+\begin_layout Standard
+\begin_inset Tabular
+<lyxtabular version="3" rows="4" columns="2">
+<features tabularvalignment="middle">
+<column alignment="center" valignment="top" width="50text%">
+<column alignment="center" valignment="top" width="25text%">
+<row>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\series bold
+Command
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\series bold
+Description
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+build
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Fully build and parameterize a COORDS set or input file using template libraries and force field parameter sets.
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+sequence
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Create and parameterize a COORDS set using specified residues from template libraries and force field parameter sets.
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+source
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Limited version of the LEaP 'source' command,
+ intended to load Amber force field 
+\begin_inset Quotes eld
+\end_inset
+
+leaprc
+\begin_inset Quotes erd
+\end_inset
+
+ files.
+\end_layout
+
+\end_inset
+</cell>
+</row>
+</lyxtabular>
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsection
+build
+\begin_inset CommandInset label
+LatexCommand label
+name "subsec:cpptraj-build"
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout LyX-Code
+build [name <output COORDS>] {crdset <COORDS set>|<file>} [{frame <#>|doassembly}]
+\end_layout
+
+\begin_layout LyX-Code
+	[nowat [watermask <watermask>] [noh]
+\end_layout
+
+\begin_layout LyX-Code
+	[keepaltloc {<alt loc ID>|highestocc}]
+\end_layout
+
+\begin_layout LyX-Code
+	[stripmask <stripmask>]
+\end_layout
+
+\begin_layout LyX-Code
+	[title <title>] [verbose <#>] [keepmissingatoms] [nofixorder]
+\end_layout
+
+\begin_layout LyX-Code
+	[parmout <topology file>] [crdout <coord file>] [simplecheck]
+\end_layout
+
+\begin_layout LyX-Code
+	[gb {bondi|amber6|mbondi|pbamber|mbondi2|parse|mbondi3}]
+\end_layout
+
+\begin_deeper
+\begin_layout Standard
+LJ 12-6-4 options:
+\end_layout
+
+\end_deeper
+\begin_layout LyX-Code
+	[lj1264 [lj1264mask <mask>] [tunfactor <fac>] [c4file <c4file>] [polfile <polfile>]
+\end_layout
+
+\begin_layout LyX-Code
+    [lj1264solvent <solvent>]]
+\end_layout
+
+\begin_deeper
+\begin_layout Standard
+Atom Scan direction:
+\end_layout
+
+\end_deeper
+\begin_layout LyX-Code
+	[atomscandir {f|b}]
+\end_layout
+
+\begin_deeper
+\begin_layout Standard
+Residue Templates and Parameters to use:
+\end_layout
+
+\end_deeper
+\begin_layout LyX-Code
+	[{lib <template setname>} ...]
+\end_layout
+
+\begin_layout LyX-Code
+	[{parmset <parameter setname>} ...]
+\end_layout
+
+\begin_deeper
+\begin_layout Standard
+Solvation/box:
+\end_layout
+
+\end_deeper
+\begin_layout LyX-Code
+	[{{solvatebox|solvateoct} {buffer <buffer> | bufx <bufx> bufy <bufy> bufz <bufz> |
+\end_layout
+
+\begin_layout LyX-Code
+                               nsolvent <#>}
+\end_layout
+
+\begin_layout LyX-Code
+	          solventbox <unit> [closeness <closeness>] [{iso|aniso}] [nocenter] |
+\end_layout
+
+\begin_layout LyX-Code
+	  setbox [{buffer <buffer> | bufx <bufx> bufy <bufy> bufz <bufz>}]}]
+\end_layout
+
+\begin_deeper
+\begin_layout Standard
+Adding ions:
+\end_layout
+
+\end_deeper
+\begin_layout LyX-Code
+	[addionsrand ion1 <name1> nion1 <num1> [ion2 <name2> nion2 <num2>]
+\end_layout
+
+\begin_layout LyX-Code
+	  [minsep <dist>] [ionseed <seed>]]
+\end_layout
+
+\begin_deeper
+\begin_layout Standard
+
+\series bold
+\emph on
+prepareforleap
+\series default
+\emph default
+ options:
+\end_layout
+
+\end_deeper
+\begin_layout LyX-Code
+	[{nohisdetect |
+\end_layout
+
+\begin_layout LyX-Code
+	  [nd1 <nd1>] [ne2 <ne2] [hisname <his>] [hiename <hie>]
+\end_layout
+
+\begin_layout LyX-Code
+	  [hidname <hid>] [hipname <hip]} [defaulthis <default>]]
+\end_layout
+
+\begin_layout LyX-Code
+	[{nodisulfides |
+\end_layout
+
+\begin_layout LyX-Code
+	  existingdisulfides |
+\end_layout
+
+\begin_layout LyX-Code
+	  [cysmask <cysmask>] [disulfidecut <cut>] [newcysname <name>]}]
+\end_layout
+
+\begin_layout LyX-Code
+	[{nosugars |
+\end_layout
+
+\begin_layout LyX-Code
+	  sugarmask <sugarmask> [noc1search] [nosplitres]
+\end_layout
+
+\begin_layout LyX-Code
+	  [rescut <residue cutoff>] [bondoffset <offset>]
+\end_layout
+
+\begin_layout LyX-Code
+	  [resmapfile <file>]
+\end_layout
+
+\begin_layout LyX-Code
+	  [hasglycam] [determinesugarsby {geom|name}]
+\end_layout
+
+\begin_layout LyX-Code
+	 }]
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+[name
+\begin_inset space ~
+\end_inset
+
+<OUTPUT
+\begin_inset space ~
+\end_inset
+
+COORDS>] Optional name of the output COORDS set to create.
+ If not specified the input structure will be altered.
+\end_layout
+
+\begin_layout Description
+{crdset
+\begin_inset space ~
+\end_inset
+
+<COORDS
+\begin_inset space ~
+\end_inset
+
+set>|<file>} REQUIRED.
+ Name of the input COORDS set to build,
+ or name of the input file to build directly.
+ The input 
+\series bold
+<file>
+\series default
+ if specified must be a format that contains some topology information (like atom names and residue numbers).
+\end_layout
+
+\begin_layout Description
+[{frame
+\begin_inset space ~
+\end_inset
+
+<#>|doassembly}] If the input structure contains multiple frames/models,
+ specify the one to use with 
+\series bold
+frame
+\series default
+,
+ or if the frames/models are part of an assembly 
+\series bold
+doassembly
+\series default
+ will put them all into a single output structure.
+\end_layout
+
+\begin_layout Description
+[nowat] Remove any input residues identified as solvent (by watermask).
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+[watermask
+\begin_inset space ~
+\end_inset
+
+<watermask>] Mask for identifying input residues as solvent;
+ default 
+\begin_inset Quotes eld
+\end_inset
+
+:HOH
+\begin_inset Quotes erd
+\end_inset
+
+.
+\end_layout
+
+\end_deeper
+\begin_layout Description
+[noh] Remove any input atoms identified as hydrogen.
+\end_layout
+
+\begin_layout Description
+[keepaltloc
+\begin_inset space ~
+\end_inset
+
+{<alt
+\begin_inset space ~
+\end_inset
+
+loc
+\begin_inset space ~
+\end_inset
+
+ID>|highestocc}] When input atoms have alternate location specifiers,
+ specify how to choose.
+ If 
+\series bold
+highestocc
+\series default
+ is specified and input coordinates includes occupancy,
+ choose the atom with the highest occupancy.
+ Otherwise use the specified alternate location identifier.
+\end_layout
+
+\begin_layout Description
+[stripmask
+\begin_inset space ~
+\end_inset
+
+<stripmask>] If specified,
+ remove input atoms selected by 
+\series bold
+<stripmask>
+\series default
+.
+\end_layout
+
+\begin_layout Description
+[title
+\begin_inset space ~
+\end_inset
+
+<title>] Optional title to give the output topology.
+\end_layout
+
+\begin_layout Description
+[verbose
+\begin_inset space ~
+\end_inset
+
+<#>] Parameter assignment verbosity;
+ higher values will provide more output.
+\end_layout
+
+\begin_layout Description
+[keepmissingatoms] By default,
+ input atoms not found in residue templates will be removed.
+ If this option is specified those atoms will be kept (like LEaP).
+\end_layout
+
+\begin_layout Description
+[nofixorder] By default,
+ CPPTRAJ will rearrange atoms so that atoms in the same molecule are contiguous.
+ If this option is specified no rearrangement will occur.
+\end_layout
+
+\begin_layout Description
+[parmout
+\begin_inset space ~
+\end_inset
+
+<topology
+\begin_inset space ~
+\end_inset
+
+file>] Name of the output topology file.
+\end_layout
+
+\begin_layout Description
+[crdout
+\begin_inset space ~
+\end_inset
+
+<coord
+\begin_inset space ~
+\end_inset
+
+file>] Name of the output coordinates file.
+ Format can be chosen based on filename extension.
+\end_layout
+
+\begin_layout Description
+[gb
+\begin_inset space ~
+\end_inset
+
+{bondi|amber6|mbondi|pbamber|mbondi2|parse|mbondi3}] Select with GB radii set to use.
+ Default is mbondi.
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+bondi Bondi radii.
+\end_layout
+
+\begin_layout Description
+amber6 Amber6 modified Bondi radii.
+\end_layout
+
+\begin_layout Description
+mbondi Modified Bondi radii (default).
+\end_layout
+
+\begin_layout Description
+pbamber Huo and Kollman optimized radii.
+\end_layout
+
+\begin_layout Description
+mbondi2 H(N)-modified Bondi radii.
+\end_layout
+
+\begin_layout Description
+parse PARSE radii.
+\end_layout
+
+\begin_layout Description
+mbondi3 ArgH and AspGluO modified Bondi2 radii.
+\end_layout
+
+\end_deeper
+\begin_layout Standard
+LJ 12-6-4 options:
+\end_layout
+
+\begin_layout Description
+[lj1264] Option to activate LJ 12-6-4 parameters.
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+[lj1264mask
+\begin_inset space ~
+\end_inset
+
+<mask>] Mask of atoms to assign LJ 12-6-4 parameters to (default 
+\begin_inset Quotes eld
+\end_inset
+
+:ZN
+\begin_inset Quotes erd
+\end_inset
+
+).
+\end_layout
+
+\begin_layout Description
+[tunfactor
+\begin_inset space ~
+\end_inset
+
+<fac>] Scaling factor to adjust interaction between two different ions (default 1.0).
+\end_layout
+
+\begin_layout Description
+[c4file
+\begin_inset space ~
+\end_inset
+
+<c4file>] File containing C4 parameters for each element.
+ If not specified,
+ use default parameters for whatever solvent model is in use.
+\end_layout
+
+\begin_layout Description
+[polfile
+\begin_inset space ~
+\end_inset
+
+<polfile>] File containing polarizabilities for each atom type.
+ Default is '$AMBERHOME/dat/leap/parm/lj_1264_pol.dat'.
+\end_layout
+
+\begin_layout Description
+[lj1264solvent
+\begin_inset space ~
+\end_inset
+
+<solvent>]] Name of water box unit containing water model to set up for.
+ If not specified,
+ 'build' will try to guess based on the specified solvent box.
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+TIP3PBOX TIP3P water model.
+\end_layout
+
+\begin_layout Description
+TIP4PEWBOX TIP4P Ewald water model.
+\end_layout
+
+\begin_layout Description
+SPCBOX SPC Ewald water model.
+\end_layout
+
+\begin_layout Description
+OPC3BOX OPC 3 point water model.
+\end_layout
+
+\begin_layout Description
+OPCBOX OPC 4 point water model.
+\end_layout
+
+\begin_layout Description
+FB3BOX FB3 water model.
+\end_layout
+
+\begin_layout Description
+FB4BOX FB4 water model.
+\end_layout
+
+\end_deeper
+\end_deeper
+\begin_layout Standard
+Atom Scan direction:
+\end_layout
+
+\begin_layout Description
+[atomscandir
+\begin_inset space ~
+\end_inset
+
+{f|b}] Mostly intended for debugging when compared to LEaP.
+ LEaP generates bond/angle/dihedral lists within residues differently depending on where the residue was read from.
+ For PDBs the scanning goes from back to front ('
+\series bold
+b
+\series default
+'),
+ while for Mol2s the scanning is from front to back ('
+\series bold
+f
+\series default
+').
+ In CPPTRAJ the default scan direction is back to front since the assumption is that most systems built with LEaP have been read in from PDB files.
+\end_layout
+
+\begin_layout Standard
+Residue templates and Parameters to use:
+\end_layout
+
+\begin_layout Description
+[{lib
+\begin_inset space ~
+\end_inset
+
+<template
+\begin_inset space ~
+\end_inset
+
+setname>}
+\begin_inset space ~
+\end_inset
+
+...] Name of residue template set(s) to use.
+ If not specified use all loaded templates.
+ Can be specified multiple times.
+\end_layout
+
+\begin_layout Description
+[{parmset
+\begin_inset space ~
+\end_inset
+
+<parameter
+\begin_inset space ~
+\end_inset
+
+setname>}
+\begin_inset space ~
+\end_inset
+
+...] Name of parameters set(s) to use.
+ If not specified use all loaded parameters.
+ Can be specified multiple times.
+\end_layout
+
+\begin_layout Standard
+Solvation/box:
+\end_layout
+
+\begin_layout Description
+solvatebox|solvateoct Solvate the system in either an orthorhombic or truncated octadedral box.
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+buffer
+\begin_inset space ~
+\end_inset
+
+<buffer>
+\begin_inset space ~
+\end_inset
+
+|
+\begin_inset space ~
+\end_inset
+
+bufx
+\begin_inset space ~
+\end_inset
+
+<bufx>
+\begin_inset space ~
+\end_inset
+
+bufy
+\begin_inset space ~
+\end_inset
+
+<bufy>
+\begin_inset space ~
+\end_inset
+
+bufz
+\begin_inset space ~
+\end_inset
+
+<bufz> Buffer distance (in Angstroms) between solute and the edge of the box.
+ Can either specify one uniform value or separate X Y and Z values.
+ The separate X Y and Z values will not work for truncated octahedrons.
+\end_layout
+
+\begin_layout Description
+nsolvent
+\begin_inset space ~
+\end_inset
+
+<#> EXPERIMENTAL.
+ Instead of a buffer,
+ specify a target number of waters to solvate the system with.
+\end_layout
+
+\end_deeper
+\begin_layout Description
+	solventbox
+\begin_inset space ~
+\end_inset
+
+<unit> Name of the solvent box to use (e.g.
+ OPCBOX,
+ TIP4PEWBOX,
+ SPCBOX etc).
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+[closeness
+\begin_inset space ~
+\end_inset
+
+<closeness>] Specify how close solute and solvent are allowed to get (in Angstroms).
+ Default is 1.0.
+\end_layout
+
+\begin_layout Description
+[{iso|aniso}] Specify if solute should be treated as isotropic (centered and aligned along principal axes) before solvating or not.
+ Note that 
+\series bold
+solvatebox
+\series default
+ is default 
+\series bold
+aniso
+\series default
+,
+ while 
+\series bold
+solvateoct
+\series default
+ is default 
+\series bold
+iso
+\series default
+.
+\end_layout
+
+\begin_layout Description
+[nocenter] If specified,
+ do not center system in the center of the solvent box after solvating.
+\end_layout
+
+\end_deeper
+\begin_layout Description
+setbox
+\begin_inset space ~
+\end_inset
+
+[{buffer
+\begin_inset space ~
+\end_inset
+
+<buffer>
+\begin_inset space ~
+\end_inset
+
+|
+\begin_inset space ~
+\end_inset
+
+bufx
+\begin_inset space ~
+\end_inset
+
+<bufx>
+\begin_inset space ~
+\end_inset
+
+bufy
+\begin_inset space ~
+\end_inset
+
+<bufy>
+\begin_inset space ~
+\end_inset
+
+bufz
+\begin_inset space ~
+\end_inset
+
+<bufz>}] If this is specified,
+ do not solvate,
+ just create an orthorhombic box with the given buffer.
+\end_layout
+
+\begin_layout Standard
+Adding ions:
+\end_layout
+
+\begin_layout Description
+addionsrand Add specified number of ions to the system.
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+ion1
+\begin_inset space ~
+\end_inset
+
+<name1>
+\begin_inset space ~
+\end_inset
+
+nion1
+\begin_inset space ~
+\end_inset
+
+<num1> Residue name of the first ion to use along with the number of ions to add.
+ If a number of 0 is specified a number of ions required to neutralize the system will be added (if the system charge and ion charges are opposite).
+\end_layout
+
+\begin_layout Description
+[ion2
+\begin_inset space ~
+\end_inset
+
+<name2>
+\begin_inset space ~
+\end_inset
+
+nion2
+\begin_inset space ~
+\end_inset
+
+<num2>] Optional residue name of second ion to use along with number of ions to add.
+ If a number of 0 is specified a number of ions required to neutralize the system will be added,
+ factoring in ions added by 
+\series bold
+ion1
+\series default
+ (and again if the system charge and ion charges are opposite).
+\end_layout
+
+\begin_layout Description
+[minsep
+\begin_inset space ~
+\end_inset
+
+<dist>] Minimum separation between any two ions in Angstroms.
+\end_layout
+
+\begin_layout Description
+[ionseed
+\begin_inset space ~
+\end_inset
+
+<seed>]] Random number generator seed to use (default is system time).
+\end_layout
+
+\end_deeper
+\begin_layout Standard
+
+\series bold
+\emph on
+prepareforleap
+\series default
+\emph default
+ options:
+ See 
+\begin_inset CommandInset ref
+LatexCommand vref
+reference "subsec:cpptraj-prepareforleap"
+plural "false"
+caps "false"
+noprefix "false"
+nolink "false"
+
+\end_inset
+
+
+\end_layout
+
+\end_deeper
+\begin_layout Standard
+Build the full coordinates and topology of a system for MD simulations using residue templates and force field parameters,
+ including CMAP and LJ 12-6-4 parameters.
+ Also includes the ability to add explicit solvent and ions,
+ including the ability to solvate with a target number of water molecules.
+ This command effectively includes `
+\series bold
+\emph on
+prepareforleap
+\series default
+\emph default
+`,
+ `
+\series bold
+\emph on
+checkstructure
+\series default
+\emph default
+`,
+ and `
+\series bold
+\emph on
+fixatomorder
+\series default
+\emph default
+` functionality.
+ If the 
+\series bold
+'doassembly'
+\series default
+ keyword is specified it can create macromolecular assemblies from PDBs with multiple models.
+\end_layout
+
+\begin_layout Subsection
+sequence
+\end_layout
+
+\begin_layout LyX-Code
+sequence name <output set name> <unit0> <unit1> ...
+ [verbose <#>]
+\end_layout
+
+\begin_layout LyX-Code
+	[gb {bondi|amber6|mbondi|pbamber|mbondi2|parse|mbondi3}]
+\end_layout
+
+\begin_layout LyX-Code
+	[atomscandir {f|b}]
+\end_layout
+
+\begin_layout LyX-Code
+	[{lib <template setname>} ...]
+\end_layout
+
+\begin_layout LyX-Code
+	[{parmset <parameter setname>} ...]
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+name
+\begin_inset space ~
+\end_inset
+
+<output
+\begin_inset space ~
+\end_inset
+
+set
+\begin_inset space ~
+\end_inset
+
+name> Name of output COORDS set.
+\end_layout
+
+\begin_layout Description
+<unit0>
+\begin_inset space ~
+\end_inset
+
+<unit1>
+\begin_inset space ~
+\end_inset
+
+...
+ Names of the residues/units to connect together in sequence.
+\end_layout
+
+\begin_layout Description
+[verbose
+\begin_inset space ~
+\end_inset
+
+<#>] Parameter assignment verbosity;
+ higher values will provide more output.
+\end_layout
+
+\begin_layout Description
+[gb
+\begin_inset space ~
+\end_inset
+
+{bondi|amber6|mbondi|pbamber|mbondi2|parse|mbondi3}] Select with GB radii set to use.
+ Default is mbondi.
+ See 
+\begin_inset CommandInset ref
+LatexCommand vref
+reference "subsec:cpptraj-build"
+plural "false"
+caps "false"
+noprefix "false"
+nolink "false"
+
+\end_inset
+
+ for specific details on the GB radii set keywords.
+\end_layout
+
+\begin_layout Description
+[atomscandir
+\begin_inset space ~
+\end_inset
+
+{f|b}] Mostly intended for debugging when compared to LEaP.
+ See 
+\begin_inset CommandInset ref
+LatexCommand vref
+reference "subsec:cpptraj-build"
+plural "false"
+caps "false"
+noprefix "false"
+nolink "false"
+
+\end_inset
+
+ for specific details on the atom scan direction.
+\end_layout
+
+\begin_layout Description
+[{lib
+\begin_inset space ~
+\end_inset
+
+<template
+\begin_inset space ~
+\end_inset
+
+setname>}
+\begin_inset space ~
+\end_inset
+
+...] Name of residue template set(s) to use.
+ If not specified use all loaded templates.
+ Can be specified multiple times.
+\end_layout
+
+\begin_layout Description
+[{parmset
+\begin_inset space ~
+\end_inset
+
+<parameter
+\begin_inset space ~
+\end_inset
+
+setname>}
+\begin_inset space ~
+\end_inset
+
+...] Name of parameters set(s) to use.
+ If not specified use all loaded parameters.
+ Can be specified multiple times.
+\end_layout
+
+\end_deeper
+\begin_layout Standard
+Create a molecule from a sequence of units.
+ If parameter sets are loaded,
+ parameters will be assigned to <output set name>.
+\end_layout
+
+\begin_layout Subsection
+source
+\end_layout
+
+\begin_layout LyX-Code
+source <filename>
+\end_layout
+
+\begin_layout Standard
+Process <filename> as a leaprc file,
+ mostly intended for loading force field parameters from Amber leaprc files.
+ If AMBERHOME is set CPPTRAJ will look for leaprc files in $AMBERHOME/dat/leap/cmd,
+ otherwise the full path must be specified.
+\end_layout
+
+\begin_layout Standard
+Supported leap commands:
+ addatomtypes,
+ addpath,
+ addpdbatommap,
+ addpdbresmap,
+ loadamberparams,
+ loadamberprep,
+ loadmol2,
+ loadoff,
+ loadpdb,
+ quit,
+ saveamberparm,
+ set,
+ source.
+\end_layout
+
+\begin_layout Section
 Coordinates (COORDS) Data Set Commands
 \begin_inset CommandInset label
 LatexCommand label
@@ -8533,6 +9647,13 @@ permutedihedrals crdset [TZ2] random rseed 1 check maxfactor 10 phi psi
 
 \begin_layout Subsection
 prepareforleap
+\begin_inset CommandInset label
+LatexCommand label
+name "subsec:cpptraj-prepareforleap"
+
+\end_inset
+
+
 \end_layout
 
 \begin_layout LyX-Code
