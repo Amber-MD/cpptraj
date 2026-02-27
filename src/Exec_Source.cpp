@@ -5,7 +5,12 @@
 // Exec_Source::Help()
 void Exec_Source::Help() const
 {
-
+  mprintf("\t<filename>\n"
+          " Process <filename> as a leaprc file, mostly intended for loading\n"
+          " force field parameters from Amber leaprc files. If AMBERHOME\n"
+          " is set CPPTRAJ will look for leaprc files in\n"
+          " $AMBERHOME/dat/leap/cmd, otherwise the full path must be specified.\n");
+  DataIO_LeapRC::PrintSupportedLeapCommands();
 }
 
 // Exec_Source::Execute()

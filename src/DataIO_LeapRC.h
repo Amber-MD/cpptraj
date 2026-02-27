@@ -16,6 +16,8 @@ class DataIO_LeapRC : public DataIO {
     int processWriteArgs(ArgList&);
     int WriteData(FileName const&, DataSetList const&);
     bool ID_DataFormat(CpptrajFile&);
+
+    static void PrintSupportedLeapCommands();
   private:
     /// Store atom type hybridization and element from leaprc addAtomTypes
     class LeapEltHybrid {

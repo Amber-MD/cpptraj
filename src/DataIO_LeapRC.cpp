@@ -43,6 +43,13 @@ DataIO_LeapRC::LeapEltHybrid& DataIO_LeapRC::LeapEltHybrid::operator=(const Leap
   return *this;
 }
 
+/** Print a list of supported leap commands to stdout. */
+void DataIO_LeapRC::PrintSupportedLeapCommands() {
+  mprintf("  Supported leap commands: addatomtypes, addpath, addpdbatommap, addpdbresmap,\n"
+          "                           loadamberparams, loadamberprep, loadmol2, loadoff,\n"
+          "                           loadpdb, quit, saveamberparm, set, source\n");
+}
+
 /// \return true if not equal.
 bool DataIO_LeapRC::LeapEltHybrid::operator!=(const LeapEltHybrid& rhs) const {
   return ( hybrid_ != rhs.hybrid_ ||
