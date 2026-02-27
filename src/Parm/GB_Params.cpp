@@ -33,7 +33,7 @@ static const char* GB_RadiiAmberFlag_[] = {
   "H(N)-modified Bondi radii (mbondi2)",              // 6
   "Parse radii (parse)",                              // 7
   "ArgH and AspGluO modified Bondi2 radii (mbondi3)", // 8
-  "Unknown radius set (leap needs to be modified!)"
+  "Unknown radius set (cpptraj needs to be modified!)"
 };
 
 /** \return key corresponding to type. */
