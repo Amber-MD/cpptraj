@@ -6,6 +6,10 @@ class CharMask;
 class EwaldOptions;
 class Topology;
 namespace Cpptraj {
+/** @brief The namespace that all energy-related classes should be in.
+  *
+  * Namespace for all classes and functions related to calculating energy/forces.
+  */
 namespace Energy {
 class EwaldCalc;
 /// Calculate nonbonded energy for atoms

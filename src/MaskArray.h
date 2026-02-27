@@ -4,6 +4,13 @@
 // Forward declarations
 class Topology;
 class AtomMask;
+/** @brief The main Cpptraj namespace.
+  *
+  * This is the namespace that all CPPTRAJ classes should be in.
+  * NOTE: When CPPTRAJ was first developed, classes were not in any particular
+  *       namespace. Since it conflicts with the Cpptraj class, care should
+  *       be taken when putting new classes in the Cpptraj namespace.
+  */
 namespace Cpptraj {
 
 /// Hold array of atom masks, intended for 'bymol' or 'byres' type selection

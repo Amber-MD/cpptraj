@@ -1,6 +1,11 @@
 #ifndef INC_PARM_PARMENUM_H
 #define INC_PARM_PARMENUM_H
 namespace Cpptraj {
+/** @brief Namespace containing classes related to parameters.
+  *
+  * This namespace contains classes/functions related to assigning, updating, and
+  * manipulating paramters.
+  */
 namespace Parm {
   enum RetType { ADDED = 0, SAME, UPDATED, ERR };
 
