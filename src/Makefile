@@ -155,6 +155,10 @@ findDepend: FindDepend.cpp FindDepend.o
 	$(CXX) -o findDepend FindDepend.o
 
 depend: findDepend
+	cd Cluster && $(MAKE) depend
+	cd Structure && $(MAKE) depend
+	cd Parm && $(MAKE) depend
+	cd Energy && $(MAKE) depend
 	./findDepend $(SOURCES) $(CSOURCES) $(CLUSTER_SOURCEFILES) $(STRUCTURE_SOURCEFILES) $(PARM_SOURCEFILES) $(ENERGY_SOURCEFILES) > cpptrajdepend
 
 dependclean:
