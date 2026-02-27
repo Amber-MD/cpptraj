@@ -27,6 +27,8 @@ New functionality
 
 - The `energy` command will now calculate CMAP energies (if CMAP parameters are present) and/or LJ 12-6-4 contributions to VDW energy (if `lj1264` is specified).
 
+- The `sequence` command now generates better geometries around bonds linking residues.
+
 New Keywords
 ============
 - Introduce ring intersection check to `checkstructure` action.
