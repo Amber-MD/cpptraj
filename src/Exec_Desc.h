@@ -4,7 +4,7 @@
 /// <Enter description of Exec_Desc here>
 class Exec_Desc : public Exec {
   public:
-    Exec_Desc() : Exec(PARM) {}
+    Exec_Desc();
     void Help() const;
     DispatchObject* Alloc() const { return (DispatchObject*)new Exec_Desc(); }
     RetType Execute(CpptrajState&, ArgList&);

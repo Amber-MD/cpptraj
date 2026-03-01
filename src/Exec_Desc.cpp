@@ -1,6 +1,11 @@
 #include "Exec_Desc.h"
 #include "CpptrajStdio.h"
 
+/** CONSTRUCTOR */
+Exec_Desc::Exec_Desc() : Exec(PARM) {
+  SetHidden(true);
+}
+
 int Exec_Desc::desc_atom(Topology const& topIn, int iat) {
   Atom const& AT = topIn[iat];
 

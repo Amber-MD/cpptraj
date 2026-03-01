@@ -311,7 +311,7 @@ void Command::Init() {
   Command::AddCmd( new Exec_Change(),        Cmd::EXE, 1, "change" );
   Command::AddCmd( new Exec_ChargeInfo(),    Cmd::EXE, 1, "charge" );
   Command::AddCmd( new Exec_CompareTop(),    Cmd::EXE, 1, "comparetop" );
-  Command::AddCmd( new Exec_Desc(),          Cmd::EXE, 1, "desc" );
+  Command::AddCmd( new Exec_Desc(),          Cmd::EXE, 1, "desc" ); // HIDDEN
   Command::AddCmd( new Exec_DihedralInfo(),Cmd::EXE, 3,"dihedrals","dihedralinfo","printdihedrals");
   Command::AddCmd( new Exec_HmassRepartition(),Cmd::EXE, 1, "hmassrepartition" );
   Command::AddCmd( new Exec_ImproperInfo(),Cmd::EXE, 3,"impropers","improperinfo","printimpropers");
