@@ -6599,6 +6599,73 @@ nolink "false"
 ).
 \end_layout
 
+\begin_layout Subsection
+Amber prep file options
+\end_layout
+
+\begin_layout Subsubsection*
+Read
+\end_layout
+
+\begin_layout LyX-Code
+[keepdummyatoms]
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+keepdummyatoms Keep dummy atoms instead of removing them.
+\end_layout
+
+\end_deeper
+\begin_layout Subsection
+Amber Library (OFF) file options
+\end_layout
+
+\begin_layout Subsubsection*
+Read
+\end_layout
+
+\begin_layout LyX-Code
+[allowoverwrite]
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+allowoverwrite If specified,
+ allow existing sets to be overwritten.
+\end_layout
+
+\end_deeper
+\begin_layout Subsection
+Amber Parameter (main force field) file options
+\end_layout
+
+\begin_layout Subsubsection*
+Read
+\end_layout
+
+\begin_layout LyX-Code
+[nbset <nonbond set name>]
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+nbset
+\begin_inset space ~
+\end_inset
+
+<nonbond
+\begin_inset space ~
+\end_inset
+
+set
+\begin_inset space ~
+\end_inset
+
+name> Nonbonded set name to use when multiple nonbond parameters sets are present.
+\end_layout
+
+\end_deeper
 \begin_layout Section
 System Build and Parameterization Commands
 \begin_inset CommandInset label
