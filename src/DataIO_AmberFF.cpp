@@ -23,7 +23,7 @@ bool DataIO_AmberFF::ID_DataFormat(CpptrajFile& infile)
 // DataIO_AmberFF::ReadHelp()
 void DataIO_AmberFF::ReadHelp()
 {
-  mprintf("\tnbset <nonbond set name> : Nonbonded set name to use when multiple nonbond parameter sets.\n");
+  mprintf("\tnbset <nonbond set name> : Nonbonded set name to use when multiple nonbond parameter sets are present.\n");
 }
 
 // DataIO_AmberFF::processReadArgs()
