@@ -7620,6 +7620,56 @@ fixatomorder
  keyword is specified it can create macromolecular assemblies from PDBs with multiple models.
 \end_layout
 
+\begin_layout Subsubsection*
+Example - Solvate and add ions,
+ system charge not known a priori
+\end_layout
+
+\begin_layout Standard
+This example loads a PDB as a COORDS data set,
+ then builds it and generates a topology and restart file.
+ Solvent is added with a 10 Angstrom buffer,
+ and enough Na+ or Cl- ions are added to neutralize the system depending on what the solute charge is.
+\end_layout
+
+\begin_layout LyX-Code
+source leaprc.protein.ff19SB
+\end_layout
+
+\begin_layout LyX-Code
+source leaprc.water.opc
+\end_layout
+
+\begin_layout LyX-Code
+parm 6g37.pdb 
+\end_layout
+
+\begin_layout LyX-Code
+loadcrd 6g37.pdb name MyMol
+\end_layout
+
+\begin_layout LyX-Code
+build crdset MyMol name Out title 6g37 
+\backslash
+
+\end_layout
+
+\begin_layout LyX-Code
+  parmout cpptraj.parm7 crdout cpptraj.rst7 
+\backslash
+
+\end_layout
+
+\begin_layout LyX-Code
+  solvateoct solventbox TIP3PBOX buffer 10.0 
+\backslash
+
+\end_layout
+
+\begin_layout LyX-Code
+  addionsrand ion1 Na+ nion1 0 ion2 Cl- nion2 0
+\end_layout
+
 \begin_layout Subsection
 sequence
 \begin_inset CommandInset label
