@@ -3,7 +3,8 @@
 . ../MasterTest.sh
 
 CleanFiles cpptraj.in zmatrix.dat zmatrix.0SB.dat fromZmatrix.0SB.mol2 \
-           zmatrix.MEX.dat fromZmatrix.MEX.mol2
+           zmatrix.MEX.dat fromZmatrix.MEX.mol2 zmatrix.MEX.complete.dat \
+           zmatrix.0SB.complete.dat
 
 INPUT='-i cpptraj.in'
 
@@ -23,12 +24,14 @@ Sugar() {
   cat > cpptraj.in <<EOF
 parm 0SB.mol2
 loadcrd 0SB.mol2 name 0SB
+zmatrix 0SB complete out zmatrix.0SB.complete.dat name MyC
 zmatrix 0SB out zmatrix.0SB.dat name MyZ
 zmatrix 0SB zset MyZ name MyCrd
 crdout MyCrd fromZmatrix.0SB.mol2
 EOF
   RunCpptraj "$TESTNAME, Sugar"
   DoTest zmatrix.0SB.dat.save zmatrix.0SB.dat
+  DoTest zmatrix.0SB.complete.dat.save zmatrix.0SB.complete.dat
   DoTest 0SB.mol2 fromZmatrix.0SB.mol2
 }
 
@@ -36,6 +39,7 @@ MEX() {
   cat > cpptraj.in <<EOF
 parm MEX.mol2
 loadcrd MEX.mol2 name MEX
+#zmatrix complete MEX out zmatrix.MEX.complete.dat name MyComplete
 zmatrix MEX out zmatrix.MEX.dat name MyZ
 zmatrix MEX zset MyZ name MyCrd
 crdout MyCrd fromZmatrix.MEX.mol2
