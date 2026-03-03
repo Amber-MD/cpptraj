@@ -22055,6 +22055,10 @@ keepext Keep filename extension;
  write '<name>.<num>.<ext>' instead (implies 'multi').
 \end_layout
 
+\begin_layout Description
+atombondorder Sort bonds by first atom index (will produce Mol2 files similar to LEaP).
+\end_layout
+
 \end_deeper
 \begin_layout Subsubsection
 Options for SQM input format:
