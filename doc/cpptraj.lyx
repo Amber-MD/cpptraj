@@ -10278,7 +10278,7 @@ prepareforleap crdset <coords set> [frame <#>] name <out coords set>
 \end_layout
 
 \begin_layout LyX-Code
-                  	[pdbout <pdbfile> [terbymol]]
+                  	[pdbout <pdbfile> [terbymol]] [problemout <file>]
 \end_layout
 
 \begin_layout LyX-Code
@@ -10286,7 +10286,7 @@ prepareforleap crdset <coords set> [frame <#>] name <out coords set>
 \end_layout
 
 \begin_layout LyX-Code
-                  	[skiperrors]
+                  	[skiperrors] [{dlparams|nodlparams}] [{bondunknown|nobondunknown}]
 \end_layout
 
 \begin_layout LyX-Code
@@ -10406,6 +10406,14 @@ set> Output COORDS set containing prepared topology/coordinates.
 
 \end_deeper
 \begin_layout Description
+[problemout
+\begin_inset space ~
+\end_inset
+
+<file>] If specified redirect found problems to <file> instead of stdout.
+\end_layout
+
+\begin_layout Description
 [leapunitname
 \begin_inset space ~
 \end_inset
@@ -10467,6 +10475,34 @@ file> should contain the appropriate 'source' commands for loading the desired f
 [skiperrors] If specified,
  the command will try to ignore any errors encountered.
  Can be useful for debugging.
+\end_layout
+
+\begin_layout Description
+[{dlparams|nodlparams}] If 
+\series bold
+'dlparams'
+\series default
+ is specified,
+ try to download parameters for unknown residues (default is to not do this,
+ 
+\series bold
+'nodlparams'
+\series default
+).
+\end_layout
+
+\begin_layout Description
+[{bondunknown|nobondunknown}] If 
+\series bold
+'bondunknown'
+\series default
+ is specified,
+ try to determine bonds to unknown residues (default is to not do this,
+ 
+\series bold
+'nobondunknown'
+\series default
+).
 \end_layout
 
 \begin_layout Description
