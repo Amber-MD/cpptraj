@@ -2,7 +2,7 @@
 
 . ../MasterTest.sh
 
-CleanFiles cpptraj.in tz2.parm7 tz2.rst7
+CleanFiles cpptraj.in tz2.parm7 tz2.rst7 tz2.coords.parm7 tz2.coords.rst7
 
 TESTNAME='Build tests'
 
@@ -13,12 +13,23 @@ if [ ! -z "$AMBERHOME" ] ; then
   unset AMBERHOME
 fi
 
+UNITNAME='Build test, direct'
 cat > cpptraj.in <<EOF
 source leaprc.protein.ff14SB
 build ../tz2.pdb parmout tz2.parm7 crdout tz2.rst7
 EOF
-RunCpptraj "$TESTNAME"
+RunCpptraj "$UNITNAME"
 DoTest tz2.parm7.save tz2.parm7 -I %VERSION
 DoTest tz2.rst7.save tz2.rst7
+
+UNITNAME='Build test, COORDS'
+cat > cpptraj.in <<EOF
+source leaprc.protein.ff14SB
+readdata ../tz2.pdb as coords name MyCrd
+build crdset MyCrd parmout tz2.coords.parm7 crdout tz2.coords.rst7
+EOF
+RunCpptraj "$UNITNAME"
+DoTest tz2.parm7.save tz2.coords.parm7 -I %VERSION
+DoTest tz2.rst7.save tz2.coords.rst7
 
 EndTest
