@@ -19,6 +19,8 @@ else()
 		set(SM100FLAGS -gencode arch=compute_100,code=sm_100)
 		#SM9.0 = H200
 		set(SM90FLAGS -gencode arch=compute_90,code=sm_90)
+                #SM8.9 = RTX4090
++               set(SM89FLAGS -gencode arch=compute_89,code=sm_89)
 		#SM8.6  -- not currently used, but should be tested on Cuda 11.1
 		set(SM86FLAGS -gencode arch=compute_86,code=sm_86)
 		#SM8.0 = A100
@@ -72,12 +74,12 @@ else()
 			list(APPEND CUDA_NVCC_FLAGS ${SM35FLAGS} ${SM50FLAGS} ${SM52FLAGS} ${SM53FLAGS} ${SM60FLAGS} ${SM61FLAGS} ${SM70FLAGS} ${SM75FLAGS} ${SM80FLAGS} -Wno-deprecated-gpu-targets -Wno-deprecated-declarations)
 
 		elseif((${CUDA_VERSION} VERSION_GREATER_EQUAL 11.8) AND (${CUDA_VERSION} VERSION_LESS 12.7))
-			message(STATUS "Configuring for SM5.0, SM5.2, SM5.3, SM6.0, SM6.1, SM7.0, SM7.5, SM8.0, SM8.6, and SM9.0")
-			list(APPEND CUDA_NVCC_FLAGS ${SM50FLAGS} ${SM52FLAGS} ${SM53FLAGS} ${SM60FLAGS} ${SM61FLAGS} ${SM70FLAGS} ${SM75FLAGS} ${SM80FLAGS} ${SM86FLAGS} ${SM90FLAGS} -Wno-deprecated-gpu-targets -Wno-deprecated-declarations)
+			message(STATUS "Configuring for SM5.0, SM5.2, SM5.3, SM6.0, SM6.1, SM7.0, SM7.5, SM8.0, SM8.6, SM8.9, and SM9.0")
+			list(APPEND CUDA_NVCC_FLAGS ${SM50FLAGS} ${SM52FLAGS} ${SM53FLAGS} ${SM60FLAGS} ${SM61FLAGS} ${SM70FLAGS} ${SM75FLAGS} ${SM80FLAGS} ${SM86FLAGS} ${SM89FLAGS} ${SM90FLAGS} -Wno-deprecated-gpu-targets -Wno-deprecated-declarations)
 
        elseif((${CUDA_VERSION} VERSION_GREATER_EQUAL 12.7) AND (${CUDA_VERSION} VERSION_LESS 12.9))
-           message(STATUS "Configuring for SM7.0, SM7.5, SM8.0, SM8.6, SM9.0, SM10.0 and SM12.0")
-           list(APPEND CUDA_NVCC_FLAGS ${SM70FLAGS} ${SM75FLAGS} ${SM80FLAGS} ${SM86FLAGS} ${SM90FLAGS} ${SM100FLAGS} ${SM120FLAGS} -Wno-deprecated-gpu-targets -Wno-deprecated-declarations)
+           message(STATUS "Configuring for SM7.0, SM7.5, SM8.0, SM8.6, SM8.9, SM9.0, SM10.0 and SM12.0")
+           list(APPEND CUDA_NVCC_FLAGS ${SM70FLAGS} ${SM75FLAGS} ${SM80FLAGS} ${SM86FLAGS} ${SM89FLAGS} ${SM90FLAGS} ${SM100FLAGS} ${SM120FLAGS} -Wno-deprecated-gpu-targets -Wno-deprecated-declarations)
 
 		else()
 			message(FATAL_ERROR "Error: Untested CUDA version. AMBER currently requires CUDA version >= 7.5 and < 12.9.")
