@@ -116,8 +116,8 @@ const
 void Exec_Zmatrix::Help() const
 {
   mprintf("\t<COORDS set name> [name <output set name>]\n"
-          "\t{ zset <input zmatrix set> [parm <top>|parmindex <#>] [complete]|\n"
-          "\t  [molnum <mol#>] [frame <frame#>] [out <zmatrix file>] }\n"
+          "\t{ zset <input zmatrix set> [parm <top>|parmindex <#>]|\n"
+          "\t  [complete] [molnum <mol#>] [frame <frame#>] [out <zmatrix file>] }\n"
           "  If 'zset' is specified, use Z-matrix to generate coordinates using\n"
           "  a specified topology or topology from specified COORDS set;\n"
           "  output is a new COORDS set. If 'complete is specified, generate\n"

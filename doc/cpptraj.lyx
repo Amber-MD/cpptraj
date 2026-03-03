@@ -11129,11 +11129,11 @@ zmatrix <COORDS set name> [name <output set name>]
 \end_layout
 
 \begin_layout LyX-Code
-        { zset <input zmatrix set> [parm <top>|parmindex <#>] |
+        { zset <input zmatrix set> [parm <top>|parmindex <#>]|
 \end_layout
 
 \begin_layout LyX-Code
-          [molnum <mol#>] [frame <frame#>] [out <zmatrix file>] }
+          [complete][molnum <mol#>] [frame <frame#>] [out <zmatrix file>] }
 \end_layout
 
 \begin_deeper
@@ -11199,6 +11199,12 @@ parmindex
 \end_layout
 
 \end_deeper
+\begin_layout Description
+complete If specified,
+ generate all possible internal coordinates,
+ otherwise generate a minimal set.
+\end_layout
+
 \begin_layout Description
 [molnum
 \begin_inset space ~
@@ -17164,7 +17170,7 @@ namemap
 \begin_inset space ~
 \end_inset
 
-<mapset> Change atom names according to the given name map set.
+<mapset> Change atom names from reference name to target name according to the given name map set (#Tgt Ref).
  See 
 \begin_inset CommandInset ref
 LatexCommand vref
