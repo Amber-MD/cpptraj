@@ -9558,6 +9558,19 @@ COORDS> Target coordinates that will be grafted onto.
 \end_deeper
 \begin_layout Description
 [ic] Connect source and target using internal coordinates.
+ If source and target contain CONNECT information (see 
+\begin_inset CommandInset ref
+LatexCommand vref
+reference "subsec:cpptraj-datasetcmd"
+plural "false"
+caps "false"
+noprefix "false"
+nolink "false"
+
+\end_inset
+
+),
+ that will be used to create a bond between source and target if a bond has not otherwise been specified.
 \end_layout
 
 \begin_layout Description
@@ -9633,8 +9646,24 @@ tgtmask
 bond
 \series default
  keyword can be used to create bonds between target and source in the final structure.
- If using internal coordinates to connect the units,
- exactly one bond must be specified.
+ 
+\end_layout
+
+\begin_layout Standard
+If using internal coordinates to connect the units,
+ a bond will be created between the source and target automatically if they contain CONNECT information (see 
+\begin_inset CommandInset ref
+LatexCommand vref
+reference "subsec:cpptraj-datasetcmd"
+plural "false"
+caps "false"
+noprefix "false"
+nolink "false"
+
+\end_inset
+
+).
+ Otherwise exactly one bond must be specified.
 \end_layout
 
 \begin_layout Subsection
@@ -10084,7 +10113,24 @@ crdout
 \series bold
 check
 \series default
- is specified;
+ is specified using the same algorithm used by the 
+\series bold
+\emph on
+check
+\series default
+\emph default
+ action (see 
+\begin_inset CommandInset ref
+LatexCommand vref
+reference "subsec:cpptraj-check"
+plural "false"
+caps "false"
+noprefix "false"
+nolink "false"
+
+\end_inset
+
+);
  in such cases the algorithm will attempt to resolve the clash as best it can.
  If clashes are not being resolved you can increase the number of rotation attempts 
 \family typewriter
@@ -26898,6 +26944,13 @@ center :1 mass
 
 \begin_layout Subsection
 check | checkoverlap | checkstructure
+\begin_inset CommandInset label
+LatexCommand label
+name "subsec:cpptraj-check"
+
+\end_inset
+
+
 \end_layout
 
 \begin_layout LyX-Code
