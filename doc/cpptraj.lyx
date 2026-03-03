@@ -6666,6 +6666,26 @@ name> Nonbonded set name to use when multiple nonbond parameters sets are presen
 \end_layout
 
 \end_deeper
+\begin_layout Subsection
+Amber leaprc file options
+\end_layout
+
+\begin_layout Standard
+For a list of supported LEaP commands in leaprc files,
+ see 
+\begin_inset CommandInset ref
+LatexCommand vref
+reference "subsec:cpptraj-source"
+plural "false"
+caps "false"
+noprefix "false"
+nolink "false"
+
+\end_inset
+
+.
+\end_layout
+
 \begin_layout Section
 System Build and Parameterization Commands
 \begin_inset CommandInset label
@@ -7823,6 +7843,13 @@ crdout Mol Mol.mol2
 
 \begin_layout Subsection
 source
+\begin_inset CommandInset label
+LatexCommand label
+name "subsec:cpptraj-source"
+
+\end_inset
+
+
 \end_layout
 
 \begin_layout LyX-Code
