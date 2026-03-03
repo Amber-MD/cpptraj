@@ -20,7 +20,7 @@ else()
 		#SM9.0 = H200
 		set(SM90FLAGS -gencode arch=compute_90,code=sm_90)
                 #SM8.9 = RTX4090
-+               set(SM89FLAGS -gencode arch=compute_89,code=sm_89)
+                set(SM89FLAGS -gencode arch=compute_89,code=sm_89)
 		#SM8.6  -- not currently used, but should be tested on Cuda 11.1
 		set(SM86FLAGS -gencode arch=compute_86,code=sm_86)
 		#SM8.0 = A100
