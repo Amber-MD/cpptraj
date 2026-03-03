@@ -1,4 +1,5 @@
 Parameter set: This is TIP3P (model F) of Price and Brooks, JCP 121:10096, 2004 
+	Files: frcmod.tip3pf
 Atom Types:
 	  Name  TypeIdx LJ       Radius        Depth         Mass       Polar.
 	    HW        0  1       0.0000       0.0000       1.0080       0.0000

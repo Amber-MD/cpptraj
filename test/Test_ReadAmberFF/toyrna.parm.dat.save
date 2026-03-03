@@ -1,4 +1,5 @@
 Parameter set: toyrna force field
+	Files: toyrna.dat
 Nonbond parameters name: MOD4
 Atom Types:
 	  Name  TypeIdx LJ       Radius        Depth         Mass       Polar.
