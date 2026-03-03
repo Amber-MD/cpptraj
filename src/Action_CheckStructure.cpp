@@ -38,7 +38,7 @@ void Action_CheckStructure::Help() const {
           "  between the bond vector and ring perpendicular vector is less than\n"
           "  <ringacut>.\n"
           "  By default, extra points will be ignored as determined by 'xpmask'; the\n"
-          "  default mask to select extra points is '&@\\XP'. If 'checkxp' is specified\n",
+          "  default mask to select extra points is '&@/XP'. If 'checkxp' is specified\n",
           "  extra points will also be checked.\n"
           "  Warnings will go to the file specified by 'reportfile', STDOUT,\n"
           "  or will be suppressed if 'silent' is specified. If 'skipbadframes'\n"

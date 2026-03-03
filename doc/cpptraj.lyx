@@ -9666,6 +9666,74 @@ nolink "false"
  Otherwise exactly one bond must be specified.
 \end_layout
 
+\begin_layout Standard
+Graft using RMSD and removing atoms.
+\end_layout
+
+\begin_layout LyX-Code
+readdata Tyr.mol2 as coords name TYR
+\end_layout
+
+\begin_layout LyX-Code
+readdata PRY.mol2 as coords name PRY
+\end_layout
+
+\begin_layout LyX-Code
+graft 
+\backslash
+
+\end_layout
+
+\begin_layout LyX-Code
+  tgt TYR 
+\backslash
+
+\end_layout
+
+\begin_layout LyX-Code
+  src PRY 
+\backslash
+
+\end_layout
+
+\begin_layout LyX-Code
+  name Final 
+\backslash
+
+\end_layout
+
+\begin_layout LyX-Code
+  srcfitmask @O1,C5,C6,C4,H6,H5,C7,C3,H7,H4,C2 
+\backslash
+
+\end_layout
+
+\begin_layout LyX-Code
+  tgtfitmask @OH,CZ,CE1,CE2,HE1,HE2,CD1,CD2,HD1,HD2,CG 
+\backslash
+
+\end_layout
+
+\begin_layout LyX-Code
+  srcmask !(@1-4) 
+\backslash
+
+\end_layout
+
+\begin_layout LyX-Code
+  tgtmask @C,O,CA,HA,N,H,CB,HB2,HB3 
+\backslash
+
+\end_layout
+
+\begin_layout LyX-Code
+  bond :1@CB,:1@C2
+\end_layout
+
+\begin_layout LyX-Code
+crdout Final Final.graft.mol2
+\end_layout
+
 \begin_layout Subsection
 loadcrd
 \end_layout
@@ -26982,11 +27050,15 @@ check
 \end_layout
 
 \begin_layout LyX-Code
-       [{noringcheck | [ringshortdist <rsdist>] [ringdcut <ringdcut>]
+      [{noringcheck | [ringshortdist <rsdist>] [ringdcut <ringdcut>]
 \end_layout
 
 \begin_layout LyX-Code
-                       [ringacut <ringacut>]}]
+                      [ringacut <ringacut>]}]
+\end_layout
+
+\begin_layout LyX-Code
+      [{checkxp | xpmask <xpmask>}]
 \end_layout
 
 \begin_deeper
@@ -27106,9 +27178,31 @@ skipbadframes
  (default 65 degrees).
 \end_layout
 
+\begin_layout Description
+[checkxp] If specified,
+ check extra points as well.
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+xpmask
+\begin_inset space ~
+\end_inset
+
+<xpmask> Specify mask to select extra points;
+ default is '&@/XP' (atom element XP).
+\end_layout
+
+\end_deeper
 \end_deeper
 \begin_layout Standard
 Check the structure and report problems related to atomic overlap/unusual bond length/ring-bond intersections.
+ By default extra points are skipped because by design they are quite close to some atoms.
+ The 
+\series bold
+checkxp
+\series default
+ keyword can be specified to check extra points as well.
  Problems are reported when any two atoms in 
 \series bold
 <mask>
