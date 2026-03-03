@@ -3137,7 +3137,7 @@ status open
 \begin_layout Plain Layout
 \align center
 \begin_inset Tabular
-<lyxtabular version="3" rows="26" columns="5">
+<lyxtabular version="3" rows="27" columns="5">
 <features tabularvalignment="middle">
 <column alignment="center" valignment="top" width="20text%">
 <column alignment="center" valignment="top" width="20text%">
@@ -4339,7 +4339,7 @@ Read Only
 </cell>
 </row>
 <row>
-<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
 \begin_inset Text
 
 \begin_layout Plain Layout
@@ -4348,7 +4348,7 @@ Numpy array
 
 \end_inset
 </cell>
-<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
 \begin_inset Text
 
 \begin_layout Plain Layout
@@ -4357,11 +4357,58 @@ Numpy array
 
 \end_inset
 </cell>
-<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
 \begin_inset Text
 
 \begin_layout Plain Layout
 numpy
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+COORDS
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Read Only
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Topology/Coordinates
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Various
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+coords
 \end_layout
 
 \end_inset
@@ -6684,6 +6731,58 @@ nolink "false"
 \end_inset
 
 .
+\end_layout
+
+\begin_layout Subsection
+Coords file options
+\end_layout
+
+\begin_layout Standard
+The 
+\series bold
+\emph on
+readdata
+\series default
+\emph default
+ command can be used to read in a file format that contains Topology 
+\series bold
+and
+\series default
+ Coordinate info (e.g.
+ PDB,
+ Mol2,
+ CIF,
+ etc.).
+ For a list of topology formats recognized by CPPTRAJ see 
+\begin_inset CommandInset ref
+LatexCommand vref
+reference "tab:cpptraj-Topology-formats"
+plural "false"
+caps "false"
+noprefix "false"
+nolink "false"
+
+\end_inset
+
+,
+ and for a list of coordinate formats recognized by CPPTRAJ see 
+\begin_inset CommandInset ref
+LatexCommand vref
+reference "tab:cpptraj-trajformats"
+plural "false"
+caps "false"
+noprefix "false"
+nolink "false"
+
+\end_inset
+
+.
+ For example,
+ to read in a PDB file as COORDS set named 'MyCrd':
+\end_layout
+
+\begin_layout LyX-Code
+readdata Mypdb.pdb as coords name MyCrd
 \end_layout
 
 \begin_layout Section
