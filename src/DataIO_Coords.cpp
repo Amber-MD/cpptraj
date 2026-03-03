@@ -72,11 +72,13 @@ int DataIO_Coords::ReadData(FileName const& fname, DataSetList& dsl, std::string
 
   DataSet* dset = 0;
   if (!dsname.empty()) {
-    // Is this set already present? TODO search without warning
-    dset = dsl.GetDataSet( dsname );
-    //if (dset == 0) {
-    //  dset = dsl.GetDataSet(fname.Base());
-    //}
+    // Is this set already present?
+    DataSetList selectedDS = dsl.SelectSets( dsname );
+    if (!selectedDS.empty()) {
+      dset = selectedDS[0];
+      if (selectedDS.size() > 1)
+        mprintf("Warning: %s selects multiple data sets, only using the first (%s)\n", dsname.c_str(), dset->legend());
+    }
     if (dset != 0) {
       if (!can_append(dset->Type())) {
         mprinterr("Error: Cannot append coordinates to existing set '%s'\n", dset->legend());
