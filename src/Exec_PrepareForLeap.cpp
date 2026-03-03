@@ -423,8 +423,8 @@ void Exec_PrepareForLeap::Help() const
           "  have any inter-residue bonds removed, and the appropriate LEaP\n"
           "  input to add the bonds back once the structure has been loaded\n"
           "  into LEaP will be written to <leap input file>.\n"
-          "  The command will attempt to download parameters for unknown\n"
-          "  residues unless 'nodlparams' is specified.\n",
+          "  If 'dlparams' is specified, the command will attempt to download\n"
+          "  parameters for unknown residues.\n",
           HisProt::keywords_,
           Disulfide::keywords_,
           SugarBuilder::keywords_
@@ -445,7 +445,7 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
   else if (argIn.hasKey("nodlparams"))
     downloadParams_ = false;
   else
-    downloadParams_ = true;
+    downloadParams_ = false;
   if (argIn.hasKey("bondunknown"))
     bondUnknownResidues_ = true;
   else if (argIn.hasKey("nobondunknown"))
