@@ -5892,11 +5892,6 @@ Read
 \end_layout
 
 \begin_layout LyX-Code
- [vector [magnitude]] |
-\end_layout
-
-\begin_layout LyX-Code
- [mat3x3] |
 \begin_inset Separator latexpar
 \end_inset
 
@@ -5904,11 +5899,23 @@ Read
 \end_layout
 
 \begin_layout LyX-Code
- [read3d [dims <nx>,<ny>,<nz>] [origin <ox>,<oy>,<oz>]
+ [read3d [dims <nx>,<ny>,<nz>] [origin <ox>,<oy>,<oz>] |
 \end_layout
 
 \begin_layout LyX-Code
          [delta <dx>,<dy>,dz>] [prec {dbl|flt}] [bin {center|corner} ]
+\end_layout
+
+\begin_layout LyX-Code
+ [vector [magnitude]] |
+\end_layout
+
+\begin_layout LyX-Code
+ [mat3x3] |
+\end_layout
+
+\begin_layout LyX-Code
+ [namemap]
 \end_layout
 
 \begin_layout LyX-Code
@@ -5987,34 +5994,6 @@ nosquare2d Read data as XYZ matrix (i.e.
 
 \end_deeper
 \begin_layout Description
-vector Read data as vector.
- If indices are present they will be skipped.
- Assume first 3 columns after the index column are vector X,
- Y,
- and Z,
- and (if present) the next 3 columns contain vector origin X,
- Y,
- and Z.
-\end_layout
-
-\begin_deeper
-\begin_layout Description
-magnitude If specified,
- assume vector file last column contains vector magnitudes;
- read these into a set with Aspect 'Mag'.
-\end_layout
-
-\end_deeper
-\begin_layout Description
-mat3x3 Read data as 3x3 matrix.
- If indices are present they will be skipped.
- Assume matrices are in row major order on each line,
- i.e.
- M(1,1) M(1,2) ...
- M(3,2) M(3,3).
-\end_layout
-
-\begin_layout Description
 read3d Read data as 3D grid.
  If no dimension data in file must also speify 'dims'.
 \end_layout
@@ -6062,6 +6041,45 @@ bin
 \end_layout
 
 \end_deeper
+\begin_layout Description
+vector Read data as vector.
+ If indices are present they will be skipped.
+ Assume first 3 columns after the index column are vector X,
+ Y,
+ and Z,
+ and (if present) the next 3 columns contain vector origin X,
+ Y,
+ and Z.
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+magnitude If specified,
+ assume vector file last column contains vector magnitudes;
+ read these into a set with Aspect 'Mag'.
+\end_layout
+
+\end_deeper
+\begin_layout Description
+mat3x3 Read data as 3x3 matrix.
+ If indices are present they will be skipped.
+ Assume matrices are in row major order on each line,
+ i.e.
+ M(1,1) M(1,2) ...
+ M(3,2) M(3,3).
+\end_layout
+
+\begin_layout Description
+namemap
+\begin_inset CommandInset label
+LatexCommand label
+name "cpptraj-readdata-dat-namemap"
+
+\end_inset
+
+ Read data as atom name map ('#TgtAt Tgt RefAt Ref' or '#Tgt Ref')
+\end_layout
+
 \end_deeper
 \begin_layout Standard
 By default,
@@ -16910,7 +16928,7 @@ change [parm <name> | parmindex <#> | <#> |
 \end_layout
 
 \begin_layout LyX-Code
-	  atomname from <mask> to <value> |
+	  atomname from <mask> {to <value>|namemap <mapset>} | |
 \end_layout
 
 \begin_layout LyX-Code
@@ -16934,7 +16952,19 @@ change [parm <name> | parmindex <#> | <#> |
 \end_layout
 
 \begin_layout LyX-Code
-      mergeres firstres <start res#> lastres <stop res#>
+      mergeres firstres <start res#> lastres <stop res#> |
+\end_layout
+
+\begin_layout LyX-Code
+      gb {bondi|amber6|mbondi|pbamber|mbondi2|parse|mbondi3} |
+\end_layout
+
+\begin_layout LyX-Code
+      lj1264 [lj1264mask <mask>] [tunfactor <fac>] [c4file <c4file>]
+\end_layout
+
+\begin_layout LyX-Code
+             [polfile <polfile>] [lj1264solvent <solvent>]
 \end_layout
 
 \begin_layout LyX-Code
@@ -17117,10 +17147,11 @@ from
 \begin_inset space ~
 \end_inset
 
-<mask>
-\begin_inset space ~
-\end_inset
+<mask> Change atoms names for atoms in <mask>.
+\end_layout
 
+\begin_deeper
+\begin_layout Description
 to
 \begin_inset space ~
 \end_inset
@@ -17128,6 +17159,27 @@ to
 <value> Change atom names for atoms in <mask> to the given <value>.
 \end_layout
 
+\begin_layout Description
+namemap
+\begin_inset space ~
+\end_inset
+
+<mapset> Change atom names according to the given name map set.
+ See 
+\begin_inset CommandInset ref
+LatexCommand vref
+reference "cpptraj-readdata-dat-namemap"
+plural "false"
+caps "false"
+noprefix "false"
+nolink "false"
+
+\end_inset
+
+ for details on reading in atom name maps.
+\end_layout
+
+\end_deeper
 \begin_layout Description
 addbond
 \begin_inset space ~
@@ -17311,6 +17363,43 @@ firstres
 \end_layout
 
 \end_deeper
+\begin_layout Description
+gb
+\begin_inset space ~
+\end_inset
+
+{bondi|amber6|mbondi|pbamber|mbondi2|parse|mbondi3} Add/change the GB radii set.
+ Default is mbondi.
+ See 
+\begin_inset CommandInset ref
+LatexCommand vref
+reference "subsec:cpptraj-build"
+plural "false"
+caps "false"
+noprefix "false"
+nolink "false"
+
+\end_inset
+
+ for details on the GB keywords.
+\end_layout
+
+\begin_layout Description
+[lj1264] Option to add LJ 12-6-4 parameters.
+ See 
+\begin_inset CommandInset ref
+LatexCommand vref
+reference "subsec:cpptraj-build"
+plural "false"
+caps "false"
+noprefix "false"
+nolink "false"
+
+\end_inset
+
+ for details on LJ 12-6-4 keywords.
+\end_layout
+
 \end_deeper
 \begin_layout Standard
 Change specified parts of the specified topology.
@@ -29986,11 +30075,15 @@ energy [<name>] [<mask1>] [out <filename>] [nobondstoh] [openmm [<mdopts>]]
 \end_layout
 
 \begin_layout LyX-Code
-   	[bond] [angle] [dihedral] {[nb14]|[e14]|[v14]} {[nonbond]|[elec] [vdw]} 
+   	[bond] [angle] [dihedral] {[nb14]|[e14]|[v14]} {[nonbond]|[elec] [vdw]}
 \end_layout
 
 \begin_layout LyX-Code
-   	[{nokinetic|kinetic [ketype {vel|vv}] [dt <dt>]}]
+       [cmap]
+\end_layout
+
+\begin_layout LyX-Code
+   	[{nokinetic|kinetic [ketype {vel|vv}] [dt <dt>]}] [lj1264]
 \end_layout
 
 \begin_layout LyX-Code
@@ -30115,6 +30208,10 @@ nolink "false"
 \end_layout
 
 \begin_layout Description
+[cmap] Calculate CMAP energy.
+\end_layout
+
+\begin_layout Description
 [nokinetic] Do not calculate kinetic energy even if velocity/force information present.
 \end_layout
 
@@ -30159,6 +30256,10 @@ vv
 \end_layout
 
 \end_deeper
+\begin_layout Description
+[lj1264] Turn on LJ 12-6-4 contribution if topology contains LJ C coefficients.
+\end_layout
+
 \begin_layout Description
 [etype
 \begin_inset space ~
@@ -30376,6 +30477,10 @@ DataSet Aspects:
 \end_layout
 
 \begin_layout Description
+[cmap] CMAP energy.
+\end_layout
+
+\begin_layout Description
 [vdw14] 1-4 van der Waals energy.
 \end_layout
 
@@ -30424,6 +30529,12 @@ Calculation of energy terms requires that the associated topology file have para
 simple
 \series default
  require unit cell parameters.
+ By default,
+ to match SANDER/PMEMD behavior the LJ 12-6-4 contribution is not included in the van der Waals energy term unless the 
+\series bold
+lj1264
+\series default
+ keyword is specified.
 \end_layout
 
 \begin_layout Standard

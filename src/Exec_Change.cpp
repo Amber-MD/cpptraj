@@ -23,8 +23,8 @@ void Exec_Change::Help() const
           "\t  bondparm <mask1> [<mask2>] {setrk|scalerk|setreq|scalereq} <value> |\n"
           "\t  {mass|charge} [of <mask>] {to <value> |by <offset> |\n"
           "\t                             byfac <factor> |fromset <data set>} |\n"
-          "\t  mergeres firstres <start res#> lastres <stop res#>\n"
-          "\t  %s\n"
+          "\t  mergeres firstres <start res#> lastres <stop res#> |\n"
+          "\t  %s |\n"
           "\t  lj1264 %s\n"
           "\t}\n"
           "  Change specified parts of topology or topology of a COORDS data set.\n",
