@@ -7544,6 +7544,8 @@ nsolvent
 <#> EXPERIMENTAL.
  Instead of a buffer,
  specify a target number of waters to solvate the system with.
+ Currently only works for orthorhombic cells (i.e.
+ not truncated octahedron).
 \end_layout
 
 \end_deeper
