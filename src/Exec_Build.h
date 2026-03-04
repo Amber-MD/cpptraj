@@ -88,5 +88,6 @@ class Exec_Build : public Exec {
     Timer t_check_rings_;
     Timer t_check_setup_;
     Timer t_solvate_;
+    Timer t_output_;
 };
 #endif

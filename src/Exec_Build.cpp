@@ -1467,6 +1467,7 @@ Exec::RetType Exec_Build::BuildAndParmStructure(DataSet* inCrdPtr, std::string c
   if (!reportfile_.empty())
     mprintf("\t%i total problems detected. See '%s' for details.\n", Ntotal_problems, reportfile_.c_str());
 
+  t_output_.Start();
   mprintf("    -----===== File Output =====-----\n");
   if (!outputTopologyName.empty()) {
     ParmFile pfile;
@@ -1490,6 +1491,7 @@ Exec::RetType Exec_Build::BuildAndParmStructure(DataSet* inCrdPtr, std::string c
       return CpptrajState::ERR;
     }
   }
+  t_output_.Stop();
   t_total_.Stop();
 
   mprintf("    -----===== Timing =====-----\n");
@@ -1503,6 +1505,7 @@ Exec::RetType Exec_Build::BuildAndParmStructure(DataSet* inCrdPtr, std::string c
   t_check_setup_.WriteTiming   (3, "Setup    :", t_check_.Total());
   t_assign_.WriteTiming       (2, "Param./Top. gen.    :", t_total_.Total());
   AP.WriteAssignTiming(3, t_assign_.Total());
+  t_output_.WriteTiming       (2, "File output         :", t_total_.Total());
 
   return ret;
 }
