@@ -1352,8 +1352,8 @@ int Topology::DetermineMolecules() {
         mprintf(" %i-%i (%i) ", seg->Begin()+1, seg->End(), seg->Size());
       mprintf("\n");
     }
-    mprintf("Warning: The 'fixatomorder' command can be used to reorder the topology and any\n"
-            "Warning:  associated coordinates.\n");
+    //mprintf("Warning: The 'fixatomorder' command can be used to reorder the topology and any\n"
+    //        "Warning:  associated coordinates.\n");
   } 
 /*
   std::vector<Molecule>::iterator molecule = molecules_.begin();
