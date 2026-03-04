@@ -7780,11 +7780,7 @@ source leaprc.water.opc
 \end_layout
 
 \begin_layout LyX-Code
-parm 6g37.pdb 
-\end_layout
-
-\begin_layout LyX-Code
-loadcrd 6g37.pdb name MyMol
+readdata 6g37.pdb as coords name MyMol
 \end_layout
 
 \begin_layout LyX-Code
