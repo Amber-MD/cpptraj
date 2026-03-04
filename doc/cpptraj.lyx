@@ -6965,6 +6965,10 @@ build [name <output COORDS>] {crdset <COORDS set>|<file>} [{frame <#>|doassembly
 \end_layout
 
 \begin_layout LyX-Code
+    [reportfile <check file>]
+\end_layout
+
+\begin_layout LyX-Code
 	[gb {bondi|amber6|mbondi|pbamber|mbondi2|parse|mbondi3}]
 \end_layout
 
@@ -7269,6 +7273,24 @@ file>] Name of the output topology file.
 
 file>] Name of the output coordinates file.
  Format can be chosen based on filename extension.
+\end_layout
+
+\begin_layout Description
+[simplecheck] (Not recommended) Do not check for overlaps or ring intersections;
+ only check for abnormal bond lengths.
+\end_layout
+
+\begin_layout Description
+[reportfile
+\begin_inset space ~
+\end_inset
+
+<check
+\begin_inset space ~
+\end_inset
+
+file>] File to write details on problems with the final structure;
+ if not specified write to STDOUT.
 \end_layout
 
 \begin_layout Description
