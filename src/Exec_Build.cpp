@@ -1428,9 +1428,10 @@ Exec::RetType Exec_Build::BuildAndParmStructure(DataSet* inCrdPtr, std::string c
             "Warning: If long bond lengths were reported above it may be due to these\n"
             "Warning:  missing residues. If the missing residues are non-terminal\n"
             "Warning:  they should probably be modeled in.\n"
-            "Warning: The 'addmissingres' command could be used to create a simple\n"
-            "Warning:  model for these missing residues, but note THAT COMMAND\n"
-            "Warning:  IS STILL EXPERIMENTAL. Results should be carefully checked.\n");
+            //"Warning: The 'addmissingres' command could be used to create a simple\n"
+            //"Warning:  model for these missing residues, but note THAT COMMAND\n"
+            //"Warning:  IS STILL EXPERIMENTAL. Results should be carefully checked.\n"
+           );
   }
 
   // Total charge check
