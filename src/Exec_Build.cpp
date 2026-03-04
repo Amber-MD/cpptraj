@@ -696,7 +696,9 @@ int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
         structureBuilder.SetParameters( creator.MainParmSetPtr() );
       // Generate internals from the template, update indices to this topology.
       DataSet_Coords* resTemplate = ResTemplates[ires];
+#     ifdef TIMER
       t_fill_build_internals_.Start();
+#     endif
       Frame templateFrame = resTemplate->AllocateFrame();
       resTemplate->GetFrame( 0, templateFrame );
       if (structureBuilder.GenerateInternals(templateFrame, resTemplate->Top(),
@@ -705,11 +707,15 @@ int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
         mprinterr("Error: Generate internals for residue template failed.\n");
         return 1;
       }
+#     ifdef TIMER
       t_fill_build_internals_.Stop();
+#     endif
       structureBuilder.UpdateIndicesWithOffset( *it );
       //mprintf("DEBUG: Residue type: %s terminal\n", Cpptraj::Structure::terminalStr(*termType));
       // Is this residue connected to an earlier residue?
+#     ifdef TIMER
       t_fill_build_link_.Start();
+#     endif
       for (IParray::const_iterator resBonds = resBondingAtoms[ires].begin();
                                    resBonds != resBondingAtoms[ires].end(); ++resBonds)
       {
@@ -718,9 +724,13 @@ int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
             mprintf("\t\tResidue connection: %s - %s\n",
                     topOut.AtomMaskName(resBonds->first).c_str(),
                     topOut.AtomMaskName(resBonds->second).c_str());
+#         ifdef TIMER
           t_fill_build_link_bond_.Start();
+#         endif
           topOut.AddBond(resBonds->first, resBonds->second);
+#         ifdef TIMER
           t_fill_build_link_bond_.Stop();
+#         endif
           // Generate internals around the link
           Residue const& R0 = topIn.Res(topOut[resBonds->first].ResNum());
           for (int at = nextTempHasPositionStart; at < R0.FirstAtom(); at++)
@@ -738,19 +748,25 @@ int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
           }
         }
       }
+#     ifdef TIMER
       t_fill_build_link_.Stop();
+#     endif
       // Update internal coords from known positions
       if (structureBuilder.UpdateICsFromFrame( frameOut, topOut, hasPosition )) {
         mprinterr("Error: Failed to update internals with values from existing positions.\n");
         return 1;
       }
+#     ifdef TIMER
       t_fill_build_build_.Start();
+#     endif
       if (structureBuilder.BuildFromInternals(frameOut, topOut, hasPosition)) {
         mprinterr("Error: Building residue %s failed.\n",
                   topOut.TruncResNameOnumId(ires).c_str());
         buildFailed = true;
       }
+#     ifdef TIMER
       t_fill_build_build_.Stop();
+#     endif
     } else {
       // All atoms present. Just connect
       // Is this residue connected to an earlier residue?
@@ -1667,9 +1683,11 @@ void Exec_Build::PrintTiming() const {
   t_fill_.WriteTiming         (2, "Fill missing atoms  :", t_total_.Total());
   t_fill_template_.WriteTiming(3, "Get template atoms :", t_fill_.Total());
   t_fill_build_.WriteTiming   (3, "Build atoms        :", t_fill_.Total());
+# ifdef TIMER
   t_fill_build_internals_.WriteTiming(4, "Internals :", t_fill_build_.Total());
   t_fill_build_build_.WriteTiming    (4, "Build     :", t_fill_build_.Total());
   t_fill_build_link_.WriteTiming     (4, "Link      :", t_fill_build_.Total());
   t_fill_build_link_bond_.WriteTiming(5, "Link Bond :", t_fill_build_link_.Total());
   Cpptraj::Structure::Builder::PrintTiming(5, t_fill_build_link_.Total());
+# endif
 }
