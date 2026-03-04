@@ -828,7 +828,8 @@ void Exec_Build::Help() const
   mprintf("\t[name <output COORDS>] {crdset <COORDS set>|<file>} [{frame <#>|doassembly}]\n");
   Cpptraj::Structure::PdbCleaner::Help();
   mprintf("\t[title <title>] [verbose <#>] [keepmissingatoms] [nofixorder]\n"
-          "\t[parmout <topology file>] [crdout <coord file>] [simplecheck]\n");
+          "\t[parmout <topology file>] [crdout <coord file>] [simplecheck]\n"
+          "\t[reportfile <check file>]\n");
   mprintf("\t[%s]\n", Cpptraj::Parm::GB_Params::HelpText().c_str());
   mprintf("\t[lj1264 %s]\n", Cpptraj::Parm::LJ1264_Params::HelpText().c_str());
   mprintf("\t[%s]\n"
@@ -1081,6 +1082,9 @@ Exec::RetType Exec_Build::BuildAndParmStructure(DataSet* inCrdPtr, std::string c
   } else {
     check_structure_ = true;
   }
+  reportfile_ = argIn.GetStringKey("reportfile");
+  if (!reportfile_.empty())
+    mprintf("\tProblems with the final structure will be written to '%s'\n", reportfile_.c_str());
   doHisDetect_ = !argIn.hasKey("nohisdetect");
   doDisulfide_ = !argIn.hasKey("nodisulfides");
   doSugar_ = !argIn.hasKey("nosugars");
@@ -1301,7 +1305,6 @@ Exec::RetType Exec_Build::BuildAndParmStructure(DataSet* inCrdPtr, std::string c
   // Structure check
   mprintf("    -----===== Structure Check =====-----\n");
   StructureCheck check;
-  // TODO make file a user option
   CpptrajFile check_output;
   check_output.OpenWrite(reportfile_);
   int Ntotal_problems = 0;
