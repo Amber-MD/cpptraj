@@ -64,6 +64,7 @@ class Exec_Build : public Exec {
     bool doSugar_;
     bool fixAtomOrder_;           ///< If true will attempt to make sure residues in molecules are contiguous
     DataSet* outCrdPtr_;          ///< Hold built (output) COORDS
+    std::string reportfile_;      ///< File for reporting problems with the final structure
 
     Timer t_total_;
     Timer t_hisDetect_;

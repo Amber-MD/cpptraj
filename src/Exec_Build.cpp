@@ -1301,6 +1301,10 @@ Exec::RetType Exec_Build::BuildAndParmStructure(DataSet* inCrdPtr, std::string c
   // Structure check
   mprintf("    -----===== Structure Check =====-----\n");
   StructureCheck check;
+  // TODO make file a user option
+  CpptrajFile check_output;
+  check_output.OpenWrite(reportfile_);
+  int Ntotal_problems = 0;
   if (check_structure_) {
     mprintf("\tWill check bond lengths, atomic overlaps, and ring intersections.\n");
     t_check_.Start();
@@ -1355,11 +1359,8 @@ Exec::RetType Exec_Build::BuildAndParmStructure(DataSet* inCrdPtr, std::string c
       mprintf("\tImaging on.\n");
     else
       mprintf("\timaging off.\n");
-    // TODO make file a user option
-    CpptrajFile check_output;
-    check_output.OpenWrite("");
     t_check_overlaps_.Start();
-    int Ntotal_problems = check.CheckOverlaps( frameOut );
+    Ntotal_problems = check.CheckOverlaps( frameOut );
     t_check_overlaps_.Stop();
     check.WriteProblemsToFile( &check_output, 1, topOut );
     t_check_bonds_.Start();
@@ -1370,7 +1371,6 @@ Exec::RetType Exec_Build::BuildAndParmStructure(DataSet* inCrdPtr, std::string c
     Ntotal_problems += check.CheckRings( frameOut );
     t_check_rings_.Stop();
     check.WriteProblemsToFile( &check_output, 1, topOut );
-    mprintf("\t%i total problems detected.\n", Ntotal_problems);
     // If box was added for check only, remove it
     if (box_added)
       frameOut.ModifyBox().SetNoBox();
@@ -1406,19 +1406,17 @@ Exec::RetType Exec_Build::BuildAndParmStructure(DataSet* inCrdPtr, std::string c
     t_check_setup_.Stop();
     check.PrintTiming(1, t_check_setup_.Total());
     check.Mask1().MaskInfo();
-    // TODO make file a user option
-    CpptrajFile check_output;
-    check_output.OpenWrite("");
     t_check_bonds_.Start();
-    int Ntotal_problems = check.CheckBonds( frameOut );
+    Ntotal_problems = check.CheckBonds( frameOut );
     t_check_bonds_.Stop();
     check.WriteProblemsToFile( &check_output, 1, topOut );
-    mprintf("\t%i total problems detected.\n", Ntotal_problems);
     t_check_.Stop();
   }
   if (input_has_missing_res > 0) {
-    mprintf("Warning: Input coordinates had %u missing residues.\n", input_has_missing_res);
-    mprintf("Warning: If long bond lengths were reported above it may be due to these\n"
+    Ntotal_problems++;
+    check_output.Printf("Warning: Input coordinates had %u missing residues.\n", input_has_missing_res);
+    check_output.Printf(
+            "Warning: If long bond lengths were reported above it may be due to these\n"
             "Warning:  missing residues. If the missing residues are non-terminal\n"
             "Warning:  they should probably be modeled in.\n"
             "Warning: The 'addmissingres' command could be used to create a simple\n"
@@ -1431,10 +1429,17 @@ Exec::RetType Exec_Build::BuildAndParmStructure(DataSet* inCrdPtr, std::string c
   double absSystemCharge = fabs(totalSystemCharge);
   double q_frac = fabs( absSystemCharge - (double)(int)(absSystemCharge+0.5) );
   // NOTE: These cutoffs are the same as in LEaP
-  if ( q_frac > 0.01 )
-   mprintf("Warning: The charge of the system is not integral: %f\n", totalSystemCharge);
-  if ( absSystemCharge > 0.01 )
-    mprintf("Warning: The charge of the system is not zero: %f\n", totalSystemCharge);
+  if ( q_frac > 0.01 ) {
+   check_output.Printf("Warning: The charge of the system is not integral: %f\n", totalSystemCharge);
+   Ntotal_problems++;
+  }
+  if ( absSystemCharge > 0.01 ) {
+    check_output.Printf("Warning: The charge of the system is not zero: %f\n", totalSystemCharge);
+    Ntotal_problems++;
+  }
+  check_output.Printf("\t%i total problems detected.\n", Ntotal_problems);
+  if (!reportfile_.empty())
+    mprintf("\t%i total problems detected. See '%s' for details.\n", Ntotal_problems, reportfile_.c_str());
 
   mprintf("    -----===== File Output =====-----\n");
   if (!outputTopologyName.empty()) {
