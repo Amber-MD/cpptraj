@@ -903,7 +903,7 @@ int Solvate::SolvateBoxWithExactNumber(Topology& topOut, Frame& frameOut, Cpptra
     ewald_rotate(frameOut, dAngle);
     //mprintf("EwaldRotate: %f\n", dAngle);
     // Add an angstrom to the desired box size rather than using the bounding box size
-    dAngle = clipX_ + .5;
+    dAngle = clipX_ + .5; // NOTE: If truncoct is enabled for nsolvent, clipX_ will be 0
     boxX = boxY = boxZ = dAngle * sqrt(3.0) * 0.5;
   }
 
