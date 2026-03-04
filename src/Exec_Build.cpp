@@ -881,6 +881,12 @@ void Exec_Build::Help() const
 // Exec_Build::Execute()
 Exec::RetType Exec_Build::Execute(CpptrajState& State, ArgList& argIn)
 {
+#ifndef CPPTRAJ_USE_LEAP_PI
+  mprintf("Warning: CPPTRAJ was not compiled with LEaP's value of PI.\n"
+          "Warning: Output Topology and Coordinates are expected to differ slightly from LEaP.\n"
+          "Warning: To obtain an exact match to LEaP CPPTRAJ must be compiled with\n"
+          "Warning: -DCPPTRAJ_USE_LEAP_PI (configure flag '-leappi').\n");
+# endif
   std::string outset = argIn.GetStringKey("name");
   // Get input coords
   DataSet* inCrdPtr = 0;
@@ -950,6 +956,12 @@ Exec::RetType Exec_Build::BuildStructure(DataSet* inCrdPtr, DataSetList& DSL, in
                                          bool enableExtraDetection)
                                          
 {
+#ifndef CPPTRAJ_USE_LEAP_PI
+  mprintf("Warning: CPPTRAJ was not compiled with LEaP's value of PI.\n"
+          "Warning: Output Topology and Coordinates are expected to differ slightly from LEaP.\n"
+          "Warning: To obtain an exact match to LEaP CPPTRAJ must be compiled with\n"
+          "Warning: -DCPPTRAJ_USE_LEAP_PI (configure flag '-leappi').\n");
+# endif
   t_total_.Start();
   if (inCrdPtr == 0) {
     mprinterr("Internal Error: Exec_Build::BuildStructure(): Null input coordinates.\n");

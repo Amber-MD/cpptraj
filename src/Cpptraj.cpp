@@ -139,6 +139,11 @@ void Cpptraj::Intro() const {
   }
 # endif
   mprintf("\n");
+#ifdef CPPTRAJ_USE_LEAP_PI
+  mprintf("Warning: CPPTRAJ was compiled with LEaP's value of PI.\n"
+          "Warning: This should only be used to compare directly to LEaP.\n"
+          "Warning: This will cause some test cases to fail.\n\n");
+#endif
 }
 
 void Cpptraj::Finalize() {
