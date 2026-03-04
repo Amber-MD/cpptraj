@@ -968,7 +968,8 @@ int DataIO_LeapRC::Source(FileName const& fname, DataSetList& dsl, std::string c
 
       //ArgList line( ptr, " =\t" );
       ArgList line( lineBuf, " =\t" );
-      mprintf("\tLEAP> %s\n", ptr);
+      if (debug_ > 0)
+        mprintf("\tLEAP> %s\n", ptr);
       //line.PrintDebug(); // DEBUG
 
       LeapCmdType leapcmd = UNKNOWN_CMD;
