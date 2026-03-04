@@ -831,15 +831,21 @@ void Exec_Build::Help() const
           "\t[parmout <topology file>] [crdout <coord file>] [simplecheck]\n"
           "\t[reportfile <check file>]\n");
   mprintf("\t[%s]\n", Cpptraj::Parm::GB_Params::HelpText().c_str());
+  mprintf("    LJ 12-6-4 options:\n");
   mprintf("\t[lj1264 %s]\n", Cpptraj::Parm::LJ1264_Params::HelpText().c_str());
+  mprintf("    Atom Scan direction:\n");
   mprintf("\t[%s]\n"
+          "    Residue Templates and Parameters to use:\n"
           "\t[{%s} ...]\n"
           "\t[{%s} ...]\n"
+          "    Solvation/box:\n"
           "\t[{{solvatebox|solvateoct} %s\n"
           "\t          %s |\n"
           "\t  setbox %s}]\n"
+          "    Adding ions:\n"
           "\t[addionsrand ion1 <name1> nion1 <num1> [ion2 <name2> nion2 <num2>]\n"
           "\t  [minsep <dist>] [ionseed <seed>]]\n"
+          "    'prepareforleap' options:\n"
           "%s"
           "%s"
           "%s",
