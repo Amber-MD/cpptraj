@@ -425,16 +425,16 @@ const
   if (!duplicateEntries.empty()) {
     mprintf("Warning: %zu duplicate entries in addAtomTypes; this is expected if other leaprc files have been loaded.\n",
             duplicateEntries.size());
-    if (debug_ > 0) {
+    //if (debug_ > 0) {
       mprintf("Warning: Duplicates:");
       for (Sarray::const_iterator it = duplicateEntries.begin(); it != duplicateEntries.end(); ++it)
         mprintf(" %s", it->c_str());
       mprintf("\n");
-    }
+    //}
   }
   if (!overwrittenEntries.empty()) {
-    mprintf("Warning: %zu entries were overwritten in addAtomTypes:", duplicateEntries.size());
-    for (Sarray::const_iterator it = duplicateEntries.begin(); it != duplicateEntries.end(); ++it)
+    mprintf("Warning: %zu entries were overwritten in addAtomTypes:", overwrittenEntries.size());
+    for (Sarray::const_iterator it = overwrittenEntries.begin(); it != overwrittenEntries.end(); ++it)
       mprintf(" %s", it->c_str());
     mprintf("\n");
   }
