@@ -409,13 +409,13 @@ int FxnGroupBuilder::CheckForFunctionalGroups(Sugar& sugar, Topology& topIn, Fra
   // Record new residue numbers for found types.
   int resOffset = (int)resTypes_.size();
   if (resOffset > 0) {
-    mprintf("DEBUG: Split off %i groups from residue %i: ", resOffset, rnum+1);
+    mprintf("Info: Split off %i groups from residue %i: ", resOffset, rnum+1);
     for (FTarray::const_iterator rt = resTypes_.begin(); rt != resTypes_.end(); ++rt) {
-      mprintf(" %i:%s", rnum+resOffset+1, FunctionalGroup::typeString(*rt)); // DEBUG
+      mprintf(" %i:%s", rnum+resOffset+1, FunctionalGroup::typeString(*rt));
       foundGroups_.push_back( FxnResType(rnum+resOffset, *rt) );
       --resOffset;
     }
-    mprintf("\n"); // DEBUG
+    mprintf("\n");
   }
 
   return 0;
