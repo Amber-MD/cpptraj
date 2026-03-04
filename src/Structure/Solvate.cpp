@@ -70,7 +70,13 @@ int Solvate::InitSolvate(ArgList& argIn, bool octIn, int debugIn) {
   debug_ = debugIn;
   doTruncatedOct_ = octIn;
   nsolvent_ = (unsigned int)argIn.getKeyInt("nsolvent", 0);
-  if (nsolvent_ > 0) clip_ = false;
+  if (nsolvent_ > 0) {
+    if (doTruncatedOct_) {
+      mprinterr("Error: 'nsolvent' currently does not work for truncated octahedral cells.\n");
+      return 1;
+    }
+    clip_ = false;
+  }
 
   if (getBufferArg(argIn, -1.0)) return 1;
 
@@ -885,7 +891,32 @@ int Solvate::SolvateBoxWithExactNumber(Topology& topOut, Frame& frameOut, Cpptra
   newFrame.SetupFrameV(topOut.Atoms(), frameOut.CoordsInfo());
   newFrame.SetFrame( frameOut, imask );
   frameOut = newFrame;
+  // ---------------------------------------------
+  // Define the size of the new solvent/solute system
+  soluteRadii = getAtomRadii(soluteMaxR, topOut, set0) ;
+  if (setVdwBoundingBox(boxX, boxY, boxZ, soluteRadii, frameOut, false)) {
+    mprinterr("Error: Setting vdw bounding box for solute/solvent system failed.\n", topOut.c_str());
+    return 1;
+  }
+  if (doTruncatedOct_) {
+    double dAngle = 0;
+    ewald_rotate(frameOut, dAngle);
+    //mprintf("EwaldRotate: %f\n", dAngle);
+    // Add an angstrom to the desired box size rather than using the bounding box size
+    dAngle = clipX_ + .5;
+    boxX = boxY = boxZ = dAngle * sqrt(3.0) * 0.5;
+  }
 
+  // Setup box
+  double boxBeta = 90.0;
+  if (doTruncatedOct_) {
+    boxBeta = Box::TruncatedOctAngle();
+    boxX *= 2.0;
+    boxY *= 2.0;
+    boxZ *= 2.0;
+  }
+  newBox.SetupFromXyzAbg( boxX, boxY, boxZ, boxBeta, boxBeta, boxBeta );
+  // ---------------------------------------------
   frameOut.SetBox( newBox );
   frameOut.BoxCrd().PrintInfo("\t  ");
   topOut.SetParmBox( frameOut.BoxCrd() );
