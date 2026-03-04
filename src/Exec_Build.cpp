@@ -1222,9 +1222,9 @@ Exec::RetType Exec_Build::BuildAndParmStructure(DataSet* inCrdPtr, std::string c
     return CpptrajState::ERR;
   }
   t_get_templates_.Stop();
-  // FIXME hide behind ifdef?
+# ifdef TIMER
   creator.TimingInfo(t_get_templates_.Total(), 2);
-
+# endif
   Frame frameOut;
   if (StructurePrepAndFillTemplates(argIn, topIn, frameIn,
                                     topOut, frameOut,
