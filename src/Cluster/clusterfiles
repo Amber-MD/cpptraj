@@ -21,8 +21,8 @@ CLUSTER_SOURCES= \
   Metric_Matrix2D.cpp \
   Metric_QuatRMSD.cpp \
   Metric_RMS.cpp \
-  Metric_SRMSD.cpp \
   Metric_Scalar.cpp \
+  Metric_SRMSD.cpp \
   Metric_Torsion.cpp \
   Node.cpp \
   Output.cpp \
