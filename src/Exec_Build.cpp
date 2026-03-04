@@ -1068,6 +1068,7 @@ Exec::RetType Exec_Build::BuildAndParmStructure(DataSet* inCrdPtr, std::string c
               inCrdPtr->legend());
     return CpptrajState::ERR;
   }
+  unsigned int input_has_missing_res = ((DataSet_Coords*)inCrdPtr)->Top().MissingRes().size();
   std::string title = argIn.GetStringKey("title");
   if (argIn.hasKey("nofixorder"))
     fixAtomOrder_ = false;
@@ -1414,6 +1415,15 @@ Exec::RetType Exec_Build::BuildAndParmStructure(DataSet* inCrdPtr, std::string c
     check.WriteProblemsToFile( &check_output, 1, topOut );
     mprintf("\t%i total problems detected.\n", Ntotal_problems);
     t_check_.Stop();
+  }
+  if (input_has_missing_res > 0) {
+    mprintf("Warning: Input coordinates had %u missing residues.\n", input_has_missing_res);
+    mprintf("Warning: If long bond lengths were reported above it may be due to these\n"
+            "Warning:  missing residues. If the missing residues are non-terminal\n"
+            "Warning:  they should probably be modeled in.\n"
+            "Warning: The 'addmissingres' command could be used to create a simple\n"
+            "Warning:  model for these missing residues, but note THAT COMMAND\n"
+            "Warning:  IS STILL EXPERIMENTAL. Results should be carefully checked.\n");
   }
 
   // Total charge check
