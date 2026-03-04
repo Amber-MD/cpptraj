@@ -76,6 +76,7 @@ int Solvate::InitSolvate(ArgList& argIn, bool octIn, int debugIn) {
       return 1;
     }
     clip_ = false;
+    mprintf("Warning: The 'nsolvent' functionality is currently EXPERIMENTAL.\n");
   }
 
   if (getBufferArg(argIn, -1.0)) return 1;
