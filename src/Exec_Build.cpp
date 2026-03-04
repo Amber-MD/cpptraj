@@ -1371,15 +1371,15 @@ Exec::RetType Exec_Build::BuildAndParmStructure(DataSet* inCrdPtr, std::string c
     t_check_overlaps_.Start();
     Ntotal_problems = check.CheckOverlaps( frameOut );
     t_check_overlaps_.Stop();
-    check.WriteProblemsToFile( &check_output, 1, topOut );
+    check.WriteProblemsToFile( &check_output, topOut );
     t_check_bonds_.Start();
     Ntotal_problems += check.CheckBonds( frameOut );
     t_check_bonds_.Stop();
-    check.WriteProblemsToFile( &check_output, 1, topOut );
+    check.WriteProblemsToFile( &check_output, topOut );
     t_check_rings_.Start();
     Ntotal_problems += check.CheckRings( frameOut );
     t_check_rings_.Stop();
-    check.WriteProblemsToFile( &check_output, 1, topOut );
+    check.WriteProblemsToFile( &check_output, topOut );
     // If box was added for check only, remove it
     if (box_added)
       frameOut.ModifyBox().SetNoBox();
@@ -1418,7 +1418,7 @@ Exec::RetType Exec_Build::BuildAndParmStructure(DataSet* inCrdPtr, std::string c
     t_check_bonds_.Start();
     Ntotal_problems = check.CheckBonds( frameOut );
     t_check_bonds_.Stop();
-    check.WriteProblemsToFile( &check_output, 1, topOut );
+    check.WriteProblemsToFile( &check_output, topOut );
     t_check_.Stop();
   }
   if (input_has_missing_res > 0) {

@@ -52,8 +52,9 @@ class StructureCheck {
     int CheckRings(Frame const&, Cpptraj::Structure::RingFinder const&, std::vector<Btype> const&);
     /// Write existing problems to the given file
     void WriteProblemsToFile(CpptrajFile*, int, Topology const&) const;
-
-
+    /// Write existing problems to the given file, no frame number
+    void WriteProblemsToFile(CpptrajFile*, Topology const&) const;
+    /// Print timing data to stdout
     void PrintTiming(int, double) const;
     /// Format of problems currently stored in problemAtoms_
     enum FmtType { F_ATOM =0, F_BOND, F_RING };
@@ -117,6 +118,8 @@ class StructureCheck {
   private:
     /// Format strings corresponding to FmtType
     static const char* Fmt_[];
+    /// Format strings corresponding to FmtType, no frame number
+    static const char* NoFrameFmt_[];
     /// Type of overlap check
     enum CheckType { NO_PL_1_MASK=0, NO_PL_2_MASKS, PL_1_MASK };
     /// \return mask string based on if extra points are being excluded

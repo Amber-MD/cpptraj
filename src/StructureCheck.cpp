@@ -1011,11 +1011,28 @@ const char* StructureCheck::Fmt_[] = {
   "%i\t Warning: Bond involving atom %i:%s intersects ring involving atom %i:%s (%.2f)\n" ///< F_RING
 };
 
+/** Write formats for problems, no frame number. */
+const char* StructureCheck::NoFrameFmt_[] = {
+  "Warning: Atoms %i:%s and %i:%s are close (%.2f)\n",    ///< F_ATOM
+  "Warning: Unusual bond length %i:%s to %i:%s (%.2f)\n", ///< F_BOND
+  "Warning: Bond involving atom %i:%s intersects ring involving atom %i:%s (%.2f)\n" ///< F_RING
+};
+
 /** Write current problems to the given file. */
 void StructureCheck::WriteProblemsToFile(CpptrajFile* outfile, int frameNum, Topology const& top) const {
   if (outfile == 0) return;
   for (const_iterator p = begin(); p != end(); ++p) {
     outfile->Printf(Fmt_[lastFmt_], frameNum,
+                    p->A1()+1, top.TruncResAtomName(p->A1()).c_str(),
+                    p->A2()+1, top.TruncResAtomName(p->A2()).c_str(), p->D());
+  }
+}
+
+/** Write current problems to the given file, no frame number. */
+void StructureCheck::WriteProblemsToFile(CpptrajFile* outfile, Topology const& top) const {
+  if (outfile == 0) return;
+  for (const_iterator p = begin(); p != end(); ++p) {
+    outfile->Printf(NoFrameFmt_[lastFmt_],
                     p->A1()+1, top.TruncResAtomName(p->A1()).c_str(),
                     p->A2()+1, top.TruncResAtomName(p->A2()).c_str(), p->D());
   }
