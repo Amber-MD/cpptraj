@@ -682,6 +682,14 @@ int DataIO_LeapRC::LeapSet(ArgList const& argIn, DataSetList& dsl) const {
         mprinterr("Error: Could not set default pbradii %s\n", argIn[3].c_str());
         return 1;
       }
+    } else if ( ToLower(argIn[2]) == "cmap" ) {
+      if ( ToLower(argIn[3]) == "on" ) {
+        mprintf("Warning: LEaP 'set default cmap on' command ignored; CMAP terms will always be added if present.\n");
+      } else if ( ToLower(argIn[3]) == "off" ) {
+        mprinterr("Error: LEaP 'set default cmap off' is not supported; CMAP terms will always be added if present.\n");
+        return 1;
+      } else
+        mprintf("Warning: Skipping unrecognized 'set default cmap' mode: %s\n", argIn[3].c_str());
     } else {
       mprintf("Warning: Unhandled 'set default' command: %s\n", argIn.ArgLine());
     }
