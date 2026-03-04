@@ -259,7 +259,7 @@ LIB_STTC[$LNETCDF]='libnetcdf.a'     # Expected static location relative to home
 LIB_D_ON[$LNETCDF]='-DBINTRAJ'       # Directive if library on
 LIB_DOFF[$LNETCDF]=''                # Directive if library off
 LIB_LINK[$LNETCDF]='dynamic'         # How to link the library
-LIB_TYPE[$LNETCDF]='ld'              # ld = LDFLAGS, cpp = cpptraj, blank = special
+LIB_TYPE[$LNETCDF]='ld'              # ld = LDFLAGS, cpp = cpptraj/libcpptraj, cpptraj=cpptraj only, blank = special
 
 LIB_STAT[$LPARANC]='off'
 LIB_CKEY[$LPARANC]='pnetcdf'
@@ -349,7 +349,7 @@ LIB_FLAG[$LSANDER]='-lsander'
 LIB_STTC[$LSANDER]=''
 LIB_D_ON[$LSANDER]='-DUSE_SANDERLIB'
 LIB_DOFF[$LSANDER]=''
-LIB_TYPE[$LSANDER]='ld'
+LIB_TYPE[$LSANDER]='cpptraj'
 
 LIB_STAT[$LTIMER]='off'
 LIB_CKEY[$LTIMER]='timer'
@@ -1387,6 +1387,7 @@ SetupFinalFlags() {
   # Set up include and linking flags
   ldf=''
   CPPTRAJ_LIB=''
+  CPPTRAJONLY_LIB=''
   CPPTRAJ_INC=''
   nincl=0
   for ((i=0; i < $NLIB; i++)) ; do
@@ -1423,6 +1424,8 @@ SetupFinalFlags() {
         ldf="$ldf ${LIB_FLAG[$i]}"
       elif [ "${LIB_TYPE[$i]}" = 'cpp' ] ; then
         CPPTRAJ_LIB="$CPPTRAJ_LIB ${LIB_FLAG[$i]}"
+      elif [ "${LIB_TYPE[$i]}" = 'cpptraj' ] ; then
+        CPPTRAJONLY_LIB="$CPPTRAJONLY_LIB ${LIB_FLAG[$i]}"
       fi
     fi
   done
@@ -2855,7 +2858,7 @@ while [ ! -z "$1" ] ; do
     '-libstatic'        ) USE_STATIC=2 ;;
     '-shared'           )
       USE_SHARED=1
-      LIB_STAT[$LSANDER]='off'
+#      LIB_STAT[$LSANDER]='off'
       ;;
     '-amberlib'         )
       if [ -z "$AMBERHOME" ] ; then
@@ -3077,6 +3080,7 @@ fi
 #echo FFLAGS $FFLAGS
 #echo LDFLAGS $LDFLAGS
 #echo CPPTRAJ_LIB $CPPTRAJ_LIB
+#echo CPPTRAJONLY_LIB $CPPTRAJONLY_LIB
 #echo CPPTRAJ_INC $CPPTRAJ_INC
 #echo REQUIRES_FLINK $REQUIRES_FLINK FLINK $FLINK
 echo ""
@@ -3186,6 +3190,7 @@ ARPACK_TARGET=$ARPACK_TARGET
 FFT_TARGET=$FFT_TARGET
 
 CPPTRAJ_LIB=$CPPTRAJ_LIB
+CPPTRAJONLY_LIB=$CPPTRAJONLY_LIB
 LDFLAGS=$LDFLAGS
 SFX=$SFX
 EXE=$EXE
