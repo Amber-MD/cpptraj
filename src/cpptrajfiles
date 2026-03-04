@@ -627,7 +627,7 @@ LIBCPPTRAJ_PARM_OBJECTS= \
   CharmmParamFile.o \
   ExclusionArray.o \
   Mol.o \
-  ParameterSet.o \
+  Parm/ParameterSet.o \
   ParmFile.o \
   Parm_Amber.o \
   Parm_CharmmPsf.o \
