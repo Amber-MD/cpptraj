@@ -166,7 +166,9 @@ void StructureCheck::SetupBondList(AtomMask const& iMask, Topology const& top) {
 // StructureCheck::Setup()
 int StructureCheck::Setup(Topology const& topIn, Box const& boxIn)
 {
+# ifdef TIMER
   t_setup_.Start();
+# endif
   imageOpt_.SetupImaging( boxIn.HasBox() );
   bondList_.clear();
   if (!checkExtraPts_)
@@ -179,9 +181,13 @@ int StructureCheck::Setup(Topology const& topIn, Box const& boxIn)
   }
   checkType_ = NO_PL_1_MASK;
   // Set up bonds if specified.
+# ifdef TIMER
   t_setup_bonds_.Start();
+# endif
   if (bondcheck_ || ringcheck_) SetupBondList(Mask1_, topIn);
+# ifdef TIMER
   t_setup_bonds_.Stop();
+# endif
   // Set up second mask if specified.
   if ( Mask2_.MaskStringSet() ) {
     if (topIn.SetupIntegerMask( Mask2_ ) ) return 1;
@@ -239,7 +245,9 @@ int StructureCheck::Setup(Topology const& topIn, Box const& boxIn)
     ex_list_opt = ExclusionArray::FULL;
   }
   // Set up exclusion list
+# ifdef TIMER
   t_setup_exclusion_.Start();
+# endif
   if (checkType_ == PL_1_MASK || checkType_ == NO_PL_1_MASK) {
     mprintf("\tExcluding bond interactions.\n");
     // Set up atom exclusion list. Distance of 2 since we are not
@@ -250,11 +258,15 @@ int StructureCheck::Setup(Topology const& topIn, Box const& boxIn)
     }
   } else
     mprintf("\tNot using exclusions.\n");
+# ifdef TIMER
   t_setup_exclusion_.Stop();
+# endif
   // Sort bond list
   if (bondcheck_ || ringcheck_) std::sort(bondList_.begin(), bondList_.end());
   // Find rings
+# ifdef TIMER
   t_setup_ringfinder_.Start();
+# endif
   if (ringcheck_) {
     if (rings_.SetupRingFinder(topIn, Mask1_)) {
       mprinterr("Error: Could not set up ring finder.\n");
@@ -262,18 +274,22 @@ int StructureCheck::Setup(Topology const& topIn, Box const& boxIn)
     }
     if (debug_ > 0) rings_.PrintRings(topIn);
   }
+# ifdef TIMER
   t_setup_ringfinder_.Stop();
   t_setup_.Stop();
+# endif
   return 0;
 }
 
 void StructureCheck::PrintTiming(int indent, double total)
 const
 {
+# ifdef TIMER
   t_setup_.WriteTiming(indent, "Check Setup :", total);
   t_setup_bonds_.WriteTiming     (indent+1, "Setup check bonds      :", t_setup_.Total());
   t_setup_exclusion_.WriteTiming (indent+1, "Setup check exclusions :", t_setup_.Total());
   t_setup_ringfinder_.WriteTiming(indent+1, "Setup check ringfinder :", t_setup_.Total());
+# endif
 }
 
 /** Sort problem list. If OpenMP, combine problems from each thread
