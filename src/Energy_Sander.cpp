@@ -171,6 +171,7 @@ void Energy_Sander::SetDefaultInput() {
   input_.ntc = 2;
   input_.ntr = 0;
   input_.ibelly = 0;
+  input_.mask_from_ref = 0;
 
   input_.restraintmask[0] = '\0';
   input_.bellymask[0] = '\0';
