@@ -27,13 +27,13 @@ esander S out Esander.dat saveforces
 trajout force.crd
 EOF
     RunCpptraj "$UNITNAME"
-    #DoTest "$SAVEPREFIX"Esander.dat.save Esander.dat
-    #NcTest force.nc.save force.nc -a 0.000001
+    DoTest "$SAVEPREFIX"Esander.dat.save Esander.dat
+    DoTest force.crd.save force.crd
   fi
 }
 
 TestGB() {
-  UNINTNAME="Short SANDER energy test, GB"
+  UNITNAME="Short SANDER energy test, GB"
   CheckFor maxthreads 10
   cat > ene.in <<EOF
 parm ../DPDP.parm7
@@ -41,7 +41,7 @@ trajin ../DPDP.nc 1 10
 esander DPDP out Edpdp.dat gbsa 1
 EOF
   RunCpptraj "$UNITNAME"
-  #DoTest "$SAVEPREFIX"Edpdp.dat.save Edpdp.dat
+  DoTest "$SAVEPREFIX"Edpdp.dat.save Edpdp.dat
 }
 
 
