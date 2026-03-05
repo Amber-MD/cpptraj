@@ -300,7 +300,7 @@ void Action_CheckStructure::Print() {
       DataSet_integer const& A2 = static_cast<DataSet_integer const&>( *ds_a2_ );
       DataSet_string  const& N2 = static_cast<DataSet_string  const&>( *ds_n2_ );
       DataSet_double  const& DV = static_cast<DataSet_double  const&>( *ds_d_  );
-      outfile_->Printf(Fmt_[PT[idx]], FN[idx], A1[idx], N1[idx].c_str(),
+      outfile_->Printf(StructureCheck::WriteFmt( PT[idx] ), FN[idx], A1[idx], N1[idx].c_str(),
                        A2[idx], N2[idx].c_str(), DV[idx]);
     }
   }

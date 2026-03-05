@@ -1011,6 +1011,14 @@ const char* StructureCheck::Fmt_[] = {
   "%i\t Warning: Bond involving atom %i:%s intersects ring involving atom %i:%s (%.2f)\n" ///< F_RING
 };
 
+#ifdef MPI
+/** \return Format string of given type, for writing in parallel. */
+const char* StructureCheck::WriteFmt(int idx) {
+  if (idx < 0 || idx > (int)F_RING) return 0;
+  return Fmt_[idx];
+}
+#endif
+
 /** Write formats for problems, no frame number. */
 const char* StructureCheck::NoFrameFmt_[] = {
   "Warning: Atoms %i:%s and %i:%s are close (%.2f)\n",    ///< F_ATOM

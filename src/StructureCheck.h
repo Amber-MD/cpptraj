@@ -54,6 +54,10 @@ class StructureCheck {
     void WriteProblemsToFile(CpptrajFile*, int, Topology const&) const;
     /// Write existing problems to the given file, no frame number
     void WriteProblemsToFile(CpptrajFile*, Topology const&) const;
+#   ifdef MPI
+    /// \return Format string of given type, for writing in parallel
+    static const char* WriteFmt(int);
+#   endif
     /// Print timing data to stdout
     void PrintTiming(int, double) const;
     /// Format of problems currently stored in problemAtoms_
