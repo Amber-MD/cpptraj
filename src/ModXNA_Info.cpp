@@ -2,8 +2,6 @@
 #include "../ArgList.h"
 #include "../CpptrajStdio.h"
 
-using namespace Cpptraj::Structure;
-
 /** CONSTRUCTOR */
 ModXNA_Info::ModXNA_Info() {}
 

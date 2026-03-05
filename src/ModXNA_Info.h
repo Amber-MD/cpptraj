@@ -1,8 +1,8 @@
 #ifndef INC_STRUCTURE_MODXNA_INFO_H
 #define INC_STRUCTURE_MODXNA_INFO_H
 #include <string>
-namespace Cpptraj {
-namespace Structure {
+//namespace Cpptraj {
+//namespace Structure {
 /// Hold info used by the modXNA FF for joining fragments
 class ModXNA_Info {
   public:
@@ -34,6 +34,6 @@ class ModXNA_Info {
     std::string anchor_;
     std::string anchorStrip_;
 };
-}
-}
+//}
+//}
 #endif
