@@ -1113,7 +1113,8 @@ const
       }
       // Skip mapping if tgt == ref
       if (tgt != ref) {
-        mprintf("DEBUG: Map ref %s to tgt %s\n", ref.c_str(), tgt.c_str());
+        if (debug_ > 0)
+          mprintf("DEBUG: Map ref %s to tgt %s\n", ref.c_str(), tgt.c_str());
         namemap->AddNameMap(ref, tgt);
       }
     } // END if not comment
