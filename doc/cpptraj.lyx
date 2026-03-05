@@ -7759,6 +7759,188 @@ fixatomorder
 'doassembly'
 \series default
  keyword is specified it can create macromolecular assemblies from PDBs with multiple models.
+ The build procedure is similar to that of LEaP,
+ but CPPTRAJ's build tends to be faster and more robust,
+ particularly for large systems and/or system containing CMAP terms.
+ Note that since LEaP uses an imprecise value of PI compared to CPPTRAJ/sander/pmemd,
+ the topologies produced by CPPTRAJ will have slight differences in any terms involving PI (e.g.
+ angles,
+ dihedrals,
+ etc).
+ For 1:1 direct comparison to LEaP topologies,
+ CPPTRAJ can be compiled using LEaP's value of PI by configuring with the '-leappi' configure flag,
+ which activates the CPPTRAJ_USE_LEAP_PI compiler define.
+ Note also that CPPTRAJ retains PDB information (chain ID,
+ original residue number,
+ Bfactor/Occupancy etc) which is printed to the output Topology.
+ The parameter files used are also printed to the output Topology in the FORCE_FIELD_TYPE section.
+\end_layout
+
+\begin_layout Standard
+The output from the 
+\series bold
+\emph on
+build
+\series default
+\emph default
+ command tends to be more verbose than LEaP and is grouped into several phases:
+\end_layout
+
+\begin_layout Enumerate
+Input coordinates details and general parameters.
+ This is where the input coordinates will be cleaned up if needed (similar to 
+\series bold
+\emph on
+prepareforleap
+\series default
+\emph default
+,
+ see 
+\begin_inset CommandInset ref
+LatexCommand vref
+reference "subsec:cpptraj-prepareforleap"
+plural "false"
+caps "false"
+noprefix "false"
+nolink "false"
+
+\end_inset
+
+).
+\end_layout
+
+\begin_layout Enumerate
+Getting templates and parameters.
+ If no templates/parameters were specified,
+ all available templates and parameters will be used.
+ If multiple parameter sets are available they will be combined,
+ with later parameter sets having priority over earlier parameter sets.
+\end_layout
+
+\begin_layout Enumerate
+Structure preparation.
+ This is where histidine protonation states will be determined (if hydrogens are present),
+ disulfide bonds will be searched for,
+ and sugars will be prepared (see 
+\begin_inset CommandInset ref
+LatexCommand vref
+reference "subsec:cpptraj-prepareforleap"
+plural "false"
+caps "false"
+noprefix "false"
+nolink "false"
+
+\end_inset
+
+).
+\end_layout
+
+\begin_layout Enumerate
+Match residues to templates and build missing atoms.
+ Note that unlike LEaP,
+ if an atom name is not recognized within a residue that has a template,
+ that atom will be ignored and built back in using the template unless 
+\series bold
+keepmissingatoms
+\series default
+ is specified.
+ After all atoms are built and linked,
+ CPPTRAJ will ensure that atoms within molecules are contiguous (like 
+\series bold
+\emph on
+fixatomorder
+\series default
+\emph default
+,
+ see 
+\begin_inset CommandInset ref
+LatexCommand vref
+reference "subsec:cpptraj-fixatomorder"
+plural "false"
+caps "false"
+noprefix "false"
+nolink "false"
+
+\end_inset
+
+) unless 
+\series bold
+nofixorder
+\series default
+ is specified.
+\end_layout
+
+\begin_layout Enumerate
+Solvate/add ions.
+ If 
+\series bold
+solvatebox
+\series default
+/
+\series bold
+solvateoct
+\series default
+ and optionally 
+\series bold
+addionsrand
+\series default
+ is specified,
+ solvent/ions will be added to the system.
+ Note that the neutralization argument (i.e.
+ number of ions equal to zero) can be specified for either ion1,
+ ion2,
+ or both.
+ Note that currently CPPTRAJ does not support adding ions if no solvent has been added.
+\end_layout
+
+\begin_layout Enumerate
+Parameter assignment.
+ Here parameters will be assigned based on the atom types in templates.
+ The gb keyword can be used to pick the GB radii set used.
+ The lj1264 keyword and associated keywords can be used to add Lennard-Jones C coefficients if the loaded force field supports them.
+\end_layout
+
+\begin_layout Enumerate
+Structure check.
+ Here the final structure will be checked for long bonds,
+ overlaps,
+ and ring intersections (like the 
+\series bold
+\emph on
+checkstructure
+\series default
+\emph default
+ Action,
+ see 
+\begin_inset CommandInset ref
+LatexCommand vref
+reference "subsec:cpptraj-check"
+plural "false"
+caps "false"
+noprefix "false"
+nolink "false"
+
+\end_inset
+
+).
+ CPPTRAJ will also check if there were missing residues and for problems with the overall system charge.
+ Problems can be redirected to another file with the 
+\series bold
+reportfile
+\series default
+ keyword,
+ otherwise they will be printed to the standard output.
+\end_layout
+
+\begin_layout Enumerate
+File output.
+ If parmout/crdout were specified,
+ prints details on the file writes.
+\end_layout
+
+\begin_layout Enumerate
+Timing data.
+ Will print detailed timing data for each phase.
 \end_layout
 
 \begin_layout Subsubsection*
@@ -31087,6 +31269,13 @@ nolink "false"
 
 \begin_layout Subsection
 fixatomorder
+\begin_inset CommandInset label
+LatexCommand label
+name "subsec:cpptraj-fixatomorder"
+
+\end_inset
+
+
 \end_layout
 
 \begin_layout LyX-Code
