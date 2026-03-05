@@ -6,7 +6,7 @@
 #include "Residue.h"
 #include "CpptrajStdio.h" // To print debug info
 #include "StringRoutines.h" // RemoveTrailingWhitespace
-#include "Structure/ModXNA_Info.h"
+#include "ModXNA_Info.h"
 
 // CONSTRUCTOR
 Mol2File::Mol2File() : 
@@ -65,9 +65,8 @@ void Mol2File::WriteHeader( Mol2File::TRIPOSTAG tag ) {
 }
 
 /** Check for ModXNA info in the title. */
-Cpptraj::Structure::ModXNA_Info* Mol2File::CheckForModxna() {
+ModXNA_Info* Mol2File::CheckForModxna() {
   // Check for modxna info
-  using namespace Cpptraj::Structure;
   size_t pos = mol2title_.find_first_of( "modXNA-fragment" );
   if (pos != std::string::npos) {
     ModXNA_Info* minfo = new ModXNA_Info();

@@ -372,6 +372,7 @@ COMMON_SOURCES= \
         MdOpts.cpp \
         MetaData.cpp \
         Minimize_SteepestDescent.cpp \
+        ModXNA_Info.cpp \
         Mol.cpp \
         Mol2File.cpp \
         NameType.cpp \

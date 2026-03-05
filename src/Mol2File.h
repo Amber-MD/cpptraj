@@ -5,11 +5,7 @@
 #include <map>
 class Atom;
 class Residue;
-namespace Cpptraj {
-namespace Structure {
 class ModXNA_Info;
-}
-}
 /// Used to access mol2 files.
 class Mol2File : private CpptrajFile {
   public: 
@@ -25,7 +21,7 @@ class Mol2File : private CpptrajFile {
     /// Read in MOLECULE section of mol2file.
     bool ReadMolecule();
     /// Check for modXNA info in the title
-    Cpptraj::Structure::ModXNA_Info* CheckForModxna();
+    ModXNA_Info* CheckForModxna();
     /// Write Mol2 info
     bool WriteMolecule(bool,int);
     //// Used to only read # atoms in next MOLECULE record.

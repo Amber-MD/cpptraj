@@ -9,6 +9,7 @@
 #include "Frame.h"
 #include "FileName.h"
 #include "Range.h"
+#include "ModXNA_Info.h"
 class AtomMask;
 class CharMask;
 /// Hold information for all atoms
@@ -243,6 +244,11 @@ class Topology {
     void AddCharmmImproper(DihedralType const&, DihedralParmType const&);
     void AddCharmmImproper(DihedralType const&, int);
     void AddCharmmImproper(DihedralType const& i) { AddCharmmImproper(i, -1); }
+    // ----- ModXNA ------------------------------
+    /// Set modxna info
+    void SetModxna(ModXNA_Info const& m) { modxna_ = m; }
+    /// \return modxna info
+    ModXNA_Info const& Modxna() const { return modxna_; }
     // ----- Misc routines -----------------------
     /// Format: <res name>_<res num>@<atom name>
     std::string TruncResAtomName(int) const;
@@ -403,6 +409,8 @@ class Topology {
     std::vector<int> pdbSerialNum_;  ///< Atom PDB original serial number
     std::vector<Residue> missingRes_; ///< List of residues missing from PDB
     std::vector<Residue> missingHet_; ///< List of residues missing heteroatoms in PDB
+
+    ModXNA_Info modxna_;
 
     Box parmBox_;
     Frame refCoords_;       ///< Internal reference coords for distance-based masks

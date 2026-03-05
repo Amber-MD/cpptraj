@@ -1,6 +1,6 @@
 #include "ModXNA_Info.h"
-#include "../ArgList.h"
-#include "../CpptrajStdio.h"
+#include "ArgList.h"
+#include "CpptrajStdio.h"
 
 /** CONSTRUCTOR */
 ModXNA_Info::ModXNA_Info() {}
