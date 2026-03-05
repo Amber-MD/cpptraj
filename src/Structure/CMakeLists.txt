@@ -12,6 +12,7 @@ target_sources(cpptraj_common_obj PRIVATE
   ${CMAKE_CURRENT_LIST_DIR}/InternalCoords.cpp
   ${CMAKE_CURRENT_LIST_DIR}/LeastSquaresPlane.cpp
   ${CMAKE_CURRENT_LIST_DIR}/MetalCenterFinder.cpp
+  ${CMAKE_CURRENT_LIST_DIR}/ModXNA_Info.cpp
   ${CMAKE_CURRENT_LIST_DIR}/PdbCleaner.cpp
   ${CMAKE_CURRENT_LIST_DIR}/RingFinder.cpp
   ${CMAKE_CURRENT_LIST_DIR}/Solvate.cpp
