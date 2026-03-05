@@ -132,10 +132,34 @@ void Energy_Sander::SetDefaultInput() {
   input_.fswitch = -1.0;
   input_.restraint_wt = 0.0;
 
+  input_.ala = 0.0;
+  input_.arg = 0.0;
+  input_.asn = 0.0;
+  input_.asp = 0.0;
+  input_.cys = 0.0;
+  input_.gln = 0.0;
+  input_.glu = 0.0;
+  input_.gly = 0.0;
+  input_.his = 0.0;
+  input_.hip = 0.0;
+  input_.ile = 0.0;
+  input_.leu = 0.0;
+  input_.lys = 0.0;
+  input_.met = 0.0;
+  input_.phe = 0.0;
+  input_.pro = 0.0;
+  input_.ser = 0.0;
+  input_.thr = 0.0;
+  input_.triptophan = 0.0;
+  input_.tyr = 0.0;
+  input_.valine = 0.0;
+  input_.bb = 0.0;
+
   input_.igb = 0;
   input_.alpb = 0;
   input_.gbsa = 0;
   input_.lj1264 = -1;
+  input_.plj1264 = -1;
   input_.ipb = 0;
   input_.inp = 2;
   input_.vdwmeth = 1;
@@ -155,7 +179,7 @@ void Energy_Sander::SetDefaultInput() {
 
 const char* Energy_Sander::supportedNamelist_ = 
 "extdiel intdiel rgbmax saltcon cut dielc igb alpb gbsa lj1264 ipb inp vdwmeth ew_type ntb";
- 
+
 /** Check and set input for Sander.*/
 int Energy_Sander::SetInput(ArgList& argIn) {
   SetDefaultInput();
