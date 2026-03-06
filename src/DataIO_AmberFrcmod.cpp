@@ -29,8 +29,12 @@ int DataIO_AmberFrcmod::processReadArgs(ArgList& argIn)
   return 0;
 }
 
+int DataIO_AmberFrcmod::ReadData(FileName const& fname, DataSetList& dsl, std::string const& dsname) {
+  return ReadData(fname, dsl, dsname, 0);
+}
+
 // DataIO_AmberFrcmod::ReadData()
-int DataIO_AmberFrcmod::ReadData(FileName const& fname, DataSetList& dsl, std::string const& dsname)
+int DataIO_AmberFrcmod::ReadData(FileName const& fname, DataSetList& dsl, std::string const& dsname, DataSet_LeapOpts* leapopts)
 {
   ClearAddedByMe();
   // Allocate data set
@@ -51,6 +55,7 @@ int DataIO_AmberFrcmod::ReadData(FileName const& fname, DataSetList& dsl, std::s
 
   AmberParamFile infile;
   infile.SetAmberParamDebug( debug_ );
+  infile.SetDefaults( leapopts );
   if (infile.ReadFrcmod(prm, fname)) {
     mprinterr("Error: Could not read Amber frcmod file '%s'\n", fname.full());
     return 1;

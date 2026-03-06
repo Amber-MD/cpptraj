@@ -1,7 +1,8 @@
 #include "AmberParamFile.h"
 #include "ArgList.h"
-#include "CpptrajStdio.h"
 #include "BufferedLine.h"
+#include "CpptrajStdio.h"
+#include "DataSet_LeapOpts.h"
 #include "StringRoutines.h"
 #include "Parm/DihedralParmSet.h"
 #include "Parm/ParameterSet.h"
@@ -24,6 +25,13 @@ AmberParamFile::AmberParamFile() :
 /** Set debug level */
 void AmberParamFile::SetAmberParamDebug(int d) {
   debug_ = d;
+}
+
+/** Set defaults from leap options */
+void AmberParamFile::SetDefaults(DataSet_LeapOpts* leapopts) {
+  if (leapopts == 0) return;
+  default_scee_ = leapopts->SCEE();
+  default_scnb_ = leapopts->SCNB();
 }
 
 /** Read symbols delimited by - and space. */

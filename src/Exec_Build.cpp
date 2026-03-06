@@ -3,6 +3,7 @@
 #include "AssociatedData_Connect.h"
 #include "CpptrajStdio.h"
 #include "DataIO_Coords.h"
+#include "DataSet_LeapOpts.h"
 #include "DataSet_Parameters.h" // For casting DataSet_Parameters to ParameterSet
 #include "ParmFile.h"
 #include "StringRoutines.h" // integerToString
@@ -878,6 +879,16 @@ void Exec_Build::Help() const
   mprintf("  Build complete topology and parameters from given crdset.\n");
 }
 
+/** Check if any unhandled options have been set. */
+int Exec_Build::checkUnhandledOptions(DataSet_LeapOpts const& OPTS) const {
+  if (OPTS.IPOL() > 0) {
+    mprinterr("Error: IPOL has been set to something other than zero by a previous leaprc file.\n"
+              "Error: Creating topologies for polarizable FF is not yet supported.\n");
+    return 1;
+  }
+  return 0;
+}
+
 // Exec_Build::Execute()
 Exec::RetType Exec_Build::Execute(CpptrajState& State, ArgList& argIn)
 {
@@ -912,6 +923,12 @@ Exec::RetType Exec_Build::Execute(CpptrajState& State, ArgList& argIn)
   if (inCrdPtr == 0) {
     mprinterr("Error: Must specify file to build or COORDS set with 'crdset'\n");
     return CpptrajState::ERR;
+  }
+  DataSet* leapopts = State.DSL().FindSetOfType( "*", DataSet::LEAPOPTS );
+  if (leapopts != 0) {
+    // Check for unhandled leap options
+    DataSet_LeapOpts const& OPTS = static_cast<DataSet_LeapOpts const&>( *leapopts );
+    if (checkUnhandledOptions( OPTS )) return CpptrajState::ERR;
   }
 
   return BuildAndParmStructure(inCrdPtr, outset, State.DSL(), State.Debug(), argIn, Cpptraj::Parm::UNKNOWN_GB);

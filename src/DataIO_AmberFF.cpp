@@ -33,8 +33,13 @@ int DataIO_AmberFF::processReadArgs(ArgList& argIn)
   return 0;
 }
 
-// DataIO_AmberFF::ReadData()
 int DataIO_AmberFF::ReadData(FileName const& fname, DataSetList& dsl, std::string const& dsname)
+{
+  return ReadData(fname, dsl, dsname, 0);
+}
+
+// DataIO_AmberFF::ReadData()
+int DataIO_AmberFF::ReadData(FileName const& fname, DataSetList& dsl, std::string const& dsname, DataSet_LeapOpts* leapopts)
 {
   ClearAddedByMe();
   // Allocate data set
@@ -55,6 +60,7 @@ int DataIO_AmberFF::ReadData(FileName const& fname, DataSetList& dsl, std::strin
 
   AmberParamFile infile;
   infile.SetAmberParamDebug( debug_ );
+  infile.SetDefaults( leapopts ); 
   int err = infile.ReadParams(prm, fname, nbsetname_);
   if (err != 0) {
     mprinterr("Error: Could not read '%s'\n", fname.full());

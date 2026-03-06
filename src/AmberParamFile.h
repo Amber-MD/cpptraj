@@ -3,6 +3,7 @@
 #include <vector>
 #include <string>
 class CmapGridType;
+class DataSet_LeapOpts;
 //class BufferedLine;
 class FileName;
 namespace Cpptraj {
@@ -25,6 +26,8 @@ class AmberParamFile {
     int WriteParams(ParameterSet&, FileName const&) const;
     /// Set debug level
     void SetAmberParamDebug(int);
+    /// Set defaults from leap options
+    void SetDefaults(DataSet_LeapOpts*);
   private:
     static const int MAXSYMLEN;
 

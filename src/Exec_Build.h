@@ -2,6 +2,7 @@
 #define INC_EXEC_BUILD_H
 #include "Exec.h"
 #include "Parm/GB_Params.h"
+class DataSet_LeapOpts;
 namespace Cpptraj {
 namespace Structure {
 class Creator;
@@ -36,6 +37,8 @@ class Exec_Build : public Exec {
     static inline bool hasBondingPair(IParray const&, Ipair const&);
     /// \return true if given array of residue connections has target residue index.
     static inline bool resIsConnected(Iarray const&, int);
+    /// Check for unhandled LEaP options
+    int checkUnhandledOptions(DataSet_LeapOpts const&) const;
     /// Create assembly from input COORDS
     int createAssembly(Topology&, Frame&, DataSet_Coords&) const;
     /// Create new topology/frame using templates

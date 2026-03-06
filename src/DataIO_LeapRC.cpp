@@ -241,7 +241,7 @@ const
     }
     DataIO_AmberFrcmod infile;
     infile.SetDebug( debug_ );
-    if (infile.ReadData( full_path, dsl, dsname)) {
+    if (infile.ReadData( full_path, dsl, dsname, static_cast<DataSet_LeapOpts*>(leapopts_))) {
       mprinterr("Error: Could not load force field modifications from '%s'\n", filename.c_str());
       return 1;
     }
@@ -258,7 +258,7 @@ const
     } else {
       mprintf("\tLoading force field from '%s'\n", filename.c_str());
       DataIO_AmberFF infile;
-      if (infile.ReadData( full_path, dsl, dsname)) {
+      if (infile.ReadData( full_path, dsl, dsname, static_cast<DataSet_LeapOpts*>(leapopts_))) {
         mprinterr("Error: Could not load force field from '%s'\n", filename.c_str());
         return 1;
       }
