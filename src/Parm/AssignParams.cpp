@@ -36,6 +36,11 @@ void AssignParams::SetVerbose(int verboseIn) {
   verbose_ = verboseIn;
 }
 
+/** Set flexible water option */
+void AssignParams::SetFlexibleWater(bool flexIn) {
+  flexibleWater_ = flexIn;
+}
+
 /** Set parameters for atoms via given atom type parameter holder. */
 int AssignParams::AssignAtomTypeParm(AtArray& atoms, ParmHolder<AtomType> const& newAtomTypeParams)
 const

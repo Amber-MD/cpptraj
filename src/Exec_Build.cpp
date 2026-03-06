@@ -1177,6 +1177,9 @@ Exec::RetType Exec_Build::BuildAndParmStructure(DataSet* inCrdPtr, std::string c
 
   std::string solventResName = argIn.GetStringKey("solventresname", "HOH");
   mprintf("\tResidues named '%s' will be recognized as solvent.\n", solventResName.c_str());
+  bool flexWater = argIn.hasKey("flexiblewater");
+  if (flexWater)
+    mprintf("\tFlexible water option is on.\n");
 
   enum SolvateModeType { NO_SOLVATE = 0, SOLVATEBOX, SETBOX };
   SolvateModeType add_solvent = NO_SOLVATE;
@@ -1325,6 +1328,7 @@ Exec::RetType Exec_Build::BuildAndParmStructure(DataSet* inCrdPtr, std::string c
   Cpptraj::Parm::AssignParams AP;
   AP.SetDebug( debug_ );
   AP.SetVerbose( verbose );
+  AP.SetFlexibleWater( flexWater );
   int nmissing = 0;
   if ( AP.AssignParameters( topOut, *(creator.MainParmSetPtr()), nmissing ) ) {
     mprinterr("Error: Could not assign parameters for '%s'.\n", topOut.c_str());

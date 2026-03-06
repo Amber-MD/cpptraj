@@ -39,6 +39,8 @@ class AssignParams {
     void SetDebug(int);
     /// Set verbosity
     void SetVerbose(int);
+    /// Allow flexible water
+    void SetFlexibleWater(bool);
     /// Replace existing parameters with those from given set
 #   ifdef TIMER
     int AssignParameters(Topology&, ParameterSet const&, int&);
