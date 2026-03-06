@@ -84,4 +84,4 @@ Not Yet Ready
 =============
 - Introduce the `byatom` keyword to `checkchirality` action to check the chirality of any atoms in specified mask that are chiral centers.
 
-
+- Cannot yet build topology files for polarizable force fields (IPOL > 0).
