@@ -18,7 +18,7 @@ class Exec_Build : public Exec {
     RetType Execute(CpptrajState&, ArgList&);
 
     /// Stand-alone execution - only build, do not parameterize/solvate
-    RetType BuildStructure(DataSet*, DataSetList&, int, std::string const&, std::string const&, bool);
+    RetType BuildStructure(DataSet*, DataSetList&, int, std::string const&, std::string const&, bool, DataSet_LeapOpts*);
     /// \return Output COORDS set
     DataSet* OutCrdPtr() const { return outCrdPtr_; }
     /// Print Timing data

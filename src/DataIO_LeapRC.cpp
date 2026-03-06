@@ -600,7 +600,7 @@ int DataIO_LeapRC::LoadMol2(ArgList const& argIn, DataSetList& dsl) const {
   ArgList tmparg = args.RemainingArgs();
 
   Exec_Build build;
-  Exec::RetType ret = build.BuildStructure( coordsIn.added_back(), dsl, debug_, "", "default_name", tmparg.hasKey("prepareforleap") );
+  Exec::RetType ret = build.BuildStructure( coordsIn.added_back(), dsl, debug_, "", "default_name", tmparg.hasKey("prepareforleap"), static_cast<DataSet_LeapOpts*>(leapopts_) );
   if (ret == CpptrajState::ERR) {
     mprinterr("Error: Build of '%s' failed.\n", args[2].c_str());
     return 1;
@@ -643,7 +643,7 @@ int DataIO_LeapRC::LoadPDB(ArgList const& argIn, DataSetList& dsl) const {
   ArgList tmparg = args.RemainingArgs();
 
   Exec_Build build;
-  Exec::RetType ret = build.BuildStructure( coordsIn.added_back(), dsl, debug_, "", "default_name", tmparg.hasKey("prepareforleap") );
+  Exec::RetType ret = build.BuildStructure( coordsIn.added_back(), dsl, debug_, "", "default_name", tmparg.hasKey("prepareforleap"), static_cast<DataSet_LeapOpts*>(leapopts_) );
   if (ret == CpptrajState::ERR) {
     mprinterr("Error: Build of '%s' failed.\n", args[2].c_str());
     return 1;

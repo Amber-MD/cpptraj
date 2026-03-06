@@ -970,7 +970,7 @@ const
 /** Standalone execute. For DataIO_LeapRC. Operate on inCrdPtr */
 Exec::RetType Exec_Build::BuildStructure(DataSet* inCrdPtr, DataSetList& DSL, int debugIn,
                                          std::string const& outset, std::string const& title,
-                                         bool enableExtraDetection)
+                                         bool enableExtraDetection, DataSet_LeapOpts* leapopts)
                                          
 {
 #ifndef CPPTRAJ_USE_LEAP_PI
@@ -994,6 +994,11 @@ Exec::RetType Exec_Build::BuildStructure(DataSet* inCrdPtr, DataSetList& DSL, in
     return CpptrajState::ERR;
   }
   debug_ = debugIn;
+  if (leapopts != 0) {
+    // Check for unhandled leap options
+    DataSet_LeapOpts const& OPTS = static_cast<DataSet_LeapOpts const&>( *leapopts );
+    if (checkUnhandledOptions( OPTS )) return CpptrajState::ERR;
+  }
 
   // TODO make it so this can be const (cant bc GetFrame)
   DataSet_Coords& coords = static_cast<DataSet_Coords&>( *((DataSet_Coords*)inCrdPtr) );
