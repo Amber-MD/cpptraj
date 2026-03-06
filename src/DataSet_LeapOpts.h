@@ -24,17 +24,20 @@ class DataSet_LeapOpts : public DataSet {
     int SetSCNB(double);
     int SetDipoleDampFactor(double);
     int SetIpol(int);
+    int SetFlexibleWater(bool);
 
     Cpptraj::Parm::GB_RadiiType PbRadii() const { return pbradii_; }
     double SCEE() const { return scee_; }
     double SCNB() const { return scnb_; }
     double DipoleDampFactor() const { return dipoleDampFactor_; }
     int IPOL() const { return ipol_; }
+    bool FlexibleWater() const { return flexibleWater_; }
   private:
     Cpptraj::Parm::GB_RadiiType pbradii_;
     double scee_;
     double scnb_;
     double dipoleDampFactor_;
     int ipol_;
+    bool flexibleWater_;
 };
 #endif

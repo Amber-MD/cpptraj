@@ -9,7 +9,8 @@ DataSet_LeapOpts::DataSet_LeapOpts() :
   scee_(1.2), // AMBER default
   scnb_(2.0), // AMBER default
   dipoleDampFactor_(0),
-  ipol_(0)
+  ipol_(0),
+  flexibleWater_(false)
 {
 
 }
@@ -34,7 +35,7 @@ static inline int set_dopt(const char* desc, double& opt, double newVal)
             "Warning: keeping value of %g\n", desc, opt);
     return 1;
   } else {
-    mprintf("\tSetting %s to %g\n", newVal);
+    mprintf("\tSetting %s to %g\n", desc, newVal);
     opt = newVal;
   }
   return 0;
@@ -64,3 +65,12 @@ int DataSet_LeapOpts::SetIpol(int ipolIn) {
   return 0;
 }
 
+/** Set flexible water */
+int DataSet_LeapOpts::SetFlexibleWater(bool fIn) {
+  if (fIn)
+    mprintf("\tSetting flexible water to ON\n");
+  else
+    mprintf("\tSetting flexible water to OFF\n");
+  flexibleWater_ = fIn;
+  return 0;
+}

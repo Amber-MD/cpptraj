@@ -690,11 +690,33 @@ int DataIO_LeapRC::LeapSet(ArgList const& argIn, DataSetList& dsl) const {
         return 1;
       } else
         mprintf("Warning: Skipping unrecognized 'set default cmap' mode: %s\n", argIn[3].c_str());
+    } else if ( ToLower(argIn[2]) == "dipole_damp_factor" ) {
+      if (OPTS.SetDipoleDampFactor( convertToDouble(argIn[3]) )) {
+        mprinterr("Error: Could not set dipole_damp_factor.\n");
+        return 1;
+      }
+    } else if ( ToLower(argIn[2]) == "sceescalefactor" ) {
+      if (OPTS.SetSCEE( convertToDouble(argIn[3]) )) {
+        mprinterr("Error: Could not set sceescalefactor.\n");
+        return 1;
+      }
+    } else if ( ToLower(argIn[2]) == "scnbscalefactor" ) {
+      if (OPTS.SetSCNB( convertToDouble(argIn[3]) )) {
+        mprinterr("Error: Could not set scnbscalefactor.\n");
+        return 1;
+      }
+    } else if (ToLower(argIn[2]) == "ipol" ) {
+      if (OPTS.SetIpol( convertToInteger(argIn[3]) )) {
+        mprinterr("Error: Could not set IPOL\n");
+        return 1;
+      }
     } else {
-      mprintf("Warning: Unhandled 'set default' command: %s\n", argIn.ArgLine());
+      mprinterr("Error: Unhandled 'set default' command: %s\n", argIn.ArgLine());
+      return 1;
     }
   } else {
-    mprintf("Warning: Unhandled 'set' command: %s\n", argIn.ArgLine());
+    mprinterr("Error: Unhandled 'set' command: %s\n", argIn.ArgLine());
+    return 1;
   }
 
   return 0;
