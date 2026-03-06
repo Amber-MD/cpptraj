@@ -25,6 +25,7 @@ class DataSet_LeapOpts : public DataSet {
     int SetDipoleDampFactor(double);
     int SetIpol(int);
     int SetFlexibleWater(bool);
+    int SetDeleteExtraPointAngles(bool);
 
     Cpptraj::Parm::GB_RadiiType PbRadii() const { return pbradii_; }
     double SCEE() const { return scee_; }
@@ -32,6 +33,7 @@ class DataSet_LeapOpts : public DataSet {
     double DipoleDampFactor() const { return dipoleDampFactor_; }
     int IPOL() const { return ipol_; }
     bool FlexibleWater() const { return flexibleWater_; }
+    bool DeleteExtraPointAngles() const { return deleteExtraPointAngles_; }
   private:
     Cpptraj::Parm::GB_RadiiType pbradii_;
     double scee_;
@@ -39,5 +41,6 @@ class DataSet_LeapOpts : public DataSet {
     double dipoleDampFactor_;
     int ipol_;
     bool flexibleWater_;
+    bool deleteExtraPointAngles_;
 };
 #endif

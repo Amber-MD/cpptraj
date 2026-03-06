@@ -658,6 +658,14 @@ const char* DataIO_LeapRC::LEAPOPTSNAME_ = "_LEAP_OPTIONS_";
 /** Leap pdb residue map data set default name. */
 const char* DataIO_LeapRC::PDBRESMAPNAME_ = "_LEAP_PDBRESMAP_";
 
+/// \return 1 if 'on', 0 if 'off', -1 otherwise.
+static inline int on_off_opt(const char* desc, std::string const& opt) {
+  if (opt == "off") return 0;
+  else if (opt == "on") return 1;
+  mprinterr("Error: Expected 'on' or 'off' for %s, got %s\n", desc, opt.c_str());
+  return -1;
+}
+
 /** LEaP 'set' command. */
 int DataIO_LeapRC::LeapSet(ArgList const& argIn, DataSetList& dsl) const {
   if (leapopts_ == 0) {
@@ -683,13 +691,22 @@ int DataIO_LeapRC::LeapSet(ArgList const& argIn, DataSetList& dsl) const {
         return 1;
       }
     } else if ( ToLower(argIn[2]) == "cmap" ) {
-      if ( ToLower(argIn[3]) == "on" ) {
+      int iopt = on_off_opt(argIn.ArgLine(), ToLower(argIn[3]));
+      if ( iopt == 1 ) {
         mprintf("Warning: LEaP 'set default cmap on' command ignored; CMAP terms will always be added if present.\n");
-      } else if ( ToLower(argIn[3]) == "off" ) {
+      } else if ( iopt == 0 ) {
         mprinterr("Error: LEaP 'set default cmap off' is not supported; CMAP terms will always be added if present.\n");
         return 1;
       } else
         mprintf("Warning: Skipping unrecognized 'set default cmap' mode: %s\n", argIn[3].c_str());
+    } else if ( ToLower(argIn[2]) == "flexiblewater" ) {
+      int iopt = on_off_opt(argIn.ArgLine(), ToLower(argIn[3]));
+      if (iopt < 0) return 1;
+      OPTS.SetFlexibleWater( (bool)iopt );
+    } else if ( ToLower(argIn[2]) == "deleteextrapointangles" ) {
+      int iopt = on_off_opt(argIn.ArgLine(), ToLower(argIn[3]));
+      if (iopt < 0) return 1;
+      OPTS.SetDeleteExtraPointAngles( (bool)iopt );
     } else if ( ToLower(argIn[2]) == "dipole_damp_factor" ) {
       if (OPTS.SetDipoleDampFactor( convertToDouble(argIn[3]) )) {
         mprinterr("Error: Could not set dipole_damp_factor.\n");

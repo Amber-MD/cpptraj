@@ -10,7 +10,8 @@ DataSet_LeapOpts::DataSet_LeapOpts() :
   scnb_(2.0), // AMBER default
   dipoleDampFactor_(0),
   ipol_(0),
-  flexibleWater_(false)
+  flexibleWater_(false),
+  deleteExtraPointAngles_(true)
 {
 
 }
@@ -72,5 +73,15 @@ int DataSet_LeapOpts::SetFlexibleWater(bool fIn) {
   else
     mprintf("\tSetting flexible water to OFF\n");
   flexibleWater_ = fIn;
+  return 0;
+}
+
+/** Set whether extra point angles should be deleted */
+int DataSet_LeapOpts::SetDeleteExtraPointAngles(bool fIn) {
+  if (fIn)
+    mprintf("\tSetting delete extra point angles to ON\n");
+  else
+    mprintf("\tSetting delete extra point angles to OFF\n");
+  deleteExtraPointAngles_ = fIn;
   return 0;
 }
