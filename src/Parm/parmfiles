@@ -1,0 +1,11 @@
+# Files for Parm subdirectory.
+PARM_SOURCES= \
+  AssignParams.cpp \
+  Bond_Params.cpp \
+  DihedralParmSet.cpp \
+  GB_Params.cpp \
+  GetParams.cpp \
+  LJ1264_Params.cpp \
+  Merge.cpp \
+  ParameterSet.cpp \
+  ParmEnum.cpp

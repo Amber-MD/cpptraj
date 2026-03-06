@@ -35,6 +35,8 @@ class NameType {
     std::string Formatted(int) const;
     /// \return non-space length of name
     int len() const;
+    /// \return max size of a name
+    static unsigned int max() { return (ArraySize_); }
     /// \return true if name comes before given name alphabetically
     bool operator<(NameType const& rhs) const {
       for (unsigned int i = 0; i != ArraySize_; i++)

@@ -33,6 +33,7 @@
 #include "Exec_ReadInput.h"
 #include "Exec_RunAnalysis.h"
 #include "Exec_SortEnsembleData.h"
+#include "Exec_Source.h"
 #include "Exec_SequenceAlign.h"
 #include "Exec_ViewRst.h"
 #include "Exec_Set.h"
@@ -58,6 +59,8 @@
 #include "Exec_ExtendedComparison.h"
 #include "Exec_Zmatrix.h"
 #include "Exec_Sequence.h"
+#include "Exec_Build.h"
+#include "Exec_Mutate.h"
 // ----- TRAJECTORY ------------------------------------------------------------
 #include "Exec_Traj.h"
 // ----- TOPOLOGY --------------------------------------------------------------
@@ -71,6 +74,7 @@
 #include "Exec_ScaleDihedralK.h"
 #include "Exec_Top.h"
 #include "Exec_UpdateParameters.h"
+#include "Exec_Desc.h"
 // ----- ACTION ----------------------------------------------------------------
 #include "Action_Angle.h"
 #include "Action_Distance.h"
@@ -265,6 +269,7 @@ void Command::Init() {
   Command::AddCmd( new Exec_SilenceActions(),  Cmd::EXE, 1, "silenceactions" );
   Command::AddCmd( new Exec_SequenceAlign(),   Cmd::EXE, 1, "sequencealign" ); // hidden
   Command::AddCmd( new Exec_SortEnsembleData(),Cmd::EXE, 1, "sortensembledata" );
+  Command::AddCmd( new Exec_Source(),          Cmd::EXE, 1, "source" );
   Command::AddCmd( new Exec_WriteDataFile(),   Cmd::EXE, 2, "write", "writedata" );
   Command::AddCmd( new Exec_UseDiskCache(),    Cmd::EXE, 1, "usediskcache" );
   Command::AddCmd( new Exec_ViewRst(),         Cmd::EXE, 1, "viewrst" ); // hidden
@@ -274,6 +279,7 @@ void Command::Init() {
   // SYSTEM
   Command::AddCmd( new Exec_System(), Cmd::EXE, 6, "gnuplot", "head", "less", "ls", "pwd", "xmgrace" );
   // COORDS
+  Command::AddCmd( new Exec_Build(),            Cmd::EXE, 1, "build" );
   Command::AddCmd( new Exec_CatCrd(),           Cmd::EXE, 1, "catcrd" );
   Command::AddCmd( new Exec_CombineCoords(),    Cmd::EXE, 1, "combinecrd" ); 
   Command::AddCmd( new Exec_CrdAction(),        Cmd::EXE, 1, "crdaction" );
@@ -284,6 +290,7 @@ void Command::Init() {
   Command::AddCmd( new Exec_Graft(),            Cmd::EXE, 1, "graft");
   Command::AddCmd( new Exec_LoadCrd(),          Cmd::EXE, 1, "loadcrd" );
   Command::AddCmd( new Exec_LoadTraj(),         Cmd::EXE, 1, "loadtraj" );
+  Command::AddCmd( new Exec_Mutate(),           Cmd::EXE, 1, "mutate" );
   Command::AddCmd( new Exec_PermuteDihedrals(), Cmd::EXE, 1, "permutedihedrals" );
   Command::AddCmd( new Exec_PrepareForLeap(),   Cmd::EXE, 1, "prepareforleap" );
   Command::AddCmd( new Exec_RotateDihedral(),   Cmd::EXE, 1, "rotatedihedral" );
@@ -304,6 +311,7 @@ void Command::Init() {
   Command::AddCmd( new Exec_Change(),        Cmd::EXE, 1, "change" );
   Command::AddCmd( new Exec_ChargeInfo(),    Cmd::EXE, 1, "charge" );
   Command::AddCmd( new Exec_CompareTop(),    Cmd::EXE, 1, "comparetop" );
+  Command::AddCmd( new Exec_Desc(),          Cmd::EXE, 1, "desc" ); // HIDDEN
   Command::AddCmd( new Exec_DihedralInfo(),Cmd::EXE, 3,"dihedrals","dihedralinfo","printdihedrals");
   Command::AddCmd( new Exec_HmassRepartition(),Cmd::EXE, 1, "hmassrepartition" );
   Command::AddCmd( new Exec_ImproperInfo(),Cmd::EXE, 3,"impropers","improperinfo","printimpropers");

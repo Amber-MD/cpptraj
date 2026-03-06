@@ -2,6 +2,7 @@
 #include "CpptrajStdio.h"
 #include "PotentialFunction.h"
 #include "MdOpts.h"
+#include "Energy/CMAP.h"
 
 using namespace Cpptraj::Energy;
 
@@ -13,23 +14,28 @@ Action_Energy::Action_Energy() :
   npoints_(0),
   debug_(0),
   nbCalcType_(Ecalc_Nonbond::UNSPECIFIED),
+  cmap_(0),
   potential_(0),
   use_openmm_(false),
   dt_(0),
   need_lj_params_(false),
   needs_exclList_(false),
-  bondsToH_(true)
+  bondsToH_(true),
+  lj1264_(false),
+  useLj1264_(false)
 {}
 
 /// DESTRUCTOR
 Action_Energy::~Action_Energy() {
   if (potential_ != 0) delete potential_;
+  if (cmap_ != 0) delete cmap_;
 }
 
 void Action_Energy::Help() const {
   mprintf("\t[<name>] [<mask1>] [out <filename>] [nobondstoh] [openmm [<mdopts>]]\n"
           "\t[bond] [angle] [dihedral] {[nb14]|[e14]|[v14]} {[nonbond] | [elec] [vdw]}\n"
-          "\t[{nokinetic|kinetic [ketype {vel|vv}] [dt <dt>]}]\n"
+          "\t[cmap]\n"
+          "\t[{nokinetic|kinetic [ketype {vel|vv}] [dt <dt>]}] [lj1264]\n"
           "\t[ etype { simple |\n"
           "\t          directsum [npoints <N>] |\n"
           "\t          ewald %s\n"
@@ -61,11 +67,11 @@ void Action_Energy::Help(ArgList& argIn) const {
 }
 
 /// Corresponds to Etype 
-static const char* AspectStr[] = {"bond", "angle", "dih", "vdw14", "elec14",
+static const char* AspectStr[] = {"bond", "angle", "dih", "cmap", "vdw14", "elec14",
                                   "vdw", "elec", "kinetic", "total"};
 
 /// Corresponds to Etype
-static const char* EtypeStr[] = {"Bonds", "Angles", "Dihedrals", "1-4 VDW", "1-4 Elec.",
+static const char* EtypeStr[] = {"Bonds", "Angles", "Dihedrals", "CMAP", "1-4 VDW", "1-4 Elec.",
                                  "VDW", "Elec.", "Kinetic", "Total"};
 
 /// Corresponds to ElecType 
@@ -99,6 +105,8 @@ Action::RetType Action_Energy::Init(ArgList& actionArgs, ActionInit& init, int d
     return Action::ERR;
 #   endif /* HAS_OPENMM */
   }
+  // LJ 12-6-4
+  useLj1264_ = actionArgs.hasKey("lj1264");
   // Determine which energy terms are active 
   std::vector<bool> termEnabled((int)TOTAL+1, false);
   if (use_openmm_) {
@@ -108,6 +116,7 @@ Action::RetType Action_Energy::Init(ArgList& actionArgs, ActionInit& init, int d
     termEnabled[BOND] = actionArgs.hasKey("bond");
     termEnabled[ANGLE] = actionArgs.hasKey("angle");
     termEnabled[DIHEDRAL] = actionArgs.hasKey("dihedral");
+    termEnabled[CMAP] = actionArgs.hasKey("cmap");
     termEnabled[V14] = actionArgs.hasKey("v14");
     termEnabled[Q14] = actionArgs.hasKey("e14");
     termEnabled[VDW] = actionArgs.hasKey("vdw");
@@ -180,6 +189,13 @@ Action::RetType Action_Energy::Init(ArgList& actionArgs, ActionInit& init, int d
         return Action::ERR;
       if (ewaldOpts_.Type() == EwaldOptions::LJPME)
         nbCalcType_ = Ecalc_Nonbond::LJPME;
+      if (useLj1264_) {
+        if (nbCalcType_ != Ecalc_Nonbond::PME) {
+          mprinterr("Error: 'lj1264' is only compatible with regular PME.\n");
+          return Action::ERR;
+        }
+        nbCalcType_ = Ecalc_Nonbond::LJCPME;
+      }
 #     else
       mprinterr("Error: 'pme' requires compiling with LIBPME (FFTW3 and C++11 support).\n");
       return Action::ERR;
@@ -202,6 +218,10 @@ Action::RetType Action_Energy::Init(ArgList& actionArgs, ActionInit& init, int d
     Ecalcs_.push_back(C_ANG);
   if (termEnabled[DIHEDRAL])
     Ecalcs_.push_back(C_DIH);
+  if (termEnabled[CMAP]) {
+    Ecalcs_.push_back(C_CMAP);
+    cmap_ = new Cpptraj::Energy::CMAP();
+  }
   if (termEnabled[KE]) {
     if (KEtype_ == KE_AUTO)
       Ecalcs_.push_back(C_KEAUTO);
@@ -290,6 +310,8 @@ Action::RetType Action_Energy::Init(ArgList& actionArgs, ActionInit& init, int d
   } else {
     if (termEnabled[BOND] && !bondsToH_)
       mprintf("\tNot calculating energy of bonds to hydrogen.\n");
+    if (useLj1264_)
+      mprintf("\tWill use LJ 12-6-4 (C) coefficients if present.\n");
     if (elecType_ != NO_ELE)
       mprintf("\tElectrostatics method: %s\n", ElecStr[elecType_]);
     if (elecType_ == DIRECTSUM) {
@@ -342,12 +364,33 @@ Action::RetType Action_Energy::Setup(ActionSetup& setup) {
   }
 
   Imask_ = AtomMask(Mask1_.ConvertToIntMask(), Mask1_.Natom());
+  // CMAP
+  if (cmap_ != 0) {
+    if (cmap_->Setup_CMAP_Ene(setup.Top(), Mask1_)) {
+      mprinterr("Error: CMAP setup failed.\n");
+      return Action::ERR;
+    }
+  }
   // Check for LJ terms
-  if (need_lj_params_ && !setup.Top().Nonbond().HasNonbond())
-  {
-    mprinterr("Error: LJ energy calc requested but topology '%s'\n"
-              "Error:   does not have LJ parameters.\n", setup.Top().c_str());
-    return Action::ERR;
+  lj1264_ = false;
+  if (need_lj_params_) {
+    if (!setup.Top().Nonbond().HasNonbond())
+    {
+      mprinterr("Error: LJ energy calc requested but topology '%s'\n"
+                "Error:   does not have LJ parameters.\n", setup.Top().c_str());
+      return Action::ERR;
+    }
+    if (useLj1264_) {
+      if (setup.Top().Nonbond().Has_C_Coeff()) {
+        lj1264_ = true;
+        mprintf("\tLJ 12-6-4 (C) terms are active.\n");
+      } else
+        mprintf("Warning: 'lj1264' specified but no LJ 12-6-4 (C) terms present in topology '%s'\n", setup.Top().c_str());
+    } else {
+      if (setup.Top().Nonbond().Has_C_Coeff()) {
+        mprintf("Warning: Topology has LJ C coefficients. To use these, specify 'lj1264'\n");
+      }
+    }
   }
   // Set up exclusion list if necessary.
   if (needs_exclList_) {
@@ -438,9 +481,18 @@ Action::RetType Action_Energy::DoAction(int frameNum, ActionFrame& frm) {
         Energy_[DIHEDRAL]->Add(frameNum, &ene);
         Etot += ene;
         break;
+      case C_CMAP:
+        if (cmap_->HasCMAPs()) {
+          time_cmap_.Start();
+          ene = cmap_->Ene_CMAP(frm.Frm());
+          time_cmap_.Stop();
+          Energy_[CMAP]->Add(frameNum, &ene);
+          Etot += ene;
+        }
+        break;
       case C_N14:
         time_14_.Start();
-        ene = ENE_.E_14_Nonbond(frm.Frm(), *currentParm_, Mask1_, ene2);
+        ene = ENE_.E_14_Nonbond(frm.Frm(), *currentParm_, Mask1_, ene2, lj1264_);
         time_14_.Stop();
         if (Energy_[V14] != 0) Energy_[V14]->Add(frameNum, &ene);
         if (Energy_[Q14] != 0) Energy_[Q14]->Add(frameNum, &ene2);
@@ -448,7 +500,7 @@ Action::RetType Action_Energy::DoAction(int frameNum, ActionFrame& frm) {
         break;
       case C_NBD: // Both nonbond terms must be enabled 
         time_NB_.Start();
-        ene = ENE_.E_Nonbond(frm.Frm(), *currentParm_, Imask_, ene2, Excluded_);
+        ene = ENE_.E_Nonbond(frm.Frm(), *currentParm_, Imask_, ene2, Excluded_, lj1264_);
         time_NB_.Stop();
         Energy_[VDW]->Add(frameNum, &ene);
         Energy_[ELEC]->Add(frameNum, &ene2);
@@ -456,7 +508,7 @@ Action::RetType Action_Energy::DoAction(int frameNum, ActionFrame& frm) {
         break;
       case C_LJ:
         time_NB_.Start();
-        ene = ENE_.E_VDW(frm.Frm(), *currentParm_, Imask_, Excluded_);
+        ene = ENE_.E_VDW(frm.Frm(), *currentParm_, Imask_, Excluded_, lj1264_);
         time_NB_.Stop();
         Energy_[VDW]->Add(frameNum, &ene);
         Etot += ene;
@@ -531,6 +583,8 @@ void Action_Energy::Print() {
     time_angle_.WriteTiming(1, "ANGLE       :", time_total_.Total());
   if (time_tors_.Total() > 0.0)
     time_tors_.WriteTiming(1,  "TORSION     :", time_total_.Total());
+  if (time_cmap_.Total() > 0.0)
+    time_cmap_.WriteTiming(1,  "CMAP        :", time_total_.Total());
   if (time_14_.Total() > 0.0)
     time_14_.WriteTiming(1,    "1-4_NONBOND :", time_total_.Total());
   if (nbCalcType_ != Ecalc_Nonbond::UNSPECIFIED)

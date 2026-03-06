@@ -3,7 +3,7 @@
 #include "CpptrajStdio.h"
 
 // CONSTRUCTOR
-AtomMap::AtomMap() : debug_(0) {}
+AtomMap::AtomMap() : debug_(0), allowNoBonds_(false) {}
 
 /// Blank AtomMap for empty return of bracket operator
 MapAtom AtomMap::EMPTYMAPATOM = MapAtom();
@@ -123,16 +123,13 @@ bool AtomMap::BondIsRepeated(int atom, int bondedAtom) const {
   return false;
 }
 
-// AtomMap::DetermineAtomIDs()
 /** Give each atom an identifier (atomID) based on what atoms are bonded to 
   * it. The first part of the atomID is the atom itself, followed by an 
   * alphabetized list of bonded atoms. So C in O=C-H2 would be CHHO.
   * Then create a 'unique string' comprised of this atomID and the 
-  * atomIDs of all bonded atoms (sorted). Once that is done determine
-  * which unique strings are actually unique (i.e. they are not repeated
-  * in this map). 
+  * atomIDs of all bonded atoms (sorted).
   */
-void AtomMap::DetermineAtomIDs() {
+void AtomMap::AssignUniqueAtomIDs() {
   // Determine self IDs
   if (debug_>0) mprintf("ATOM IDs:\n");
   unsigned int anum = 1;
@@ -187,6 +184,15 @@ void AtomMap::DetermineAtomIDs() {
     // NOTE: SetUnique also resets the duplicated counter.
     matom.SetUnique( unique );
   }
+}
+
+// AtomMap::DetermineAtomIDs()
+/** Assign each atom a unique ID. Once that is done determine
+  * which unique strings are actually unique (i.e. they are not repeated
+  * in this map). 
+  */
+void AtomMap::DetermineAtomIDs() {
+  AssignUniqueAtomIDs();
 
   // Determine which unique IDs are duplicated - set isUnique flag
   for (unsigned int i = 0; i < mapatoms_.size()-1; i++) {
@@ -202,7 +208,7 @@ void AtomMap::DetermineAtomIDs() {
   // DEBUG
   if (debug_ > 0) {
     mprintf("UNIQUE IDs:\n");
-    anum = 1;
+    unsigned int anum = 1;
     for (Marray::const_iterator matom = mapatoms_.begin();
                                 matom != mapatoms_.end(); ++matom)
     {
@@ -288,8 +294,10 @@ int AtomMap::CheckBonds() {
     }
   }
   if (total_bonds == 0 && mapatoms_.size() > 1) {
-    mprinterr("Error: No bond information present, required by AtomMap.\n");
-    return 1;
+    if (!allowNoBonds_) {
+      mprinterr("Error: No bond information present, required by AtomMap.\n");
+      return 1;
+    }
   }
 
   // DEBUG

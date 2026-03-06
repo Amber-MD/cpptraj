@@ -73,6 +73,7 @@ namespace File {
   void ErrorMsg(const char*);
   bool Exists(std::string const&);
   bool Exists(FileName const&);
+  int Remove(FileName const&);
   /** Given lowest replica traj filename, split into components for search. */
   class RepName {
   public:

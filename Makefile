@@ -38,7 +38,7 @@ clean: config.h
 
 docs: src/cpptraj.Doxyfile
 	cd doc && make docs
-	cd src && doxygen cpptraj.Doxyfile
+	cd src && ../devtools/UpdateDoxyVersion.sh && doxygen cpptraj.Doxyfile
 
 # Remove cpptraj binary
 uninstall: config.h

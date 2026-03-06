@@ -69,8 +69,10 @@ class Box {
     /// \return vector containing reciprocal lengths from fractional cell matrix
     Vec3 RecipLengths() const;
 
-    /// Print Box info to STDOUT
+    /// Print Box info to STDOUT preceded by a tab
     void PrintInfo() const;
+    /// Print Box info to STDOUT preceded by given text
+    void PrintInfo(const char*) const;
     /// Print box debug info to stdout
     void PrintDebug(const char*) const;
     /// \return Name of current cell shape

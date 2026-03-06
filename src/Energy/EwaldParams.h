@@ -51,6 +51,8 @@ class EwaldParams {
     int NbIndex(int idx0, int idx1) const { return NB_->GetLJindex(TypeIndices_[idx0], TypeIndices_[idx1]); }
     /// \return Nonbonded parameter at nonobonded parameter index
     NonbondType const& GetLJ(int nbindex) const { return NB_->NBarray()[ nbindex ]; }
+    /// \return Nonbonded LJC coefficient at nonbonded parameter index
+    double GetLJC(int nbindex) const { return NB_->LJC_Array( nbindex ); }
     /// \return Number of atoms (current size of charge array)
     unsigned int Natom() const { return Charge_.size(); }
 

@@ -1,4 +1,5 @@
-docs: CpptrajManual.pdf CpptrajDevelopmentGuide.pdf 
+docs: GeneratePDFs.sh
+	./GeneratePDFs.sh
 
 .lyx.pdf:
 	lyx -batch --export pdf2 $<

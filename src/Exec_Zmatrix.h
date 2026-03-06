@@ -9,7 +9,7 @@ class Exec_Zmatrix : public Exec {
     DispatchObject* Alloc() const { return (DispatchObject*)new Exec_Zmatrix(); }
     RetType Execute(CpptrajState&, ArgList&);
   private:
-    int getZmatrix(DataSet_Coords*, int, int, std::string const&, DataFile*, CpptrajState&) const;
+    int getZmatrix(DataSet_Coords*, int, int, std::string const&, DataFile*, CpptrajState&,bool) const;
     int putZmatrix(DataSet_Coords*, Topology*, std::string const&, std::string const&, CpptrajState&) const;
 
     int debug_;

@@ -1,6 +1,11 @@
 #ifndef INC_EXEC_SEQUENCE_H
 #define INC_EXEC_SEQUENCE_H
 #include "Exec.h"
+namespace Cpptraj {
+namespace Structure { 
+class Creator;
+}
+}
 /// Create a molecule from a sequence of units 
 class Exec_Sequence : public Exec {
   public:
@@ -12,7 +17,7 @@ class Exec_Sequence : public Exec {
     typedef std::vector<std::string> Sarray;
 
     int generate_sequence(DataSet_Coords*, DataSetList const&,
-                          Sarray const&, Sarray const&) const;
+                          Sarray const&, Cpptraj::Structure::Creator const&) const;
 
     int debug_;
 };

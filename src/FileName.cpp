@@ -343,3 +343,7 @@ bool File::Exists(FileName const& fn) {
 bool File::Exists(std::string const& fname) {
   return File::Exists( FileName(fname) );
 }
+
+int File::Remove(FileName const& fname) {
+  return remove( fname.full() );
+}

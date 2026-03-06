@@ -1,21 +1,28 @@
 #ifndef INC_TYPENAMEHOLDER_H
 #define INC_TYPENAMEHOLDER_H
+#include <vector>
 #include <cstddef> // size_t
 #include "NameType.h"
 /// Used to hold one or more atom type names.
 class TypeNameHolder {
+    // Swap NameTypes
+    static inline void tswap(NameType& n0, NameType& n1) {
+      NameType tmp = n1;
+      n1 = n0;
+      n0 = tmp;
+    }
   public:
     typedef std::vector<NameType> Narray;
     typedef Narray::const_iterator const_iterator;
     TypeNameHolder() {}
     /// CONSTRUCTOR - Take single atom type name
-    TypeNameHolder(NameType const& nameIn) : types_(1, nameIn) {}
+    TypeNameHolder(NameType const& nameIn) : types_(1, nameIn), is_swapped_(false) {}
     /// CONSTRUCTOR - Take array of atom type names
-    TypeNameHolder(Narray const& namesIn) : types_(namesIn) {}
+    TypeNameHolder(Narray const& namesIn) : types_(namesIn), is_swapped_(false) {}
     /// CONSTRUCTOR - Reserve space for given number of type names
-    TypeNameHolder(int size) { types_.clear(); types_.reserve(size); }
-    /// CONSTRUCTOR - Set wildcard name and reserve space for given number of type names.
-    TypeNameHolder(int size, NameType const& wc) : wildcard_(wc) { types_.clear(); types_.reserve(size); }
+    TypeNameHolder(int size) : is_swapped_(false) { types_.clear(); types_.reserve(size); }
+/*    /// CONSTRUCTOR - Set wildcard name and reserve space for given number of type names.
+    TypeNameHolder(int size, NameType const& wc) : wildcard_(wc) { types_.clear(); types_.reserve(size); }*/
     /// Add atom type name.
     void AddName(NameType const& n) { types_.push_back( n ); }
     /// \return Iterator to beginning of type name array.
@@ -26,7 +33,54 @@ class TypeNameHolder {
     size_t Size() const { return types_.size(); }
     /// \return Type name at index
     NameType const& operator[](int idx) const { return types_[idx]; }
+    /// \return true if either direction is an exact match, no wildcard.
+    bool Match_NoWC(TypeNameHolder const& rhs) const {
+      if (types_.size() != rhs.types_.size()) return false;
+      // Forwards direction
+      bool match = true;
+      for (unsigned int idx = 0; idx != types_.size(); idx++)
+        if (types_[idx] != rhs.types_[idx]) {
+          match = false;
+          break;
+        }
+      if (match) return true;
+      // Reverse direction
+      match = true;
+      unsigned int idx2 = types_.size() - 1;
+      for (unsigned int idx = 0; idx != types_.size(); idx++, idx2--)
+        if (types_[idx] != rhs.types_[idx2]) {
+          match = false;
+          break;
+        }
+      return match;
+    }
+    /// \return true if either direction is an exact match, no wildcard.
+    bool operator==(TypeNameHolder const& rhs) const { return Match_NoWC(rhs); }
+    /// \return true if neither direction is an exact match.
+    bool operator!=(TypeNameHolder const& rhs) const { return !Match_NoWC(rhs); }
     /// \return true if either direction is a match, taking into account wildcard.
+    bool Match_WC(TypeNameHolder const& rhs, NameType const& wildcard) const {
+      // Sanity check
+      if (types_.size() != rhs.types_.size()) return false;
+      // Forwards direction
+      bool match = true;
+      for (unsigned int idx = 0; idx != types_.size(); idx++)
+        if (types_[idx] != rhs.types_[idx] && types_[idx] != wildcard) {
+          match = false;
+          break;
+        }
+      if (match) return true;
+      // Reverse direction
+      match = true;
+      unsigned int idx2 = types_.size() - 1;
+      for (unsigned int idx = 0; idx != types_.size(); idx++, idx2--)
+        if (types_[idx] != rhs.types_[idx2] && types_[idx] != wildcard) {
+          match = false;
+          break;
+        }
+      return match;
+    }
+/*    /// \return true if either direction is a match, taking into account wildcard.
     bool operator==(TypeNameHolder const& rhs) const {
       // Sanity check
       if (types_.size() != rhs.types_.size()) return false;
@@ -47,7 +101,7 @@ class TypeNameHolder {
           break;
         }
       return match;
-    }
+    }*/
     /// Will sort by type names in ascending order.
     bool operator<(TypeNameHolder const& rhs) const {
       if (types_.size() != rhs.types_.size()) {
@@ -67,10 +121,87 @@ class TypeNameHolder {
         tstr.append( " " + std::string( *(*it) ) );
       return tstr;
     }
+    /// \return string containing a description and atom type names
+    std::string TypeNameStr(std::string const& desc) const {
+      std::string OUT(desc);
+      switch (Size()) {
+        case 1 : OUT.append(" type " + types_[0].Truncated()); break;
+        case 2 : OUT.append(" type " + types_[0].Truncated() + " - " + types_[1].Truncated()); break;
+        case 3 : OUT.append(" type " + types_[0].Truncated() + " - " + types_[1].Truncated() + " - " + types_[2].Truncated()); break;
+        case 4 : OUT.append(" type " + types_[0].Truncated() + " - " + types_[1].Truncated() + " - " + types_[2].Truncated() + " - " + types_[3].Truncated()); break;
+        default: OUT.append(" type " + TypeString());
+      }
+      return OUT;
+    }
+    /// Sort typenames so that the first typename < the last
+    void SortNames(NameType const& wc) {
+      if (types_.size() < 2) return;
+      unsigned int last = types_.size() - 1;
+      // Replace wildcards with spaces so they appear first
+      if (wc.len() > 0) {
+        if (types_[0]    == wc) types_[0]    = NameType(" ");
+        if (types_[last] == wc) types_[last] = NameType(" ");
+      }
+      if (types_[0] > types_[last]) {
+        // Need to swap TODO record if we swapped these names?
+        is_swapped_ = true;
+        if (types_.size() < 4)
+          tswap(types_[0], types_[last]);
+        else {
+          unsigned int half = types_.size() / 2;
+          unsigned int jj = last;
+          for (unsigned int ii = 0; ii < half; ii++, jj--)
+            tswap(types_[ii], types_[jj]);
+        }
+      } else
+        is_swapped_ = false;
+      // Restore wildcards
+      if (wc.len() > 0) {
+        if (types_[0]    == " ") types_[0]    = wc;
+        if (types_[last] == " ") types_[last] = wc;
+      }
+    }
+    /// Sort typenames so that the first typename < the last, no wildcard
+    void SortNames() {
+      if (types_.size() < 2) return;
+      unsigned int last = types_.size() - 1;
+      if (types_[0] > types_[last]) {
+        // Need to swap TODO record if we swapped these names?
+        if (types_.size() < 4)
+          tswap(types_[0], types_[last]);
+        else {
+          unsigned int half = types_.size() / 2;
+          unsigned int jj = last;
+          for (unsigned int ii = 0; ii < half; ii++, jj--)
+            tswap(types_[ii], types_[jj]);
+        }
+      }
+    }
+    /// Sort typenames alphabetically, preserving the 3rd position (for impropers)
+    void SortImproperByAlpha(NameType const& wc) {
+      if (types_.size() != 4) return;
+      if (wc.len() > 0) {
+        // Replace wildcards with spaces so they appear first
+        if (types_[0] == wc) types_[0] = NameType(" ");
+        if (types_[1] == wc) types_[1] = NameType(" ");
+        if (types_[3] == wc) types_[3] = NameType(" ");
+      }
+      if (types_[0] > types_[1]) tswap(types_[0], types_[1]);
+      if (types_[1] > types_[3]) tswap(types_[1], types_[3]);
+      if (types_[0] > types_[1]) tswap(types_[0], types_[1]);
+      if (types_[1] > types_[3]) tswap(types_[1], types_[3]);
+      if (wc.len() > 0) {
+        // Restore wildcards
+        if (types_[0] == " ") types_[0] = wc;
+        if (types_[1] == " ") types_[1] = wc;
+        if (types_[3] == " ") types_[3] = wc;
+      }
+    }
     /// \return size in bytes
-    size_t DataSize() const { return (types_.size()*NameType::DataSize()) + NameType::DataSize(); }
+    size_t DataSize() const { return (types_.size()*NameType::DataSize()); }
   private:
     Narray types_;
-    NameType wildcard_;
+    //NameType wildcard_;
+    bool is_swapped_;
 };
 #endif

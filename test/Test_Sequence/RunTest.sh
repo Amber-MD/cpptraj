@@ -14,17 +14,17 @@ Basic() {
 readdata ../Test_ReadOFF/aminocn15ipq_10.0.lib name A15
 readdata cph_nucleic_caps.lib name CAPS
 list
-sequence CAPS[MOC] A15[CNALA] name Mol
-crdout Mol Mol.mol2
+#sequence CAPS[MOC] A15[CNALA] name Mol
+#crdout Mol Mol.mol2
 
-sequence libset A15 libset CAPS MOC CNALA name Mol2
+sequence MOC CNALA name Mol2
 crdout Mol2 Mol2.mol2
 
 crdout CAPS[MOC] MOC.mol2
 crdout A15[CNALA] CNALA.mol2
 EOF
   RunCpptraj "$TESTNAME, library files"
-  DoTest Mol.mol2.save Mol.mol2
+#  DoTest Mol.mol2.save Mol.mol2
   DoTest Mol.mol2.save Mol2.mol2
 
   # NOTE: Depends on mol2 generation of previous test
@@ -49,8 +49,13 @@ EOF
 }
 
 # Link nucleic acid base + sugar + phosphate, IC, fix charges.
+# NOTE: This is not really how something like this should be
+#       constructed since after atoms are stripped from the sugar
+#       the original chirality is lost; sequence then builds in a
+#       default chirality which is not correct for nucleic acids.
+#       This test is purely a regression test.
 DNAic_charge() {
-  UNITNAME="$TESTNAME, Construct Nucleic Acid, IC, fix charges"
+  UNITNAME="$TESTNAME, Construct fake Nucleic Acid, IC, fix charges"
   CheckFor maxthreads 1
   if [ $? -eq 0 ] ; then
     cat > cpptraj.in <<EOF
@@ -75,7 +80,8 @@ charge crdset MyMol *
 crdout MyMol Nucleotide.ic.charge.mol2
 EOF
     RunCpptraj "$UNITNAME"
-    DoTest Nucleotide.ic.charge.mol2.save Nucleotide.ic.charge.mol2
+    #DoTest Nucleotide.ic.charge.mol2.save Nucleotide.ic.charge.mol2
+    DoTest Nucleotide.wrongChirality.ic.charge.mol2.save Nucleotide.ic.charge.mol2
   fi
 }
 

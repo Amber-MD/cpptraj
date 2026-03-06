@@ -1,5 +1,6 @@
 #include <cmath> // sqrt
 #include <cstring> // memcpy, memset
+#include <algorithm> // std::max
 #include "Frame.h"
 #include "Constants.h" // SMALL
 #include "CpptrajStdio.h"
@@ -296,7 +297,7 @@ void Frame::Info(const char *msg) const {
     mprintf("\tFrame [%s]:",msg);
   else
     mprintf("\tFrame:");
-  mprintf("%i atoms, %i coords",natom_, ncoord_);
+  mprintf("%i atoms (%i max), %i coords",natom_, maxnatom_, ncoord_);
   if (V_!=0) mprintf(", with Velocities");
   if (F_!=0) mprintf(", with Forces");
   if (!remd_indices_.empty()) mprintf(", with replica indices");
@@ -304,10 +305,17 @@ void Frame::Info(const char *msg) const {
 }
 
 // Frame::IncreaseX()
-void Frame::IncreaseX() {
-  maxnatom_ += 500;
+/** Increase the maximum size of the Frame by offset. */
+int Frame::IncreaseX(int offset) {
+  //mprintf("DEBUG: Increasing max number of atoms from %i to %i\n", maxnatom_, maxnatom_ + offset);
+  maxnatom_ += offset;
+  if (maxnatom_ < 1) {
+    mprinterr("Internal Error: Frame::IncreaseX(): New size is < 1 atom.\n");
+    return 1;
+  }
+  // Coordinates
   double *newX = new double[ maxnatom_ * 3 ];
-  if (X_!=0) {
+  if (X_ != 0) {
     memcpy(newX, X_, natom_ * COORDSIZE_);
     if (!memIsExternal_)
       delete[] X_;
@@ -315,6 +323,19 @@ void Frame::IncreaseX() {
       memIsExternal_ = false;
   }
   X_ = newX;
+  // Velocity
+  if (V_ != 0) {
+    double *newV = new double[ maxnatom_ * 3 ];
+    memcpy(newV, V_, natom_ * COORDSIZE_);
+    V_ = newV;
+  }
+  // Force
+  if (F_ != 0) {
+    double *newF = new double[ maxnatom_ * 3 ];
+    memcpy(newF, F_, natom_ * COORDSIZE_);
+    F_ = newF;
+  }
+  return 0;
 }
 
 /** Set atom/coord count to zero but do not clear memory. */
@@ -323,12 +344,17 @@ void Frame::ClearAtoms() {
   ncoord_ = 0;
 }
 
+/// Used to calculate how much natom_ should increase if a reallocation is needed.
+static inline int calc_natom_increase(int natomIn) {
+  return std::max(500, 2*natomIn);
+}
+
 // Frame::AddXYZ()
 /** Append the given XYZ coord to this frame. */
 void Frame::AddXYZ(const double *XYZin) {
   if (XYZin == 0) return;
   if (natom_ >= maxnatom_) 
-    IncreaseX(); 
+    IncreaseX( calc_natom_increase(natom_) );
   memcpy(X_ + ncoord_, XYZin, COORDSIZE_);
   ++natom_;
   ncoord_ += 3;
@@ -337,7 +363,7 @@ void Frame::AddXYZ(const double *XYZin) {
 // Frame::AddVec3()
 void Frame::AddVec3(Vec3 const& vIn) {
   if (natom_ >= maxnatom_) 
-    IncreaseX();
+    IncreaseX( calc_natom_increase(natom_) );
   memcpy(X_ + ncoord_, vIn.Dptr(), COORDSIZE_);
   ++natom_;
   ncoord_ += 3;
@@ -694,6 +720,28 @@ void Frame::SetFrame(Frame const& frameIn) {
     std::copy( frameIn.F_, frameIn.F_ + ncoord_, F_ );
 }
 
+/** Append incoming frame */
+void Frame::AppendFrame(Frame const& frameIn) {
+  int newNatom = natom_ + frameIn.natom_;
+  if (newNatom > maxnatom_)
+    IncreaseX( frameIn.natom_ );
+  int natom3 = natom_ * 3;
+  // Append coords
+  int ncoordIn = frameIn.ncoord_;
+  if (X_ != 0 && frameIn.X_ != 0)
+    std::copy( frameIn.X_, frameIn.X_ + ncoordIn, X_ + natom3 );
+  // Append mass
+  Mass_.insert( Mass_.end(), frameIn.Mass_.begin(), frameIn.Mass_.end() );
+  // Append velocity if necessary
+  if (frameIn.V_ != 0 && V_ != 0)
+    std::copy( frameIn.V_, frameIn.V_ + ncoordIn, V_ + natom3 );
+  // Append force if necessary
+  if (frameIn.F_ != 0 && F_ != 0)
+    std::copy( frameIn.F_, frameIn.F_ + ncoordIn, F_ + natom3 );
+  natom_ = newNatom;
+  ncoord_ = natom_ * 3;
+}
+
 /** Zero force array. */
 void Frame::ZeroForces() {
   if (F_ != 0)
@@ -1004,6 +1052,20 @@ Vec3 Frame::CenterOnOrigin(bool useMassIn)
   // -center is translation from Ref -> origin.
   NegTranslate(center);
   return center;
+}
+
+/** Center all atoms on given point. */
+void Frame::CenterOnPoint(Vec3 const& pos, bool useMassIn)
+{
+  Vec3 currentCenter;
+  if (useMassIn)
+    currentCenter = VCenterOfMass();
+  else
+    currentCenter = VGeometricCenter();
+  Vec3 trans( pos[0] - currentCenter[0],
+              pos[1] - currentCenter[1],
+              pos[2] - currentCenter[2] );
+  Translate(trans);
 }
 
 // Frame::Align()
@@ -1405,8 +1467,13 @@ double Frame::CalcTemperature(AtomMask const& mask, int deg_of_freedom) const {
 /** Set an orthogonal bounding box around all atoms, ensuring it
   * can encompass the given atomic radii, plus an offset.
   */
-void Frame::SetOrthoBoundingBox(std::vector<double> const& Radii, double offset)
+int Frame::SetOrthoBoundingBox(std::vector<double> const& Radii, double offset)
 {
+  // Sanity check
+  if ((int)Radii.size() < natom_) {
+    mprinterr("Internal Error: Frame::SetOrthoBoundingBox: # of radii %zu < # atoms in frame %i\n", Radii.size(), natom_);
+    return 1;
+  }
   int atom = 0;
   Vec3 min(XYZ( atom ));
   Vec3 max(min);
@@ -1453,7 +1520,7 @@ void Frame::SetOrthoBoundingBox(std::vector<double> const& Radii, double offset)
   xyzabg[3] = 90.0;
   xyzabg[4] = 90.0;
   xyzabg[5] = 90.0;
-  box_.SetupFromXyzAbg(xyzabg);
+  return box_.SetupFromXyzAbg(xyzabg);
 }
 
 #ifdef MPI

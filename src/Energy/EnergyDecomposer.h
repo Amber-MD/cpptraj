@@ -5,6 +5,7 @@
 #include "../CharMask.h"
 #include "../EwaldOptions.h"
 #include "../OnlineVarT.h"
+#include "../ParameterTypes.h"
 #include "../Timer.h"
 #ifdef MPI
 # include "../Parallel.h"
@@ -48,18 +49,15 @@ class EnergyDecomposer {
   private:
     typedef std::vector<double> Darray;
     typedef std::vector< Stats<double> > EneArrayType;
-    typedef std::vector<BondType> BndArrayType;
-    typedef std::vector<AngleType> AngArrayType;
-    typedef std::vector<DihedralType> DihArrayType;
 
     /// Set up an energy component output data set
     DataSet* addCompSet(DataSetList&, std::string const&);
     /// Set up selected bonds
-    int setupBonds(BndArrayType const&);
+    int setupBonds(BondArray const&);
     /// Set up selected angles
-    int setupAngles(AngArrayType const&);
+    int setupAngles(AngleArray const&);
     /// Set up selected dihedrals
-    int setupDihedrals(DihArrayType const&);
+    int setupDihedrals(DihedralArray const&);
 
     /// Save energy contribution for atom if it is selected
     inline void saveEne(int, double, Darray&);
@@ -84,12 +82,14 @@ class EnergyDecomposer {
     DataFile* outfile_;      ///< Output file
     int debug_;              ///< Debug level
     bool saveComponents_;    ///< If true, save per-atom energies for individual energy components 
+    bool lj1264_;            ///< True if LJ 12-6-4 (C) terms are active
+    bool useLj1264_;         ///< True if we want to use LJ 12-6-4 (C) terms if present
     EwaldOptions ewaldOpts_; ///< Hold Ewald options
     Cpptraj::Energy::Ecalc_Nonbond::CalcType nbcalctype_;
 
-    BndArrayType bonds_;         ///< Hold all bonds to be calculated
-    AngArrayType angles_;        ///< Hold all angles to be calculated
-    DihArrayType dihedrals_;     ///< Hold all dihedrals to be calculated
+    BondArray bonds_;         ///< Hold all bonds to be calculated
+    AngleArray angles_;        ///< Hold all angles to be calculated
+    DihedralArray dihedrals_;     ///< Hold all dihedrals to be calculated
     //AtomMask mask_;              ///< Atom mask for nonbonded calculations
     EneArrayType energies_;      ///< Used to accumulate the average energy of each selected entity.
     EneArrayType eBonds_;        ///< Accumulate average bond energy

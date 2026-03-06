@@ -18,10 +18,12 @@
 #include "DataSet_Vector.h" // For reading TODO remove dependency?
 #include "DataSet_Mat3x3.h" // For reading TODO remove dependency?
 #include "DataSet_PairwiseCache_MEM.h" // For reading
+#include "DataSet_NameMap.h" // For reading
 #include "DataSet_2D.h"
 #include "DataSet_MatrixFlt.h"
 #include "DataSet_MatrixDbl.h"
 #include "DataSet_3D.h"
+#include "DataSet_Parameters.h"
 
 // CONSTRUCTOR
 DataIO_Std::DataIO_Std() :
@@ -46,7 +48,9 @@ DataIO_Std::DataIO_Std() :
   dims_[0] = 0;
   dims_[1] = 0;
   dims_[2] = 0;
+  SetValid( DataSet::PARAMETERS );
   SetValid( DataSet::STRINGVAR );
+  SetValid( DataSet::NAMEMAP );
 }
 
 static void PrintColumnError(int idx) {
@@ -94,8 +98,9 @@ void DataIO_Std::ReadHelp() {
           "\t\tbin {center|corner*}  : Coords specify bin centers or corners (default corners).\n"
           "\tvector         : Read data as vector: VX VY VZ [OX OY OZ]\n"
           "\t\tmagnitude : Assume vector data final column contains vector magnitude.\n"
-          "\tmat3x3         : Read data as 3x3 matrices: M(1,1) M(1,2) ... M(3,2) M(3,3)\n");
-
+          "\tmat3x3         : Read data as 3x3 matrices: M(1,1) M(1,2) ... M(3,2) M(3,3)\n"
+          "\tnamemap        : Read data as atom name map ('#TgtAt Tgt RefAt Ref' or '#Tgt Ref')\n"
+         );
 }
 
 
@@ -107,6 +112,7 @@ int DataIO_Std::processReadArgs(ArgList& argIn) {
   else if (argIn.hasKey("read3d")) mode_ = READ3D;
   else if (argIn.hasKey("vector")) mode_ = READVEC;
   else if (argIn.hasKey("mat3x3")) mode_ = READMAT3X3;
+  else if (argIn.hasKey("namemap")) mode_ = READNAMEMAP;
   indexcol_ = argIn.getKeyInt("index", -1);
   // Column user args start from 1.
   if (indexcol_ == 0) {
@@ -223,6 +229,7 @@ int DataIO_Std::ReadData(FileName const& fname,
     case READ3D: err = Read_3D(fname.Full(), dsl, dsname); break;
     case READVEC: err = Read_Vector(fname.Full(), dsl, dsname); break;
     case READMAT3X3: err = Read_Mat3x3(fname.Full(), dsl, dsname); break;
+    case READNAMEMAP: err = Read_NameMap(fname.Full(), dsl, dsname); break;
   }
   return err;
 }
@@ -849,6 +856,7 @@ int DataIO_Std::Read_3D(std::string const& fname,
 // DataIO_Std::Read_Vector()
 int DataIO_Std::Read_Vector(std::string const& fname, 
                             DataSetList& datasetlist, std::string const& dsname)
+const
 {
   // See if set exists
   DataSet* ds = datasetlist.CheckForSet( dsname );
@@ -996,6 +1004,7 @@ int DataIO_Std::Read_Vector(std::string const& fname,
 // DataIO_Std::Read_Mat3x3()
 int DataIO_Std::Read_Mat3x3(std::string const& fname, 
                             DataSetList& datasetlist, std::string const& dsname)
+const
 {
   // Buffer file
   BufferedLine buffer;
@@ -1046,6 +1055,72 @@ int DataIO_Std::Read_Mat3x3(std::string const& fname,
     linebuffer = buffer.Line();
   }
   return (datasetlist.AddOrAppendSets("", DataSetList::Darray(), DataSetList::DataListType(1, ds)));
+}
+
+/** Read an atom name map. */
+int DataIO_Std::Read_NameMap(std::string const& fname, 
+                            DataSetList& dsl, std::string const& dsname)
+const
+{
+  // Buffer file
+  BufferedLine buffer;
+  if (buffer.OpenFileRead( fname )) return 1;
+  mprintf("\tAttempting to read atom name map data.\n");
+  // Read through file 
+  const char* linebuffer = buffer.Line();
+  int ncols = 0;
+  int tgtcol = 0;
+  int refcol = 0;
+  DataSet_NameMap* namemap = 0;
+  while (linebuffer != 0) {
+    // Skip comments
+    if (linebuffer[0] != '#') {
+      int ntokens = buffer.TokenizeLine(" \t\n\r");
+      if (ncols == 0) {
+        // First non-comment line. Determine num columns
+        ncols = ntokens;
+        if (ncols == 4) {
+          tgtcol = 1;
+          refcol = 3;
+        } else if (ncols == 2) {
+          tgtcol = 0;
+          refcol = 1;
+        } else {
+          mprinterr("Error: For atom name map, expect 4 columns (#TgtAt Tgt RefAt Ref)\n"
+                    "Error:  or 2 columns (#TgtAt RefAt), got %i\n", ntokens);
+          return 1;
+        }
+        // Allocate the name map
+        namemap = (DataSet_NameMap*)dsl.AddSet(DataSet::NAMEMAP, MetaData(dsname));
+        if (namemap == 0) {
+          mprinterr("Error: Could not allocate name map set '%s'\n", dsname.c_str());
+          return 1;
+        }
+      } else if (ncols != ntokens) {
+        mprinterr("Error: Number of columns has changed at line %i from %i to %i\n",
+                  buffer.LineNumber(), ncols, ntokens);
+        mprinterr("Error: '%s'\n", linebuffer);
+        return 1;
+      }
+      // Read map line
+      std::string tgt, ref;
+      for (int col = 0; col != ntokens; col++) {
+        const char* ptr = buffer.NextToken();
+        if (col == tgtcol)
+          tgt.assign( ptr );
+        else if (col == refcol)
+          ref.assign( ptr );
+      }
+      // Skip mapping if tgt == ref
+      if (tgt != ref) {
+        if (debug_ > 0)
+          mprintf("DEBUG: Map ref %s to tgt %s\n", ref.c_str(), tgt.c_str());
+        namemap->AddNameMap(ref, tgt);
+      }
+    } // END if not comment
+    linebuffer = buffer.Line();
+  } // END loop over file
+  return 0;
 }
 
 // -----------------------------------------------------------------------------
@@ -1211,6 +1286,8 @@ int DataIO_Std::WriteData(FileName const& fname, DataSetList const& SetList)
     } else if (SetList[0]->Type() == DataSet::STRINGVAR) {
       // For debugging string variables
       err = WriteStringVars(file, SetList);
+    } else if (SetList[0]->Type() == DataSet::NAMEMAP) {
+      err = WriteNameMap(file, SetList);
     } else if (SetList[0]->Ndim() == 1) {
       if (group_ == NO_TYPE) {
         if (isInverted_)
@@ -1223,9 +1300,37 @@ int DataIO_Std::WriteData(FileName const& fname, DataSetList const& SetList)
       err = WriteData2D(file, SetList);
     else if (SetList[0]->Ndim() == 3)
       err = WriteData3D(file, SetList);
+    else if (SetList[0]->Type() == DataSet::PARAMETERS)
+      err = WriteParameters(file, SetList);
+    else
+      mprintf("Warning: Could not determine how to write dat based on set '%s'\n",
+              SetList[0]->legend());
     file.CloseFile();
   }
   return err;
+}
+
+/** Write parameters to data file. */
+int DataIO_Std::WriteParameters(CpptrajFile& file, DataSetList const& Sets) const {
+  if (Sets.size() == 1) {
+    DataSet_Parameters const& prm = static_cast<DataSet_Parameters const&>( *(Sets[0]) );
+    prm.Print(file);
+  } else if (Sets.size() > 1) {
+    // Create a combined parameter set
+    Cpptraj::Parm::ParameterSet prm;
+    for (DataSetList::const_iterator it = Sets.begin(); it != Sets.end(); ++it)
+    {
+      if ((*it)->Type() == DataSet::PARAMETERS) {
+        DataSet_Parameters const& param = static_cast<DataSet_Parameters const&>( *(*it) );
+        Cpptraj::Parm::ParameterSet::UpdateCount UC;
+        prm.UpdateParamSet( param, UC, debug_, debug_ ); // FIXME verbose
+      } else {
+        mprintf("Warning: Set '%s' is not a parameter set, skipping.\n", (*it)->legend());
+      }
+    }
+    prm.Print(file);
+  }
+  return 0;
 }
 
 /** For debugging string variables, write out to a file. */
@@ -1241,6 +1346,33 @@ int DataIO_Std::WriteStringVars(CpptrajFile& file, DataSetList const& Sets) cons
       file.Printf(" = ");
       file.Write( var.Value().c_str(), var.Value().size() );
       file.Printf("\n");
+    }
+  }
+  return 0;
+}
+
+/** Write atom name map to file. */
+int DataIO_Std::WriteNameMap(CpptrajFile& file, DataSetList const& Sets) const {
+  for (DataSetList::const_iterator ds = Sets.begin(); ds != Sets.end(); ++ds)
+  {
+    if ( (*ds)->Type() != DataSet::NAMEMAP ) {
+      mprintf("Warning: First variable written to %s was a name map, skipping '%s'\n",
+              file.Filename().full(), (*ds)->legend());
+    } else {
+      DataSet_NameMap const& namemap = static_cast<DataSet_NameMap const&>( *(*ds) );
+      // Figure out column widths
+      int colwidth = 4;
+      for (DataSet_NameMap::const_iterator it = namemap.begin(); it != namemap.end(); ++it) {
+        if ( (int)it->first.len() > colwidth )
+          colwidth = it->first.len();
+        if ( (int)it->second.len() > colwidth )
+          colwidth = it->second.len();
+      }
+      // Write header
+      if (writeHeader_)
+        file.Printf("%-*s %-*s\n", colwidth, "#Tgt", colwidth, "Ref");
+      for (DataSet_NameMap::const_iterator it = namemap.begin(); it != namemap.end(); ++it)
+        file.Printf("%-*s %-*s\n", colwidth, *(it->second), colwidth, *(it->first));
     }
   }
   return 0;

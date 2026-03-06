@@ -496,7 +496,7 @@ Exec::RetType Exec_CompareTop::Execute(CpptrajState& State, ArgList& argIn)
     // Bond parameters
     output.Printf("# Bond Parameters\n");
     Diff<BondParmType> diff_bndP;
-    diff_bndP.Compare( p1.BondParm(), p2.BondParm(), PrintBndP, output, p1, p2 );
+    diff_bndP.Compare( p1.BondParm().Array(), p2.BondParm().Array(), PrintBndP, output, p1, p2 );
   }
   if (cmp_ang) {
     // Angles
@@ -512,7 +512,7 @@ Exec::RetType Exec_CompareTop::Execute(CpptrajState& State, ArgList& argIn)
     {
       output.Printf("# Angle Parameters\n");
       Diff<AngleParmType> diff_angP;
-      diff_angP.Compare( p1.AngleParm(), p2.AngleParm(), PrintAngP, output, p1, p2 );
+      diff_angP.Compare( p1.AngleParm().Array(), p2.AngleParm().Array(), PrintAngP, output, p1, p2 );
     }
   }
   if (cmp_dih) {
@@ -529,7 +529,7 @@ Exec::RetType Exec_CompareTop::Execute(CpptrajState& State, ArgList& argIn)
     {
       output.Printf("# Dihedral Parameters\n");
       Diff<DihedralParmType> diff_dihP;
-      diff_dihP.Compare( p1.DihedralParm(), p2.DihedralParm(), PrintDihP, output, p1, p2 );
+      diff_dihP.Compare( p1.DihedralParm().Array(), p2.DihedralParm().Array(), PrintDihP, output, p1, p2 );
     }
   }
   output.CloseFile();

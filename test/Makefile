@@ -540,14 +540,32 @@ test.readoff:
 test.sequence:
 	@-cd Test_Sequence && ./RunTest.sh $(OPT)
 
+test.refinetrajectory:
+	@-cd Test_RefineTrajectory && ./RunTest.sh $(OPT)
+
+test.readamberff:
+	@-cd Test_ReadAmberFF && ./RunTest.sh $(OPT)
+
 test.tica:
 	@-cd Test_TICA && ./RunTest.sh $(OPT)
 
 test.enedecomp:
 	@-cd Test_EneDecomp && ./RunTest.sh $(OPT)
 
+test.addatom:
+	@-cd Test_AddAtom && ./RunTest.sh $(OPT)
+
+test.minmaxdist:
+	@-cd Test_MinMaxDist && ./RunTest.sh $(OPT)
+
 test.watershellclosest:
 	@-cd Test_Watershell_Closest && ./RunTest.sh $(OPT)
+
+test.mutate:
+	@-cd Test_Mutate && ./RunTest.sh $(OPT)
+
+test.build:
+	@-cd Test_Build && ./RunTest.sh $(OPT)
 
 # Only GPU-specific tests should go here
 GPUTESTS=test.closest \
@@ -727,9 +745,15 @@ COMPLETETESTS=test.general \
               test.zmatrix \
               test.readoff \
               test.sequence \
+              test.refinetrajectory \
+              test.readamberff \
               test.tica \
               test.enedecomp \
-              test.watershellclosest
+              test.addatom \
+              test.minmaxdist \
+              test.watershellclosest \
+              test.mutate \
+              test.build
 
 test.all:
 	$(MAKE) test.complete summary

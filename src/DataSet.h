@@ -29,7 +29,7 @@ class DataSet {
       COORDS, VECTOR, MODES, GRID_FLT, GRID_DBL, REMLOG, XYMESH, TRAJ, REF_FRAME,
       MAT3X3, TOPOLOGY, PH, PH_EXPL, PH_IMPL,
       PARAMETERS, PMATRIX_MEM, PMATRIX_NC, TENSOR, STRINGVAR, VECTOR_SCALAR, UNSIGNED_INTEGER,
-      FRAMES, ZMATRIX,
+      FRAMES, ZMATRIX, NAMEMAP, LEAPOPTS, PDBRESMAP,
       UNKNOWN_DATA
     };
     /// Group DataSet belongs to.
@@ -86,6 +86,8 @@ class DataSet {
     // -----------------------------------------------------
     /// Associate additional data with this set.
     void AssociateData(AssociatedData const* a) { associatedData_.push_back( a->Copy() ); }
+    /// Copy associated data from given set to this set.
+    void CopyAssociatedDataFrom(DataSet const&);
     /// Set DataSet MetaData
     int SetMeta(MetaData const&);
     /// Set DataSet ensemble number.

@@ -4,20 +4,27 @@
 #include "DataSet_Coords_CRD.h"
 #include "LeapInterface.h"
 #include "ParmFile.h"
+#include "Remote.h"
 #include "StringRoutines.h"
 #include "Structure/Disulfide.h"
 #include "Structure/HisProt.h"
+#include "Structure/MetalCenterFinder.h"
+#include "Structure/PdbCleaner.h"
 #include "Structure/ResStatArray.h"
 #include "Structure/SugarBuilder.h"
 #include "Structure/Sugar.h"
 #include "Trajout_Single.h"
 #include <stack> // FindTerByBonds
+#include <cctype> // tolower
+#include <algorithm> // unique
 
 using namespace Cpptraj::Structure;
 
 /** CONSTRUCTOR */
 Exec_PrepareForLeap::Exec_PrepareForLeap() : Exec(COORDS),
   errorsAreFatal_(true),
+  downloadParams_(true),
+  bondUnknownResidues_(false),
   debug_(0)
 {
   SetHidden(false);
@@ -271,224 +278,10 @@ const
 
 // -----------------------------------------------------------------------------
 
-/** Modify coords according to user wishes. */
-int Exec_PrepareForLeap::ModifyCoords( Topology& topIn, Frame& frameIn,
-                                       bool remove_water,
-                                       std::string const& altLocStr, std::string const& stripMask,
-                                       std::string const& waterMask,
-                                       Iarray const& resnumsToRemove )
-const
-{
-  // Create a mask denoting which atoms will be kept.
-  std::vector<bool> atomsToKeep( topIn.Natom(), true );
-  // Previously-determined array of residues to remove
-  for (Iarray::const_iterator rnum = resnumsToRemove.begin();
-                              rnum != resnumsToRemove.end(); ++rnum)
-  {
-    Residue const& res = topIn.Res( *rnum );
-    mprintf("\tRemoving %s\n", topIn.TruncResNameOnumId( *rnum ).c_str());
-    for (int at = res.FirstAtom(); at != res.LastAtom(); at++)
-      atomsToKeep[at] = false;
-  }
-  // User-specified strip mask
-  if (!stripMask.empty()) {
-    AtomMask mask;
-    if (mask.SetMaskString( stripMask )) {
-      mprinterr("Error: Invalid mask string '%s'\n", stripMask.c_str());
-      return 1;
-    }
-    if (topIn.SetupIntegerMask( mask )) return 1;
-    mask.MaskInfo();
-    if (!mask.None()) {
-      for (AtomMask::const_iterator atm = mask.begin(); atm != mask.end(); ++atm)
-        atomsToKeep[*atm] = false;
-    }
-  }
-  if (remove_water) {
-    // Do not use cpptraj definition of solvent in case we have e.g. bound HOH
-    AtomMask mask;
-    if (mask.SetMaskString( waterMask )) {
-      mprinterr("Error: Invalid solvent mask string '%s'\n", waterMask.c_str());
-      return 1;
-    }
-    if (topIn.SetupIntegerMask( mask )) return 1;
-    mask.MaskInfo();
-    if (!mask.None()) {
-      for (AtomMask::const_iterator atm = mask.begin(); atm != mask.end(); ++atm)
-        atomsToKeep[*atm] = false;
-    }
-
-  }
-  // Identify alternate atom location groups.
-  if (!altLocStr.empty()) {
-    if (topIn.AtomAltLoc().empty()) {
-      mprintf("\tNo alternate atom locations.\n");
-    } else {
-      // Map atom name to atom indices
-      typedef std::map<NameType, std::vector<int>> AlocMapType;
-      AlocMapType alocMap;
-      for (int rnum = 0; rnum != topIn.Nres(); rnum++) {
-        alocMap.clear();
-        for (int at = topIn.Res(rnum).FirstAtom(); at != topIn.Res(rnum).LastAtom(); at++) {
-          if (topIn.AtomAltLoc()[at] != ' ') {
-            AlocMapType::iterator it = alocMap.find( topIn[at].Name() );
-            if (it == alocMap.end()) {
-              alocMap.insert( std::pair<NameType, std::vector<int>>( topIn[at].Name(),
-                                                                     std::vector<int>(1, at) ));
-            } else {
-              it->second.push_back( at );
-            }
-          }
-        } // END loop over atoms in residue
-        if (!alocMap.empty()) {
-          if (debug_ > 0)
-            mprintf("DEBUG: Alternate loc. for %s\n", topIn.TruncResNameOnumId(rnum).c_str());
-          // Loop over atoms with alternate locations
-          for (AlocMapType::const_iterator it = alocMap.begin(); it != alocMap.end(); ++it) {
-            if (debug_ > 0) {
-              // Print all alternate atoms
-              mprintf("\t'%s'", *(it->first));
-              for (std::vector<int>::const_iterator at = it->second.begin();
-                                                    at != it->second.end(); ++at)
-                mprintf(" %s[%c]", *(topIn[*at].Name()), topIn.AtomAltLoc()[*at]);
-              mprintf("\n");
-            }
-            // For each, choose which location to keep.
-            if (altLocStr.size() == 1) {
-              // Keep only specified character
-              char altLocChar = altLocStr[0];
-              for (std::vector<int>::const_iterator at = it->second.begin();
-                                                    at != it->second.end(); ++at)
-                if (topIn.AtomAltLoc()[*at] != altLocChar)
-                  atomsToKeep[*at] = false;
-            } else {
-              // Keep highest occupancy
-              if (topIn.Occupancy().empty()) {
-                mprintf("\tNo occupancy.\n"); // TODO error?
-              } else {
-                int highestOccAt = -1;
-                float highestOcc = 0;
-                for (std::vector<int>::const_iterator at = it->second.begin();
-                                                      at != it->second.end(); ++at)
-                {
-                  if (highestOccAt == -1) {
-                    highestOccAt = *at;
-                    highestOcc = topIn.Occupancy()[*at];
-                  } else if (topIn.Occupancy()[*at] > highestOcc) {
-                    highestOccAt = *at;
-                    highestOcc = topIn.Occupancy()[*at];
-                  }
-                }
-                // Set everything beside highest occ to false
-                for (std::vector<int>::const_iterator at = it->second.begin();
-                                                      at != it->second.end(); ++at)
-                  if (*at != highestOccAt)
-                    atomsToKeep[*at] = false;
-              }
-            }
-          } // END loop over atoms with alternate locations
-        }
-      } // END loop over residue numbers
-    }
-  }
-
-  // Set up mask of only kept atoms.
-  AtomMask keptAtoms;
-  keptAtoms.SetNatoms( topIn.Natom() );
-  for (int idx = 0; idx != topIn.Natom(); idx++) {
-    if (atomsToKeep[idx])
-      keptAtoms.AddSelectedAtom(idx);
-  }
-  if (keptAtoms.Nselected() == topIn.Natom())
-    // Keeping everything, no modifications
-    return 0;
-  // Modify top/frame
-  Topology* newTop = topIn.modifyStateByMask( keptAtoms );
-  if (newTop == 0) {
-    mprinterr("Error: Could not create new topology.\n");
-    return 1;
-  }
-  newTop->Brief("After removing atoms:");
-  Frame newFrame;
-  newFrame.SetupFrameV(newTop->Atoms(), frameIn.CoordsInfo());
-  newFrame.SetFrame(frameIn, keptAtoms);
-
-  topIn = *newTop;
-  frameIn = newFrame;
-  delete newTop;
-
-  return 0;
-}
-
-/** Remove any hydrogen atoms. This is done separately from ModifyCoords
-  * so that hydrogen atom info can be used to e.g. ID histidine
-  * protonation.
-  */
-int Exec_PrepareForLeap::RemoveHydrogens(Topology& topIn, Frame& frameIn) const {
-  AtomMask keptAtoms;
-  keptAtoms.SetNatoms( topIn.Natom() );
-  for (int idx = 0; idx != topIn.Natom(); idx++)
-  {
-    if (topIn[idx].Element() != Atom::HYDROGEN)
-      keptAtoms.AddSelectedAtom(idx);
-  }
-  if (keptAtoms.Nselected() == topIn.Natom())
-    // Keeping everything, no modification
-    return 0;
-  // Modify top/frame
-  Topology* newTop = topIn.modifyStateByMask( keptAtoms );
-  if (newTop == 0) {
-    mprinterr("Error: Could not create new topology with no hydrogens.\n");
-    return 1;
-  }
-  newTop->Brief("After removing hydrogen atoms:");
-  Frame newFrame;
-  newFrame.SetupFrameV(newTop->Atoms(), frameIn.CoordsInfo());
-  newFrame.SetFrame(frameIn, keptAtoms);
-
-  topIn = *newTop;
-  frameIn = newFrame;
-  delete newTop;
-
-  return 0;
-}
-
-// -----------------------------------------------------------------------------
-
-/// \return index of oxygen atom bonded to this atom but not in same residue
-static inline int getLinkOxygenIdx(Topology const& leaptop, int at, int rnum) {
-  int o_idx = -1;
-  for (Atom::bond_iterator bat = leaptop[at].bondbegin();
-                           bat != leaptop[at].bondend(); ++bat)
-  {
-    if (leaptop[*bat].Element() == Atom::OXYGEN && leaptop[*bat].ResNum() != rnum) {
-      o_idx = *bat;
-      break;
-    }
-  }
-  return o_idx;
-}
-
-/// \return index of carbon bonded to link oxygen not in same residue
-static inline int getLinkCarbonIdx(Topology const& leaptop, int at, int rnum)
-{
-  int o_idx = getLinkOxygenIdx(leaptop, at, rnum);
-  if (o_idx == -1) return o_idx;
-  int c_idx = -1;
-  for (Atom::bond_iterator bat = leaptop[o_idx].bondbegin();
-                           bat != leaptop[o_idx].bondend(); ++bat)
-  {
-    if (leaptop[*bat].Element() == Atom::CARBON && leaptop[*bat].ResNum() != rnum) {
-      c_idx = *bat;
-      break;
-    }
-  }
-  return c_idx;
-}
-
 /** Run leap to generate topology. Modify the topology if needed. */
 int Exec_PrepareForLeap::RunLeap(std::string const& ff_file,
-                                 std::string const& leapfilename) const
+                                 std::string const& leapfilename,
+                                 SugarBuilder const& sugarBuilder) const
 {
   if (leapfilename.empty()) {
     mprintf("Warning: No leap input file name was specified, not running leap.\n");
@@ -521,95 +314,10 @@ int Exec_PrepareForLeap::RunLeap(std::string const& ff_file,
 
   bool top_is_modified = false;
   // Go through each residue. Find ones that need to be adjusted.
-  // NOTE: If deoxy carbons are ever handled, need to add H1 hydrogen and
-  //       add the former -OH charge to the carbon.
-  for (int rnum = 0; rnum != leaptop.Nres(); rnum++)
-  {
-    Residue const& res = leaptop.Res(rnum);
-    if (res.Name() == "SO3") {
-      int o_idx = -1;
-      // Need to adjust the charge on the bonded oxygen by +0.031
-      for (int at = res.FirstAtom(); at != res.LastAtom(); at++) {
-        if (leaptop[at].Element() == Atom::SULFUR) {
-          o_idx = getLinkOxygenIdx( leaptop, at, rnum );
-          if (o_idx != -1) break;
-        }
-      }
-      if (o_idx == -1) {
-        mprinterr("Error: Could not find oxygen link atom for '%s'\n",
-                  leaptop.TruncResNameOnumId(rnum).c_str());
-        return 1;
-      }
-      double newcharge = leaptop[o_idx].Charge() + 0.031;
-      mprintf("\tFxn group '%s'; changing charge on %s from %f to %f\n", *(res.Name()),
-              leaptop.AtomMaskName(o_idx).c_str(), leaptop[o_idx].Charge(), newcharge);
-      leaptop.SetAtom(o_idx).SetCharge( newcharge );
-      top_is_modified = true;
-    } else if (res.Name() == "MEX") {
-      int c_idx = -1;
-      // Need to adjust the charge on the carbon bonded to link oxygen by -0.039
-      for (int at = res.FirstAtom(); at != res.LastAtom(); at++) {
-        if (leaptop[at].Element() == Atom::CARBON) {
-          c_idx = getLinkCarbonIdx( leaptop, at, rnum );
-          if (c_idx != -1) break;
-        }
-      }
-      if (c_idx == -1) {
-        mprinterr("Error: Could not find carbon bonded to oxygen link atom for '%s'\n",
-                  leaptop.TruncResNameOnumId(rnum).c_str());
-        return 1;
-      }
-      double newcharge = leaptop[c_idx].Charge() - 0.039;
-      mprintf("\tFxn group '%s'; changing charge on %s from %f to %f\n", *(res.Name()),
-              leaptop.AtomMaskName(c_idx).c_str(), leaptop[c_idx].Charge(), newcharge);
-      leaptop.SetAtom(c_idx).SetCharge( newcharge );
-      top_is_modified = true;
-    } else if (res.Name() == "ACX") {
-      int c_idx = -1;
-      // Need to adjust the charge on the carbon bonded to link oxygen by +0.008
-      for (int at = res.FirstAtom(); at != res.LastAtom(); at++) {
-        if (leaptop[at].Element() == Atom::CARBON) {
-          // This needs to be the acetyl carbon, ensure it is bonded to an oxygen
-          for (Atom::bond_iterator bat = leaptop[at].bondbegin();
-                                   bat != leaptop[at].bondend(); ++bat)
-          {
-            if (leaptop[*bat].Element() == Atom::OXYGEN) {
-              c_idx = getLinkCarbonIdx( leaptop, at, rnum );
-              if (c_idx != -1) break;
-            }
-          }
-          if (c_idx != -1) break;
-        }
-      }
-      if (c_idx == -1) {
-        mprinterr("Error: Could not find carbon bonded to oxygen link atom for '%s'\n",
-                  leaptop.TruncResNameOnumId(rnum).c_str());
-        return 1;
-      }
-      double newcharge = leaptop[c_idx].Charge() + 0.008;
-      mprintf("\tFxn group '%s'; changing charge on %s from %f to %f\n", *(res.Name()),
-              leaptop.AtomMaskName(c_idx).c_str(), leaptop[c_idx].Charge(), newcharge);
-      leaptop.SetAtom(c_idx).SetCharge( newcharge );
-      top_is_modified = true;
-    }
+  if (sugarBuilder.ModifyFoundFxnGroups( leaptop, top_is_modified )) {
+    mprinterr("Error: Could not make modifications to found functional groups.\n");
+    return 1;
   }
-
-  // DEBUG: Print out total charge on each residue
-  double total_q = 0;
-  for (Topology::res_iterator res = leaptop.ResStart(); res != leaptop.ResEnd(); ++res)
-  {
-    double tcharge = 0;
-    for (int at = res->FirstAtom(); at != res->LastAtom(); ++at) {
-      total_q += leaptop[at].Charge();
-      tcharge += leaptop[at].Charge();
-    }
-    if (debug_ > 0) {
-      mprintf("DEBUG:\tResidue %10s charge= %12.5f\n",
-              leaptop.TruncResNameOnumId(res-leaptop.ResStart()).c_str(), tcharge);
-    }
-  }
-  mprintf("\tTotal charge: %16.8f\n", total_q);
-
   // If topology was modified, write it back out
   if (top_is_modified) {
     mprintf("\tWriting modified topology back to '%s'\n", topname.c_str());
@@ -619,44 +327,93 @@ int Exec_PrepareForLeap::RunLeap(std::string const& ff_file,
   return 0;
 }
 
-/** Print warnings for residues that will need to be modified in leap. */
-void Exec_PrepareForLeap::LeapFxnGroupWarning(Topology const& topIn, int rnum) {
-  Residue const& res = topIn.Res(rnum);
-  if ( res.Name() == "SO3" ) {
-    mprintf("Warning: Residue '%s'; after LEaP, will need to adjust the charge on the link oxygen by +0.031.\n",
-            topIn.TruncResNameNum(rnum).c_str());
-  } else if ( res.Name() == "MEX" ) {
-    mprintf("Warning: Residue '%s'; after LEaP, will need to adjust the charge on the carbon bonded to link oxygen by -0.039.\n",
-            topIn.TruncResNameNum(rnum).c_str());
-  } else if ( res.Name() == "ACX" ) {
-    mprintf("Warning: Residue '%s'; after LEaP, will need to adjust the charge on the carbon bonded to link oxygen by +0.008.\n",
-            topIn.TruncResNameNum(rnum).c_str());
-  }
+/** Try to download missing parameters. */
+int Exec_PrepareForLeap::DownloadParameters(ResStatArray& resStat, RmapType const& resNames,
+                                            Topology const& topIn, CpptrajFile* leapInput,
+                                            std::vector<BondType>& LeapBonds)
+const
+{
+  Cpptraj::Remote remote( parameterURL_ );
+  remote.SetDebug(debug_);
+  for (RmapType::const_iterator it = resNames.begin(); it != resNames.end(); ++it)
+  {
+    std::string rname = it->first.Truncated();
+    mprintf("\t\tSearching for parameters for residue '%s'", rname.c_str());
+    for (Iarray::const_iterator rn = it->second.begin(); rn != it->second.end(); ++rn)
+      mprintf(" %i", *rn + 1);
+    mprintf("\n");
+    // Assume parameters are in a subdirectory starting with lowercase version
+    // of the first letter of the residue.
+    char lcase = tolower( rname[0] );
+    std::string rfbase = std::string(1, lcase) + "/" + rname;
+    if (debug_ > 0)
+      mprintf("DEBUG: Base name: %s\n", rfbase.c_str());
+    int err = 0;
+    err += remote.DownloadFile( rfbase + ".mol2" );
+    if (err == 0) {
+      err += remote.DownloadFile( rfbase + ".frcmod" );
+      if (err != 0)
+        mprintf("Warning: Could not download %s.frcmod\n", rname.c_str());
+    } else {
+      mprintf("Warning: Could not download %s.mol2\n", rname.c_str());
+    }
+    if (err != 0)
+      mprintf("Warning: Could not download parameter files for '%s'\n", rname.c_str());
+    else {
+      // Sanity check - make sure the files are there.
+      if (!File::Exists(rname + ".mol2") || !File::Exists(rname + ".frcmod")) {
+        mprinterr("Error: Problem downloading parameter files for '%s'\n", rname.c_str());
+        return 1;
+      }
+      // Add leap input
+      if (leapInput != 0) {
+        leapInput->Printf("%s = loadmol2 %s.mol2\n", rname.c_str(), rname.c_str());
+        leapInput->Printf("parm%s = loadamberparams %s.frcmod\n", rname.c_str(), rname.c_str());
+      }
+      // Downloaded mol2 files do not have connectivity, so we need to add bonds.
+      for (Iarray::const_iterator rn = it->second.begin(); rn != it->second.end(); ++rn)
+      {
+        // Assume we are all good with parameters for these residues now.
+        resStat[*rn] = ResStatArray::VALIDATED;
+        Residue const& currentRes = topIn.Res( *rn );
+        // Check each atom for bonds to another residue
+        for (int at = currentRes.FirstAtom(); at != currentRes.LastAtom(); ++at) {
+          for (Atom::bond_iterator bat = topIn[at].bondbegin(); bat != topIn[at].bondend(); ++bat) {
+            if ( topIn[*bat].ResNum() != *rn ) {
+              if (bondUnknownResidues_) {
+                mprintf("\t\t\tRes %s is bonded to res %s\n",
+                        topIn.TruncResAtomName(at).c_str(),
+                        topIn.TruncResAtomName(*bat).c_str());
+                LeapBonds.push_back( BondType(at, *bat, -1) );
+              } else {
+                mprintf("Info:\t\t\tRes %s might be bonded to res %s\n",
+                        topIn.TruncResAtomName(at).c_str(),
+                        topIn.TruncResAtomName(*bat).c_str());
+
+              }
+            }
+          } // END loop over bonded atoms
+        } // END loop over atoms in residue
+      } // END loop over residue numbers
+    }
+  } // END loop over residue names to get parameters for
+  return 0;
 }
 
 // Exec_PrepareForLeap::Help()
 void Exec_PrepareForLeap::Help() const
 {
   mprintf("\tcrdset <coords set> [frame <#>] name <out coords set>\n"
-          "\t[pdbout <pdbfile> [terbymol]]\n"
+          "\t[pdbout <pdbfile> [terbymol]] [problemout <file>]\n"
           "\t[leapunitname <unit>] [out <leap input file> [runleap <ff file>]]\n"
-          "\t[skiperrors]\n"
+          "\t[skiperrors] [{dlparams|nodlparams}] [{bondunknown|nobondunknown}]\n"
           "\t[nowat [watermask <watermask>] [noh]\n"
           "\t[keepaltloc {<alt loc ID>|highestocc}]\n"
           "\t[stripmask <stripmask>] [solventresname <solventresname>]\n"
           "\t[molmask <molmask> ...] [determinemolmask <mask>]\n"
-          "\t[{nohisdetect |\n"
-          "\t  [nd1 <nd1>] [ne2 <ne2] [hisname <his>] [hiename <hie>]\n"
-          "\t  [hidname <hid>] [hipname <hip]}]\n"
-          "\t[{nodisulfides |\n"
-          "\t  existingdisulfides |\n"
-          "\t  [cysmask <cysmask>] [disulfidecut <cut>] [newcysname <name>]}]\n"
-          "\t[{nosugars |\n"
-          "\t  sugarmask <sugarmask> [noc1search] [nosplitres]\n"
-          "\t  [rescut <residue cutoff>] [bondoffset <offset>]\n"
-          "\t  [resmapfile <file>]\n"
-          "\t  [hasglycam] [determinesugarsby {geom|name}]\n"
-          "\t }]\n"
+          "%s"
+          "%s"
+          "%s"
           "  Prepare the structure in the given coords set for easier processing\n"
           "  with the LEaP program from AmberTools. Any existing/potential\n"
           "  disulfide bonds will be identified and the residue names changed\n"
@@ -666,6 +423,11 @@ void Exec_PrepareForLeap::Help() const
           "  have any inter-residue bonds removed, and the appropriate LEaP\n"
           "  input to add the bonds back once the structure has been loaded\n"
           "  into LEaP will be written to <leap input file>.\n"
+          "  If 'dlparams' is specified, the command will attempt to download\n"
+          "  parameters for unknown residues.\n",
+          HisProt::keywords_,
+          Disulfide::keywords_,
+          SugarBuilder::keywords_
          );
 }
 
@@ -678,6 +440,18 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
           "#           J. Comp. Chem. (2022), V. 43, I. 13, pp 930-935.\n" );
   debug_ = State.Debug();
   errorsAreFatal_ = !argIn.hasKey("skiperrors");
+  if (argIn.hasKey("dlparams"))
+    downloadParams_ = true;
+  else if (argIn.hasKey("nodlparams"))
+    downloadParams_ = false;
+  else
+    downloadParams_ = false;
+  if (argIn.hasKey("bondunknown"))
+    bondUnknownResidues_ = true;
+  else if (argIn.hasKey("nobondunknown"))
+    bondUnknownResidues_ = false;
+  else
+    bondUnknownResidues_ = false;
   // Get input coords
   std::string crdset = argIn.GetStringKey("crdset");
   if (crdset.empty()) {
@@ -699,7 +473,6 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
   }
   Frame frameIn = coords.AllocateFrame();
   coords.GetFrame(tgtframe, frameIn);
-
 
   // Copy input topology, may be modified.
   Topology topIn = coords.Top();
@@ -780,19 +553,42 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
     for (SetType::const_iterator it = pdb_res_names_.begin(); it != pdb_res_names_.end(); ++it)
       mprintf("\t  %s\n", *(*it));
   }
+  if (downloadParams_)
+    mprintf("\tWill attempt to download parameters for unknown residues.\n");
+  else
+    mprintf("\tWill not attempt to download paramters for unknown residues.\n");
+  if (bondUnknownResidues_)
+    mprintf("\tWill attempt to bond unknown residues.\n");
+  else
+    mprintf("\tWill not attempt to bond unknown residues.\n");
+  std::string problemoutname = argIn.GetStringKey("problemout");
+  mprintf("\tWriting detected problems to %s\n", problemoutname.c_str());
 
   // Load PDB to glycam residue name map
   SugarBuilder sugarBuilder(debug_);
   if (prepare_sugars) {
     // Init options
-    if (sugarBuilder.InitOptions( argIn.hasKey("hasglycam"),
-                                  argIn.getKeyDouble("rescut", 8.0),
-                                  argIn.getKeyDouble("bondoffset", 0.2),
-                                  argIn.GetStringKey("sugarmask"),
-                                  argIn.GetStringKey("determinesugarsby", "geometry"),
-                                  argIn.GetStringKey("resmapfile") ))
+    if (sugarBuilder.InitSugarBuilder( argIn ))
     {
       mprinterr("Error: Sugar options init failed.\n");
+      return CpptrajState::ERR;
+    }
+  }
+
+  // Do histidine detection before H atoms are removed
+  if (!argIn.hasKey("nohisdetect")) {
+    Cpptraj::Structure::HisProt hisProt;
+    if (hisProt.InitHisProt( argIn, debug_ )) {
+      mprinterr("Error: Could not initialize histidine detection.\n");
+      return CpptrajState::ERR;
+    }
+    hisProt.HisProtInfo();
+    // Add epsilon, delta, and double-protonated names as recognized.
+    pdb_res_names_.insert( hisProt.EpsilonProtHisName() );
+    pdb_res_names_.insert( hisProt.DeltaProtHisName() );
+    pdb_res_names_.insert( hisProt.DoubleProtHisName() );
+    if (hisProt.DetermineHisProt( topIn )) {
+      mprinterr("Error: HIS protonation detection failed.\n");
       return CpptrajState::ERR;
     }
   }
@@ -814,101 +610,20 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
   }
 
   // Deal with any coordinate modifications
-  bool remove_water     = argIn.hasKey("nowat");
-  std::string waterMask = argIn.GetStringKey("watermask", ":" + solventResName_);
-  bool remove_h         = argIn.hasKey("noh");
-  std::string altLocArg = argIn.GetStringKey("keepaltloc");
-  if (!altLocArg.empty()) {
-    if (altLocArg != "highestocc" &&
-        altLocArg.size() > 1)
-    {
-      mprinterr("Error: Invalid keyword for 'keepaltloc' '%s'; must be 'highestocc' or 1 character.\n",
-                altLocArg.c_str());
-      return CpptrajState::ERR;
-    }
-  }
-  std::string stripMask = argIn.GetStringKey("stripmask");
-
-  // If keeping highest alt loc, check that alt locs and occupancies are present.
-  if (altLocArg == "highestocc") {
-    if (topIn.AtomAltLoc().empty()) {
-      mprintf("Warning: 'highestocc' specified but no atom alternate location info.\n");
-      altLocArg.clear();
-    } else if (topIn.Occupancy().empty()) {
-      mprintf("Warning: 'highestocc' specified but no atom occupancy info.\n");
-      altLocArg.clear();
-    }
-  }
-  // Check if alternate atom location IDs are present 
-  if (!topIn.AtomAltLoc().empty()) {
-    // For LEaP, must have only 1 atom alternate location
-    char firstAltLoc = ' ';
-    for (std::vector<char>::const_iterator altLocId = topIn.AtomAltLoc().begin();
-                                           altLocId != topIn.AtomAltLoc().end();
-                                         ++altLocId)
-    {
-      if (firstAltLoc == ' ') {
-        // Find first non-blank alternate location ID
-        if (*altLocId != ' ')
-          firstAltLoc = *altLocId;
-      } else if (*altLocId != ' ' && *altLocId != firstAltLoc) {
-        // Choose a default if necessary
-        if (altLocArg.empty()) {
-          altLocArg.assign(1, firstAltLoc);
-          mprintf("Warning: '%s' has atoms with multiple alternate location IDs, which\n"
-                  "Warning:  are not supported by LEaP. Keeping only '%s'.\n"
-                  "Warning: To choose a specific location to keep use the 'keepaltloc <char>'\n"
-                  "Warning:  keyword.\n", coords.legend(), altLocArg.c_str());
-         }
-         break;
-      }
-    }
-  }
-
-  if (remove_water)
-    mprintf("\tRemoving solvent. Solvent mask= '%s'\n", waterMask.c_str());
-  if (remove_h)
-    mprintf("\tRemoving hydrogens.\n");
-  if (!altLocArg.empty())
-    mprintf("\tIf present, keeping only alternate atom locations denoted by '%s'\n", altLocArg.c_str());
-  if (!stripMask.empty())
-    mprintf("\tRemoving atoms in mask '%s'\n", stripMask.c_str());
-  if (ModifyCoords(topIn, frameIn, remove_water, altLocArg, stripMask, waterMask, pdbResToRemove))
-  {
-    mprinterr("Error: Modification of '%s' failed.\n", coords.legend());
+  Cpptraj::Structure::PdbCleaner pdbCleaner;
+  pdbCleaner.SetDebug( debug_ );
+  if (pdbCleaner.InitPdbCleaner( argIn, solventResName_, pdbResToRemove )) {
+    mprinterr("Error: Could not init PDB cleaner.\n");
     return CpptrajState::ERR;
   }
-
-  // Do histidine detection before H atoms are removed
-  if (!argIn.hasKey("nohisdetect")) {
-    std::string nd1name = argIn.GetStringKey("nd1", "ND1");
-    std::string ne2name = argIn.GetStringKey("ne2", "NE2");
-    std::string hisname = argIn.GetStringKey("hisname", "HIS");
-    std::string hiename = argIn.GetStringKey("hiename", "HIE");
-    std::string hidname = argIn.GetStringKey("hidname", "HID");
-    std::string hipname = argIn.GetStringKey("hipname", "HIP");
-    mprintf("\tHistidine protonation detection:\n");
-    mprintf("\t\tND1 atom name                   : %s\n", nd1name.c_str());
-    mprintf("\t\tNE2 atom name                   : %s\n", ne2name.c_str());
-    mprintf("\t\tHistidine original residue name : %s\n", hisname.c_str());
-    mprintf("\t\tEpsilon-protonated residue name : %s\n", hiename.c_str());
-    mprintf("\t\tDelta-protonated residue name   : %s\n", hidname.c_str());
-    mprintf("\t\tDoubly-protonated residue name  : %s\n", hipname.c_str());
-    // Add epsilon, delta, and double-protonated names as recognized.
-    pdb_res_names_.insert( hiename );
-    pdb_res_names_.insert( hidname );
-    pdb_res_names_.insert( hipname );
-    if (DetermineHisProt( topIn,
-                          nd1name, ne2name,
-                          hisname, hiename, hidname, hipname)) {
-      mprinterr("Error: HIS protonation detection failed.\n");
-      return CpptrajState::ERR;
-    }
+  if (pdbCleaner.SetupPdbCleaner( topIn )) {
+    mprinterr("Error: Could not set up PDB cleaner.\n");
+    return CpptrajState::ERR;
   }
-
-  // Remove hydrogens
-  if (remove_h) {
-    if (RemoveHydrogens(topIn, frameIn)) return CpptrajState::ERR;
+  pdbCleaner.PdbCleanerInfo();
+  if (pdbCleaner.ModifyCoords(topIn, frameIn)) {
+    mprinterr("Error: Could not clean PDB.\n");
+    return CpptrajState::ERR;
   }
 
   // If preparing sugars, need to set up an atom map and potentially
@@ -930,8 +645,11 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
     // adding missing bonds to C1 atoms.
     // This is done before any identification takes place since we want
     // to identify based on the most up-to-date topology.
+    // NOTE: The c1 bonds will remain, so put them in a separate array
+    std::vector<BondType> C1Bonds;
     if (sugarBuilder.FixSugarsStructure(topIn, frameIn,
-                                        c1bondsearch, splitres, solventResName_))
+                                        c1bondsearch, splitres, solventResName_,
+                                        C1Bonds))
     {
       mprinterr("Error: Sugar structure modification failed.\n");
       return CpptrajState::ERR;
@@ -996,22 +714,18 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
   if (outfile == 0) return CpptrajState::ERR;
   mprintf("\tLEaP input containing 'loadpdb' and bond commands for disulfides,\n"
           "\t  sugars, etc will be written to '%s'\n", outfile->Filename().full());
-  // Add the loadpdb command if we are writing a PDB file.
-  // TODO add 'addPdbResMap { { 1 "NH2" "NHE" } }' to recognize NHE?
-  if (!pdbout.empty())
-    outfile->Printf("%s = loadpdb %s\n", leapunitname_.c_str(), pdbout.c_str());
 
   // Array that will hold bonds that need to be made in LEaP
   std::vector<BondType> LeapBonds;
 
   // Disulfide search
   if (!argIn.hasKey("nodisulfides")) {
-    if (SearchForDisulfides( resStat,
-                             argIn.getKeyDouble("disulfidecut", 2.5),
-                             argIn.GetStringKey("newcysname", "CYX"),
-                             argIn.GetStringKey("cysmask", ":CYS@SG"),
-                            !argIn.hasKey("existingdisulfides"),
-                             topIn, frameIn, LeapBonds ))
+    Cpptraj::Structure::Disulfide disulfide;
+    if (disulfide.InitDisulfide( argIn, Disulfide::NO_ADD_BONDS, debug_ )) {
+      mprinterr("Error: Could not init disulfide search.\n");
+      return CpptrajState::ERR;
+    }
+    if (disulfide.SearchForDisulfides( resStat, topIn, frameIn, LeapBonds ))
     {
       mprinterr("Error: Disulfide search failed.\n");
       return CpptrajState::ERR;
@@ -1020,16 +734,100 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
     mprintf("\tNot searching for disulfides.\n");
   }
 
+  // Metal center search
+  if (!argIn.hasKey("nometals")) {
+    Cpptraj::Structure::MetalCenterFinder MC;
+    if (MC.InitMetalCenters( argIn, debug_ )) {
+      mprinterr("Error: Could not init metal center search.\n");
+      return CpptrajState::ERR;
+    }
+    if (MC.FindMetalCenters( topIn, frameIn )) {
+      mprinterr("Error: Metal center search failed.\n");
+      return CpptrajState::ERR;
+    }
+    MC.PrintMetalCenters(topIn);
+  } else {
+    mprintf("\tNot searching for metal centers.\n");
+  }
+
   // Prepare sugars
   if (prepare_sugars) {
-    if (sugarBuilder.PrepareSugars(errorsAreFatal_, resStat, topIn, frameIn, LeapBonds))
+    std::vector<BondType> SugarBonds; 
+    if (sugarBuilder.PrepareSugars(errorsAreFatal_, resStat, topIn, frameIn, SugarBonds))
     {
       mprinterr("Error: Sugar preparation failed.\n");
       return CpptrajState::ERR;
     }
+    // Remove bonds to sugar
+    if (!SugarBonds.empty()) {
+      for (std::vector<BondType>::const_iterator it = SugarBonds.begin();
+                                                 it != SugarBonds.end(); ++it)
+      {
+        LeapBonds.push_back( *it );
+        topIn.RemoveBond(it->A1(), it->A2());
+      }
+      // Bonds to sugars have been removed, so regenerate molecule info
+      topIn.DetermineMolecules();
+    }
+    // Set each sugar residue as a terminal residue
+    sugarBuilder.SetEachSugarAsTerminal(topIn);
   } else {
     mprintf("\tNot preparing sugars.\n");
   }
+
+  // Determine unknown residues we may want to find parameters for
+  NameType solvName(solventResName_);
+  RmapType residuesToFindParamsFor;
+  for (ResStatArray::iterator it = resStat.begin(); it != resStat.end(); ++it)
+  {
+    NameType const& residueName = topIn.Res(it-resStat.begin()).Name();
+    // Skip water if not removing water
+    if (!pdbCleaner.RemoveWater() && residueName == solvName) continue;
+    // If status is unknown, see if this is a common residue name
+    if ( *it == ResStatArray::UNKNOWN ) {
+      SetType::const_iterator pname = pdb_res_names_.find( residueName );
+      if (pname == pdb_res_names_.end()) {
+        mprintf("\t%s is an unrecognized name and may not have parameters.\n",
+                topIn.TruncResNameOnumId(it-resStat.begin()).c_str());
+        RmapType::iterator ret = residuesToFindParamsFor.lower_bound( residueName );
+        if (ret == residuesToFindParamsFor.end() || ret->first != residueName)
+        {
+          // New residue to get params for
+          ret = residuesToFindParamsFor.insert(ret, RpairType(residueName, Iarray()));
+        }
+        ret->second.push_back( it - resStat.begin() );
+      } else
+        *it = ResStatArray::VALIDATED;
+    }
+  }
+  if (downloadParams_ && !residuesToFindParamsFor.empty()) {
+    mprintf("\tResidues to find parameters for:");
+    for (RmapType::const_iterator it = residuesToFindParamsFor.begin();
+                                  it != residuesToFindParamsFor.end(); ++it)
+    {
+      mprintf(" %s", it->first.Truncated().c_str());
+      for (Iarray::const_iterator rn = it->second.begin(); rn != it->second.end(); ++rn)
+        mprintf(" %i", *rn + 1);
+    }
+    mprintf("\n");
+    // Set default parameter URL if not yet set.
+    if (parameterURL_.empty())
+      parameterURL_.assign("https://github.com/phenix-project/geostd/raw/refs/heads/master");
+    if (DownloadParameters(resStat, residuesToFindParamsFor, topIn, outfile, LeapBonds)) {
+      mprinterr("Error: Download parameters failed.\n");
+      return CpptrajState::ERR;
+    }
+  }
+
+  // Add the loadpdb command if we are writing a PDB file.
+  // TODO add 'addPdbResMap { { 1 "NH2" "NHE" } }' to recognize NHE?
+  if (!pdbout.empty())
+    outfile->Printf("%s = loadpdb %s\n", leapunitname_.c_str(), pdbout.c_str());
+
+  // Remove any duplicate bonds
+  std::sort( LeapBonds.begin(), LeapBonds.end() );
+  std::vector<BondType>::const_iterator it = std::unique( LeapBonds.begin(), LeapBonds.end() );
+  LeapBonds.resize( it - LeapBonds.begin() );
 
   // Create LEaP input for bonds that need to be made in LEaP
   for (std::vector<BondType>::const_iterator bnd = LeapBonds.begin();
@@ -1037,8 +835,7 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
     outfile->Printf("%s\n", Cpptraj::LeapInterface::LeapBond(bnd->A1(), bnd->A2(), leapunitname_, topIn).c_str());
 
   // Count any solvent molecules
-  if (!remove_water) {
-    NameType solvName(solventResName_);
+  if (!pdbCleaner.RemoveWater()) {
     unsigned int nsolvent = 0;
     for (Topology::res_iterator res = topIn.ResStart(); res != topIn.ResEnd(); ++res) {
       if ( res->Name() == solvName) {
@@ -1052,43 +849,67 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
   }
 
   // Residue validation.
+  bool structure_has_problems = false;
+  for (ResStatArray::const_iterator it = resStat.begin(); it != resStat.end(); ++it)
+  {
+    if (*it != ResStatArray::VALIDATED) {
+      structure_has_problems = true;
+      break;
+    }
+  }
+  CpptrajFile* problemout = 0;
+  if (problemoutname.empty() || !structure_has_problems) {
+    problemout = State.DFL().AddCpptrajFile("", "Structure Problems", DataFileList::TEXT, true);
+  } else if (structure_has_problems) {
+    // Only open the file if there are problems
+    problemout = State.DFL().AddCpptrajFile(problemoutname, "Structure Problems",
+                                            DataFileList::TEXT, true);
+  }
+  if (problemout == 0) {
+    mprinterr("Internal Error: Could not allocate problemout file.\n");
+    return CpptrajState::ERR;
+  }
+  // Print warnings related to functional groups
+  sugarBuilder.PrintFxnGroupWarnings(topIn);
   //mprintf("\tResidues with potential problems:\n");
   int fatal_errors = 0;
+  int potential_errors = 0;
   static const char* msg1 = "Potential problem : ";
   static const char* msg2 = "Fatal problem     : ";
-  for (ResStatArray::iterator it = resStat.begin(); it != resStat.end(); ++it)
+  for (ResStatArray::const_iterator it = resStat.begin(); it != resStat.end(); ++it)
   {
-    LeapFxnGroupWarning(topIn, it-resStat.begin());
     //if ( *it == VALIDATED )
     //  mprintf("\t\t%s VALIDATED\n", topIn.TruncResNameOnumId(it-resStat_.begin()).c_str());
     //else
     //  mprintf("\t\t%s UNKNOWN\n", topIn.TruncResNameOnumId(it-resStat_.begin()).c_str());
     // ----- Warnings --------
     if ( *it == ResStatArray::UNKNOWN ) {
-      SetType::const_iterator pname = pdb_res_names_.find( topIn.Res(it-resStat.begin()).Name() );
-      if (pname == pdb_res_names_.end())
-        mprintf("\t%s%s is an unrecognized name and may not have parameters.\n",
+      //SetType::const_iterator pname = pdb_res_names_.find( topIn.Res(it-resStat.begin()).Name() );
+      //if (pname == pdb_res_names_.end())
+        problemout->Printf("\t%s%s is an unrecognized name and may not have parameters.\n",
                 msg1, topIn.TruncResNameOnumId(it-resStat.begin()).c_str());
-      else
-        *it = ResStatArray::VALIDATED;
+        potential_errors++;
+      //else
+      //  *it = ResStatArray::VALIDATED;
     } else if ( *it == ResStatArray::SUGAR_NAME_MISMATCH ) {
-        mprintf("\t%s%s sugar anomer type and/or configuration is not consistent with name.\n",
+        problemout->Printf("\t%s%s sugar anomer type and/or configuration is not consistent with name.\n",
                 msg1, topIn.TruncResNameOnumId(it-resStat.begin()).c_str());
+        potential_errors++;
     // ----- Fatal Errors ----
     } else if ( *it == ResStatArray::SUGAR_UNRECOGNIZED_LINK_RES ) {
-        mprintf("\t%s%s is linked to a sugar but has no sugar-linkage form.\n",
+        problemout->Printf("\t%s%s is linked to a sugar but has no sugar-linkage form.\n",
                 msg2, topIn.TruncResNameOnumId(it-resStat.begin()).c_str());
         fatal_errors++;
     } else if ( *it == ResStatArray::SUGAR_UNRECOGNIZED_LINKAGE ) {
-        mprintf("\t%s%s is a sugar with an unrecognized linkage.\n",
+        problemout->Printf("\t%s%s is a sugar with an unrecognized linkage.\n",
                 msg2, topIn.TruncResNameOnumId(it-resStat.begin()).c_str());
         fatal_errors++;
     } else if ( *it == ResStatArray::SUGAR_NO_LINKAGE ) {
-        mprintf("\t%s%s is an incomplete sugar with no linkages.\n",
+        problemout->Printf("\t%s%s is an incomplete sugar with no linkages.\n",
                 msg2, topIn.TruncResNameOnumId(it-resStat.begin()).c_str());
         fatal_errors++;
     } else if ( *it == ResStatArray::SUGAR_NO_CHAIN_FOR_LINK ) {
-        mprintf("\t%s%s could not identify chain atoms for determining linkages.\n",
+        problemout->Printf("\t%s%s could not identify chain atoms for determining linkages.\n",
                 msg2, topIn.TruncResNameOnumId(it-resStat.begin()).c_str());
         fatal_errors++;
 /*    } else if ( *it == SUGAR_MISSING_C1X ) { // TODO should this be a warning
@@ -1096,11 +917,13 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
                 msg2, topIn.TruncResNameOnumId(it-resStat_.begin()).c_str());
         fatal_errors++;*/
     } else if ( *it == ResStatArray::SUGAR_SETUP_FAILED ) {
-        mprintf("\t%s%s Sugar setup failed and could not be identified.\n",
+        problemout->Printf("\t%s%s Sugar setup failed and could not be identified.\n",
                 msg2, topIn.TruncResNameOnumId(it-resStat.begin()).c_str());
         fatal_errors++;
     }
   }
+  if ((fatal_errors + potential_errors) > 0 && !problemout->IsStream())
+    mprintf("Warning: Check '%s' for structure problems.\n", problemout->Filename().full());
 
   // Try to set terminal residues
   if (!molMasks.empty() || determineMolMask.MaskStringSet()) {
@@ -1160,7 +983,7 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
   }
   // Run leap if needed
   if (!leapffname.empty()) {
-    if (RunLeap( leapffname, leapfilename )) {
+    if (RunLeap( leapffname, leapfilename, sugarBuilder )) {
       mprinterr("Error: Running leap failed.\n");
       return CpptrajState::ERR;
     }

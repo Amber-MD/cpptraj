@@ -1,10 +1,11 @@
 #include "CharmmParamFile.h"
+#include "ArgList.h"
+#include "BufferedLine.h"
+#include "Constants.h"
 #include "CpptrajStdio.h"
 #include "StringRoutines.h" // RemoveTrailingWhitespace()
-#include "ArgList.h"
-#include "Constants.h"
-#include "BufferedLine.h"
-#include "ParameterSet.h"
+#include "Parm/DihedralParmSet.h"
+#include "Parm/ParameterSet.h"
 
 static inline std::string Input(const char* line) {
   std::string input;
@@ -62,7 +63,8 @@ static inline bool ChmCmd(std::string const& cmd, const char* key) {
 }
 
 /** Read CHARMM parameters from specified file into given parameter set. */
-int CharmmParamFile::ReadParams(ParameterSet& prm, FileName const& nameIn, int debugIn) const {
+int CharmmParamFile::ReadParams(Cpptraj::Parm::ParameterSet& prm, FileName const& nameIn, int debugIn) const {
+  using namespace Cpptraj::Parm;
   BufferedLine infile;
 
   mprintf("\tReading CHARMM parameters from '%s'\n", nameIn.full());
@@ -81,6 +83,12 @@ int CharmmParamFile::ReadParams(ParameterSet& prm, FileName const& nameIn, int d
 
   std::string currentResName;
   double currentResQ = 0.0;
+
+  // Set wildcard character for dihedrals and impropers
+  prm.DP().SetWildcard('X');
+  prm.IP().SetWildcard('X');
+  DihedralParmSet dihPrm( debugIn );
+  DihedralParmSet impPrm( debugIn );
 
   while (ReadInput(input, infile)) {
     if (input.empty()) continue;
@@ -118,10 +126,10 @@ int CharmmParamFile::ReadParams(ParameterSet& prm, FileName const& nameIn, int d
           args.MarkArg(0);
           args.MarkArg(1);
           args.MarkArg(2);
-          ParameterHolders::RetType ret = prm.AT().AddParm( TypeNameHolder(args[2]),
+          Cpptraj::Parm::RetType ret = prm.AT().AddParm( TypeNameHolder(args[2]),
                                                             AtomType(args.getNextDouble(0)),
                                                             true );
-          if (ret == ParameterHolders::UPDATED)
+          if (ret == Cpptraj::Parm::UPDATED)
             mprintf("Warning: Redefining atom type %s\n", args[2].c_str());
         } else if (ChmCmd(args[0], "ATOM")) {
           if (mode != TOP) {
@@ -220,7 +228,8 @@ int CharmmParamFile::ReadParams(ParameterSet& prm, FileName const& nameIn, int d
             if (args.Nargs() < 7)
               mprintf("Warning: Bad syntax for dihedral parameter on line %i: %s\n", infile.LineNumber(), line);
             else {
-              TypeNameHolder types(4, "X"); // X is wildcard character
+              //TypeNameHolder types(4, "X"); // X is wildcard character
+              TypeNameHolder types(4);
               types.AddName( args.GetStringNext() );
               types.AddName( args.GetStringNext() );
               types.AddName( args.GetStringNext() );
@@ -229,9 +238,9 @@ int CharmmParamFile::ReadParams(ParameterSet& prm, FileName const& nameIn, int d
               double pn = args.getNextDouble(0);
               double phase = args.getNextDouble(0) * Constants::DEGRAD;
               if (currentSection == DIHEDRALS)
-                prm.DP().AddParm(types, DihedralParmType(pk, pn, phase, 1.0, 1.0), false);
+                dihPrm.AddDihParm(types, DihedralParmType(pk, pn, phase, 1.0, 1.0), false);
               else
-                prm.IP().AddParm(types, DihedralParmType(pk, pn, phase), false);
+                impPrm.AddDihParm(types, DihedralParmType(pk, pn, phase), false);
             }
           } else if (currentSection == NONBONDED) {
             // NONBONDED PARAMETERS TODO do not add if not already present
@@ -265,8 +274,7 @@ int CharmmParamFile::ReadParams(ParameterSet& prm, FileName const& nameIn, int d
                   if (it->first[0].Match( at )) {
                     if (debugIn > 0)
                       mprintf("DEBUG: NB wildcard match: '%s' matches '%s'\n", *(it->first[0]), *at);
-                    it->second.SetLJ().SetRadius( radius );
-                    it->second.SetLJ().SetDepth( -epsilon );
+                    it->second.SetLJ( LJparmType(radius, -epsilon) );
                   }
                 }
               } else {
@@ -276,8 +284,7 @@ int CharmmParamFile::ReadParams(ParameterSet& prm, FileName const& nameIn, int d
                   mprintf("Warning: Nonbond parameters defined for type '%s' without MASS card."
                           " Skipping.\n", *at);
                 } else {
-                  it->second.SetLJ().SetRadius( radius );
-                  it->second.SetLJ().SetDepth( -epsilon );
+                  it->second.SetLJ( LJparmType(radius, -epsilon) );
                 }
               }
             }
@@ -286,6 +293,9 @@ int CharmmParamFile::ReadParams(ParameterSet& prm, FileName const& nameIn, int d
       }  // END line not blank
     } // END if not title or comment 
   } // END loop over file read
+  // Add dihedrals/impropers
+  if (dihPrm.ToDihParm(prm.DP())) return 1;
+  if (impPrm.ToImpParm(prm.IP())) return 1;
   if (debugIn > 0) 
     prm.Debug();
 
@@ -293,7 +303,8 @@ int CharmmParamFile::ReadParams(ParameterSet& prm, FileName const& nameIn, int d
 }
 
 /** Write CHARMM parameters from specified set into given file. */
-int CharmmParamFile::WriteParams(ParameterSet& prm, FileName const& nameIn, int debugIn) const {
+int CharmmParamFile::WriteParams(Cpptraj::Parm::ParameterSet& prm, FileName const& nameIn, int debugIn) const {
+  using namespace Cpptraj::Parm;
   CpptrajFile outfile;
   if (outfile.OpenWrite(nameIn)) return 1;
   // Title

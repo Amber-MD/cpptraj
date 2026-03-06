@@ -99,6 +99,7 @@ COMMON_SOURCES= \
         Action_Volume.cpp \
         Action_Watershell.cpp \
         Action_XtalSymm.cpp \
+        AmberParamFile.cpp \
         AnalysisList.cpp \
         Analysis_AmdBias.cpp \
         Analysis_AutoCorr.cpp \
@@ -162,6 +163,7 @@ COMMON_SOURCES= \
         CharmmParamFile.cpp \
         CIFfile.cpp \
         ClusterMap.cpp \
+        CmapParmHolder.cpp \
         Cmd.cpp \
         CmdInput.cpp \
         CmdList.cpp \
@@ -184,6 +186,8 @@ COMMON_SOURCES= \
         DataFilter.cpp \
         DataIO.cpp \
         DataIO_AmberEne.cpp \
+        DataIO_AmberFF.cpp \
+        DataIO_AmberFrcmod.cpp \
         DataIO_AmberLib.cpp \
         DataIO_AmberPrep.cpp \
         DataIO_CCP4.cpp \
@@ -193,15 +197,17 @@ COMMON_SOURCES= \
         DataIO_CharmmRtfPrm.cpp \
         DataIO_Cmatrix_Binary.cpp \
         DataIO_Cmatrix_NC.cpp \
+        DataIO_Coords.cpp \
         DataIO_Cpout.cpp \
         DataIO_Evecs.cpp \
         DataIO_Gnuplot.cpp \
         DataIO_Grace.cpp \
-        DataIO_OpenDx.cpp \
-        DataIO_Peaks.cpp \
+        DataIO_LeapRC.cpp \
         DataIO_Mdout.cpp \
         DataIO_NetCDF.cpp \
         DataIO_Numpy.cpp \
+        DataIO_OpenDx.cpp \
+        DataIO_Peaks.cpp \
         DataIO_RemLog.cpp \
         DataIO_Std.cpp \
         DataIO_VecTraj.cpp \
@@ -219,15 +225,18 @@ COMMON_SOURCES= \
         DataSet_Coords_TRJ.cpp \
         DataSet_GridDbl.cpp \
         DataSet_GridFlt.cpp \
+        DataSet_LeapOpts.cpp \
         DataSet_Mat3x3.cpp \
         DataSet_MatrixDbl.cpp \
         DataSet_MatrixFlt.cpp \
         DataSet_Mesh.cpp \
         DataSet_Modes.cpp \
+        DataSet_NameMap.cpp \
         DataSet_PairwiseCache.cpp \
         DataSet_PairwiseCache_MEM.cpp \
         DataSet_PairwiseCache_NC.cpp \
         DataSet_Parameters.cpp \
+        DataSet_PdbResMap.cpp \
         DataSet_pH.cpp \
         DataSet_PHREMD_Explicit.cpp \
         DataSet_PHREMD_Implicit.cpp \
@@ -263,6 +272,7 @@ COMMON_SOURCES= \
         ExclusionArray.cpp \
         Exec_AddMissingRes.cpp \
         Exec_Analyze.cpp \
+        Exec_Build.cpp \
         Exec_Calc.cpp \
         Exec_CatCrd.cpp \
         Exec_Change.cpp \
@@ -279,6 +289,7 @@ COMMON_SOURCES= \
         Exec_DataFile.cpp \
         Exec_DataFilter.cpp \
         Exec_DataSetCmd.cpp \
+        Exec_Desc.cpp \
         Exec_Emin.cpp \
         Exec_ExtendedComparison.cpp \
         Exec_Flatten.cpp \
@@ -288,6 +299,7 @@ COMMON_SOURCES= \
         Exec_HmassRepartition.cpp \
         Exec_LoadCrd.cpp \
         Exec_LoadTraj.cpp \
+        Exec_Mutate.cpp \
         Exec_ParallelAnalysis.cpp \
         Exec_ParmBox.cpp \
         Exec_ParmSolvent.cpp \
@@ -310,6 +322,7 @@ COMMON_SOURCES= \
         Exec_SequenceAlign.cpp \
         Exec_Show.cpp \
         Exec_SortEnsembleData.cpp \
+        Exec_Source.cpp \
         Exec_SplitCoords.cpp \
         Exec_System.cpp \
         Exec_Top.cpp \
@@ -341,6 +354,7 @@ COMMON_SOURCES= \
         GridAction.cpp \
         GridMover.cpp \
         GridBin.cpp \
+        GuessAtomHybridization.cpp \
         HistBin.cpp \
         Hungarian.cpp \
         ImageRoutines.cpp \
@@ -358,6 +372,7 @@ COMMON_SOURCES= \
         MdOpts.cpp \
         MetaData.cpp \
         Minimize_SteepestDescent.cpp \
+        ModXNA_Info.cpp \
         Mol.cpp \
         Mol2File.cpp \
         NameType.cpp \
@@ -366,7 +381,6 @@ COMMON_SOURCES= \
         NetcdfFile.cpp \
         OMM_helpers.cpp \
         OutputTrajCommon.cpp \
-        ParameterSet.cpp \
         PDBfile.cpp \
         PairList.cpp \
         Parallel.cpp \
@@ -399,6 +413,7 @@ COMMON_SOURCES= \
         ExternalFxn.cpp \
         Random.cpp \
         Range.cpp \
+        Remote.cpp \
         RNG.cpp \
         RNG_Marsaglia.cpp \
         RNG_MersenneTwister.cpp \
@@ -482,7 +497,7 @@ SOURCES=$(COMMON_SOURCES) \
 # by libcpptraj. They MUST have the '.LIBCPPTRAJ.o' extension and will be
 # compiled with the '-DLIBCPPTRAJ' define.
 # NOTE: This variable MUST be in cpptrajfiles as the cmake build expects it.
-LIBCPPTRAJ_OBJECTS=$(COMMON_SOURCES:.cpp=.o) $(CSOURCES:.c=.o) $(CLUSTER_SOURCEFILES:.cpp=.o) $(STRUCTURE_SOURCEFILES:.cpp=.o) $(ENERGY_SOURCEFILES:.cpp=.o) \
+LIBCPPTRAJ_OBJECTS=$(COMMON_SOURCES:.cpp=.o) $(CSOURCES:.c=.o) $(CLUSTER_SOURCEFILES:.cpp=.o) $(STRUCTURE_SOURCEFILES:.cpp=.o) $(PARM_SOURCEFILES:.cpp=.o) $(ENERGY_SOURCEFILES:.cpp=.o) \
         Action_Esander.LIBCPPTRAJ.o \
         Command.LIBCPPTRAJ.o \
         Cpptraj.LIBCPPTRAJ.o \
@@ -613,7 +628,7 @@ LIBCPPTRAJ_PARM_OBJECTS= \
   CharmmParamFile.o \
   ExclusionArray.o \
   Mol.o \
-  ParameterSet.o \
+  Parm/ParameterSet.o \
   ParmFile.o \
   Parm_Amber.o \
   Parm_CharmmPsf.o \

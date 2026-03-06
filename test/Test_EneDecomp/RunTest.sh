@@ -4,7 +4,7 @@
 
 TESTNAME='Energy decomposition tests'
 
-CleanFiles enedecomp.in ene.*.dat decomp.*.dat Total.*.dat
+CleanFiles enedecomp.in ene.*.dat decomp.*.dat Total.*.dat 1d23.lj1264.dat 1d23.dat
 
 TESTNAME='Particle mesh Ewald tests'
 #Requires maxthreads 1 
@@ -70,6 +70,24 @@ EOF
   RunCpptraj "$UNITNAME"
   DoTest decomp.tz2.dat.save decomp.tz2.dat
   DoTest decomp.components.tz2.dat.save decomp.components.tz2.dat
+fi
+
+UNITNAME='LJ 12-6-4 decomposition'
+CheckFor libpme maxthreads 1
+if [ $? -eq 0 ] ; then
+  cat > enedecomp.in <<EOF
+parm ../1d23.tip3p.lj1264.parm7
+trajin ../1d23.tip3p.rst7
+enedecomp out 1d23.dat No1264 \
+  pme cut 8.0 dsumtol 0.00001 \
+  order 6 nfft 60,60,60
+enedecomp out 1d23.lj1264.dat Cppt lj1264 \
+  pme cut 8.0 dsumtol 0.00001 \
+  order 6 nfft 60,60,60
+EOF
+  RunCpptraj "$UNITNAME"
+  DoTest 1d23.dat.save 1d23.dat
+  DoTest 1d23.lj1264.dat.save 1d23.lj1264.dat
 fi
 
 EndTest

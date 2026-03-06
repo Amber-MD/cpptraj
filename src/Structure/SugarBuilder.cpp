@@ -20,8 +20,33 @@ SugarBuilder::SugarBuilder(int debugIn) :
   offset_(0.2),
   hasGlycam_(false),
   useSugarName_(false),
-  debug_(debugIn)
+  debug_(debugIn),
+  FGB_(0)
 {}
+
+/** DESTRUCTOR */
+SugarBuilder::~SugarBuilder() {
+  if (FGB_ != 0) delete FGB_;
+}
+
+/** Sugar options */
+const char* SugarBuilder::keywords_ =
+  "\t[{nosugars |\n"
+  "\t  sugarmask <sugarmask> [noc1search] [nosplitres]\n"
+  "\t  [rescut <residue cutoff>] [bondoffset <offset>]\n"
+  "\t  [resmapfile <file>]\n"
+  "\t  [hasglycam] [determinesugarsby {geom|name}]\n"
+  "\t }]\n";
+
+/** Get options from arglist */
+int SugarBuilder::InitSugarBuilder(ArgList& argIn) {
+  return InitOptions( argIn.hasKey("hasglycam"),
+                      argIn.getKeyDouble("rescut", 8.0),
+                      argIn.getKeyDouble("bondoffset", 0.2),
+                      argIn.GetStringKey("sugarmask"),
+                      argIn.GetStringKey("determinesugarsby", "geometry"),
+                      argIn.GetStringKey("resmapfile") );
+}
 
 /** Initialize options. */
 int SugarBuilder::InitOptions(bool hasGlycamIn,
@@ -1709,7 +1734,8 @@ void SugarBuilder::CacheResidueCenters(Topology const& topIn, Frame const& frame
 /** Attempt to find any missing linkages to the anomeric carbon in sugar. */
 int SugarBuilder::FindSugarC1Linkages(int rnum1, int c_beg,
                                       Topology& topIn, Frame const& frameIn,
-                                      NameType const& solventResName)
+                                      NameType const& solventResName,
+                                      std::vector<BondType>& LeapBonds)
 const
 {
   //Residue const& res1 = topIn.SetRes(rnum1);
@@ -1799,6 +1825,7 @@ const
     mprintf("\t  Adding bond between %s and %s\n",
             topIn.ResNameNumAtomNameNum(c_beg).c_str(),
             topIn.ResNameNumAtomNameNum(closest_at).c_str());
+    LeapBonds.push_back( BondType(c_beg, closest_at, -1) );
     topIn.AddBond(c_beg, closest_at);
   }
   return 0;
@@ -1807,25 +1834,28 @@ const
 /** Try to fix issues with sugar structure before trying to identify. */
 int SugarBuilder::FixSugarsStructure(Topology& topIn, Frame& frameIn,
                                      bool c1bondsearch, bool splitres,
-                                     NameType const& solventResName) 
+                                     NameType const& solventResName,
+                                     std::vector<BondType>& LeapBonds)
 {
   // Set up an AtomMap for this residue to help determine stereocenters.
   // This is required by the IdSugarRing() function.
   //myMap_.SetDebug(debug_); // DEBUG
+  myMap_.SetAllowNoBonds( true );
   if (myMap_.Setup(topIn, frameIn)) {
     mprinterr("Internal Error: FixSugarsStructure: Atom map setup failed.\n");
     return 1;
   }
-  myMap_.DetermineAtomIDs();
+  myMap_.AssignUniqueAtomIDs();
 
   Sugars_.clear();
   AtomMask sugarMask(sugarmaskstr_);
-  mprintf("\tLooking for sugars selected by '%s'\n", sugarMask.MaskString());
+  if (debug_ > 0)
+    mprintf("DEBUG:\tLooking for sugars selected by '%s'\n", sugarMask.MaskString());
   if (topIn.SetupIntegerMask( sugarMask )) return 1;
   //sugarMask.MaskInfo();
   mprintf("\tSelected %i sugar atoms.\n", sugarMask.Nselected());
   if (sugarMask.None()) {
-    mprintf("Warning: No sugar atoms selected by %s\n", sugarMask.MaskString());
+    //mprintf("Warning: No sugar atoms selected by %s\n", sugarMask.MaskString());
     return 0;
   }
   // Cache residue distances if we will be looking for linkages
@@ -1869,7 +1899,7 @@ int SugarBuilder::FixSugarsStructure(Topology& topIn, Frame& frameIn,
       if (sugar->NotSet()) continue;
       int anomericAtom = sugar->AnomericAtom();
       int rnum = sugar->ResNum(topIn);
-      if (FindSugarC1Linkages(rnum, anomericAtom, topIn, frameIn, solventResName)) {
+      if (FindSugarC1Linkages(rnum, anomericAtom, topIn, frameIn, solventResName, LeapBonds)) {
         mprinterr("Error: Search for bonds to anomeric carbon '%s' failed.\n",
                   topIn.AtomMaskName(anomericAtom).c_str());
         return 1;
@@ -1880,26 +1910,17 @@ int SugarBuilder::FixSugarsStructure(Topology& topIn, Frame& frameIn,
   //for (std::vector<Sugar>::const_iterator sugar = sugarResidues.begin();
   //                                    sugar != sugarResidues.end(); ++sugar)
   //  sugar->PrintInfo(topIn);
-  FxnGroupBuilder FGB(debug_);
-  if (splitres) {
-    // Loop over sugar indices to see if residues have ROH that must be split off
-    for (std::vector<Sugar>::iterator sugar = Sugars_.begin();
-                                      sugar != Sugars_.end(); ++sugar)
-    {
-      if (sugar->NotSet()) continue;
-      if (FGB.CheckIfSugarIsTerminal(*sugar, topIn, frameIn)) {
-        mprinterr("Error: Checking if sugar %s has terminal functional groups failed.\n",
-                  topIn.TruncResNameOnumId(sugar->ResNum(topIn)).c_str());
-        return 1;
-      }
-    } // End loop over sugar indices
 
-    // Loop over chain indices to see if residues need to be split
+  if (splitres) {
+    if (FGB_ != 0)
+      delete FGB_;
+    FGB_ = new FxnGroupBuilder(debug_);
+    // Loop over chain indices to see if functional groups should be split into separate residues
     for (std::vector<Sugar>::iterator sugar = Sugars_.begin();
                                       sugar != Sugars_.end(); ++sugar)
     {
       if (sugar->NotSet()) continue;
-      if (FGB.CheckForFunctionalGroups(*sugar, topIn, frameIn)) {
+      if (FGB_->CheckForFunctionalGroups(*sugar, topIn, frameIn)) {
         mprinterr("Error: Checking if sugar %s has functional groups failed.\n",
                  topIn.TruncResNameOnumId( sugar->ResNum(topIn) ).c_str());
         return 1;
@@ -1909,8 +1930,12 @@ int SugarBuilder::FixSugarsStructure(Topology& topIn, Frame& frameIn,
     //for (std::vector<Sugar>::const_iterator sugar = sugarResidues.begin();
     //                                    sugar != sugarResidues.end(); ++sugar)
     //  sugar->PrintInfo(topIn);
+    if (FGB_->NgroupsFound() > 0) {
+      mprintf("\t  Found %u functional groups:\n", FGB_->NgroupsFound());
+      for (FxnGroupBuilder::const_iterator it = FGB_->begin(); it != FGB_->end(); ++it)
+        mprintf("\t    %li : %s (%s)\n", it - FGB_->begin(), topIn.TruncResNameNum(it->Ires()).c_str(), FunctionalGroup::typeString(it->Ftype()));
+    }
   }
-
 
   return 0;
 }
@@ -1929,9 +1954,10 @@ int SugarBuilder::PrepareSugars(bool errorsAreFatal,
   if (topIn.SetupIntegerMask( sugarMask )) return 1;
   //sugarMask.MaskInfo();
   mprintf("\t%i sugar atoms selected in %zu residues.\n", sugarMask.Nselected(), Sugars_.size());
-  if (sugarMask.None())
-    mprintf("Warning: No sugar atoms selected by %s\n", sugarMask.MaskString());
-  else {
+  if (sugarMask.None()) {
+    if (debug_ > 0)
+      mprintf("DEBUG: No sugar atoms selected by %s\n", sugarMask.MaskString());
+  } else {
     CharMask cmask( sugarMask.ConvertToCharMask(), sugarMask.Nselected() );
     if (debug_ > 0) {
       for (std::vector<Sugar>::const_iterator sugar = Sugars_.begin();
@@ -1965,7 +1991,7 @@ int SugarBuilder::PrepareSugars(bool errorsAreFatal,
     {
       //outfile->Printf("%s\n", LeapInterface::LeapBond(bnd->A1(), bnd->A2(), leapunitname, topIn).c_str());
       LeapBonds.push_back( *bnd );
-      topIn.RemoveBond(bnd->A1(), bnd->A2());
+      //topIn.RemoveBond(bnd->A1(), bnd->A2());
     }
     // Remove bonds between sugars
     for (std::set<BondType>::const_iterator bnd = sugarBondsToRemove.begin();
@@ -1973,18 +1999,38 @@ int SugarBuilder::PrepareSugars(bool errorsAreFatal,
     {
       //outfile->Printf("%s\n", LeapInterface::LeapBond(bnd->A1(), bnd->A2(), leapunitname, topIn).c_str());
       LeapBonds.push_back( *bnd );
-      topIn.RemoveBond(bnd->A1(), bnd->A2());
+      //topIn.RemoveBond(bnd->A1(), bnd->A2());
     }
     // Bonds to sugars have been removed, so regenerate molecule info
-    topIn.DetermineMolecules();
-    // Set each sugar as terminal
-    for (std::vector<Sugar>::const_iterator sugar = Sugars_.begin(); sugar != Sugars_.end(); ++sugar)
-    {
-      int rnum = sugar->ResNum(topIn);
-      topIn.SetRes(rnum).SetTerminal(true);
-      if (rnum - 1 > -1)
-        topIn.SetRes(rnum-1).SetTerminal(true);
-    }
+    //topIn.DetermineMolecules();
   }
   return 0;
+}
+
+/** When being used in prepareforleap, this is used to set each sugar as
+  * terminal, which LEaP needs.
+  */
+void SugarBuilder::SetEachSugarAsTerminal(Topology& topIn) const {
+  // Set each sugar as terminal
+  for (std::vector<Sugar>::const_iterator sugar = Sugars_.begin(); sugar != Sugars_.end(); ++sugar)
+  {
+    int rnum = sugar->ResNum(topIn);
+    topIn.SetRes(rnum).SetTerminal(true);
+    if (rnum - 1 > -1)
+      topIn.SetRes(rnum-1).SetTerminal(true);
+  }
+}
+
+/** Print warnings related to functional groups. */
+void SugarBuilder::PrintFxnGroupWarnings(Topology const& topIn) const {
+  if (FGB_ != 0)
+    FGB_->LeapFxnGroupWarning(topIn);
+}
+
+/** Perform any necessary topology modifications for found functional groups. */
+int SugarBuilder::ModifyFoundFxnGroups(Topology& topIn, bool& top_is_modified) const {
+  int err = 0;
+  if (FGB_ != 0)
+    err = FGB_->ModifyFxnGroups(topIn, top_is_modified);
+  return err;
 }

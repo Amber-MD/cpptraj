@@ -47,12 +47,15 @@ static int CommonSetup(TopInfo& info, CpptrajState& State, ArgList& argIn, const
   }
   if (argIn.hasKey("nointrares"))
     info.SetNoIntraRes(true);
+  if (argIn.hasKey("noindices"))
+    info.SetPrintParameterIndices(false);
   return err;
 }
 
 // -----------------------------------------------------------------------------
 void Exec_BondInfo::Help() const {
-  mprintf("\t[%s] [<mask1>] [<mask2>] [out <file>] [nointrares]\n", DataSetList::TopIdxArgs);
+  mprintf("\t[%s]\n"
+          "\t[<mask1>] [<mask2>] [out <file>] [nointrares] [noindices]\n", DataSetList::TopIdxArgs);
   mprintf("  For specified topology (first by default) either print bond info for all\n"
           "  atoms in <mask1>, or print info for bonds with first atom in <mask1> and\n"
           "  second atom in <mask2>. If 'nointrares' is specified, only print bonds\n"
@@ -68,7 +71,8 @@ Exec::RetType Exec_BondInfo::Execute(CpptrajState& State, ArgList& argIn) {
 }
 // -----------------------------------------------------------------------------
 void Exec_UBInfo::Help() const {
-  mprintf("\t[%s] [<mask1>] [<mask2>] [out <file>]\n", DataSetList::TopIdxArgs);
+  mprintf("\t[%s]\n"
+          "\t[<mask1>] [<mask2>] [out <file>] [noindices]\n", DataSetList::TopIdxArgs);
   mprintf("  For specified topology (first by default) either print CHARMM Urey-Bradley\n"
           "  info for all atoms in <mask1>, or print info for bonds with first atom in\n"
           "  <mask1> and second atom in <mask2>.\n");
@@ -97,7 +101,9 @@ Exec::RetType Exec_BondParmInfo::Execute(CpptrajState& State, ArgList& argIn) {
 
 // -----------------------------------------------------------------------------
 void Exec_AngleInfo::Help() const {
-  mprintf("\t[%s] [<mask1>] [<mask2> <mask3>]\n\t[out <file>]\n", DataSetList::TopIdxArgs);
+  mprintf("\t[%s]\n"
+          "\t[<mask1>] [<mask2> <mask3>] [noindices]\n"
+          "\t[out <file>]\n", DataSetList::TopIdxArgs);
   mprintf("  For specified topology (first by default) either print angle info for all\n"
           "  atoms in <mask1>, or print info for angles with first atom in <mask1>,\n"
           "  second atom in <mask2>, and third atom in <mask3>.\n");
@@ -113,10 +119,13 @@ Exec::RetType Exec_AngleInfo::Execute(CpptrajState& State, ArgList& argIn) {
 }
 // -----------------------------------------------------------------------------
 void Exec_DihedralInfo::Help() const {
-  mprintf("\t[%s] [<mask1>] [<mask2> <mask3> <mask4>]\n\t[out <file>]\n", DataSetList::TopIdxArgs);
+  mprintf("\t[%s]\n"
+          "\t{[<mask1>] [<mask2> <mask3> <mask4>] | tgtidx <#>} [noindices]\n"
+          "\t[out <file>] [extra]\n", DataSetList::TopIdxArgs);
   mprintf("  For specified topology (first by default) either print dihedral info for all\n"
           "  atoms in <mask1>, or print info for dihedrals with first atom in <mask1>,\n"
-          "  second atom in <mask2>, third atom in <mask3>, and fourth atom in <mask4>.\n");
+          "  second atom in <mask2>, third atom in <mask3>, and fourth atom in <mask4>.\n"
+          "  If 'extra' is specified, print SCEE and SCNB factors as well.\n");
 }
 
 Exec::RetType Exec_DihedralInfo::Execute(CpptrajState& State, ArgList& argIn) {
@@ -125,19 +134,27 @@ Exec::RetType Exec_DihedralInfo::Execute(CpptrajState& State, ArgList& argIn) {
               "Error:   selection please use 4 masks.\n");
     return CpptrajState::ERR;
   }
+  bool printExtraInfo = argIn.hasKey("extra");
+  int tgtidx = argIn.getKeyInt("tgtidx", 0) - 1;
   TopInfo info;
   if (CommonSetup(info, State, argIn, "Dihedral info")) return CpptrajState::ERR;
-  std::string mask1 = argIn.GetMaskNext();
-  std::string mask2 = argIn.GetMaskNext();
-  std::string mask3 = argIn.GetMaskNext();
-  if (info.PrintDihedralInfo( mask1, mask2, mask3, argIn.GetMaskNext(), false ))
+  std::string mask1, mask2, mask3, mask4;
+  if (tgtidx == -1) {
+    mask1 = argIn.GetMaskNext();
+    mask2 = argIn.GetMaskNext();
+    mask3 = argIn.GetMaskNext();
+    mask4 = argIn.GetMaskNext();
+  }
+  if (info.PrintDihedralInfo( mask1, mask2, mask3, mask4, false, printExtraInfo, tgtidx ))
     return CpptrajState::ERR;
   return CpptrajState::OK;
 }
 
 // -----------------------------------------------------------------------------
 void Exec_ImproperInfo::Help() const {
-  mprintf("\t[%s] [<mask1>] [<mask2> <mask3> <mask4>]\n\t[out <file>]\n", DataSetList::TopIdxArgs);
+  mprintf("\t[%s]\n"
+          "\t{[<mask1>] [<mask2> <mask3> <mask4>] | tgtidx <#>} [noindices]\n"
+          "\t[out <file>]\n", DataSetList::TopIdxArgs);
   mprintf("  For specified topology (first by default) either print CHARMM improper info\n"
           "  for all atoms in <mask1>, or print info for dihedrals with first atom in <mask1>,\n"
           "  second atom in <mask2>, third atom in <mask3>, and fourth atom in <mask4>.\n");
@@ -149,12 +166,17 @@ Exec::RetType Exec_ImproperInfo::Execute(CpptrajState& State, ArgList& argIn) {
               "Error:   selection please use 4 masks.\n");
     return CpptrajState::ERR;
   }
+  int tgtidx = argIn.getKeyInt("tgtidx", 0) - 1;
   TopInfo info;
   if (CommonSetup(info, State, argIn, "Improper info")) return CpptrajState::ERR;
-  std::string mask1 = argIn.GetMaskNext();
-  std::string mask2 = argIn.GetMaskNext();
-  std::string mask3 = argIn.GetMaskNext();
-  if (info.PrintDihedralInfo( mask1, mask2, mask3, argIn.GetMaskNext(), true ))
+  std::string mask1, mask2, mask3, mask4;
+  if (tgtidx == -1) {
+    mask1 = argIn.GetMaskNext();
+    mask2 = argIn.GetMaskNext();
+    mask3 = argIn.GetMaskNext();
+    mask4 = argIn.GetMaskNext();
+  }
+  if (info.PrintDihedralInfo( mask1, mask2, mask3, mask4, true, false, tgtidx ))
     return CpptrajState::ERR;
   return CpptrajState::OK;
 }

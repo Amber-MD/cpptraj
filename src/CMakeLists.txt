@@ -115,6 +115,7 @@ endif()
 add_library(cpptraj_common_obj OBJECT ${CPPTRAJ_COMMON_SOURCES})
 add_subdirectory(Cluster)
 add_subdirectory(Structure)
+add_subdirectory(Parm)
 add_subdirectory(Energy)
 make_pic_if_needed(cpptraj_common_obj)
 

@@ -285,9 +285,16 @@ const
 
 /** Check for functional groups that need to be separate residues. */
 int FxnGroupBuilder::CheckForFunctionalGroups(Sugar& sugar, Topology& topIn, Frame& frameIn)
-const
 {
+  resTypes_.clear();
   int rnum = sugar.ResNum(topIn);
+  // First check if there is a terminal group on the sugar anomeric carbon
+  if (CheckIfSugarIsTerminal( sugar, topIn, frameIn )) {
+    mprinterr("Error: Checking if if sugar %s has terminal functional groups failed.\n",
+              topIn.TruncResNameOnumId(sugar.ResNum(topIn)).c_str());
+    return 1;
+  }
+  // Check the rest of the sugar
   int original_at0 = topIn.Res(rnum).FirstAtom();
   int original_at1 = topIn.Res(rnum).LastAtom();
   std::string sugarName = topIn.TruncResNameOnumId(rnum);
@@ -296,11 +303,11 @@ const
   bool atomsRemain = true;
   while (atomsRemain) {
     // Even if the residue is split, rnum will always refer to the original
-    // sugar since the split SO3 will come AFTER this residue.
-    // Find an oxygen that is both bound to a chain carbon and an SO3 group
-    // in this residue.
+    // sugar since the split functional group will come AFTER this residue.
+    // Find an oxygen that is both bound to a chain carbon and a recognized
+    // functional group in this residue.
     int o_idx = -1;
-    int so3_idx = -1;
+    int hvy_idx = -1;
     Iarray selected;
     FunctionalGroup::Type groupType = FunctionalGroup::UNRECOGNIZED_GROUP;
     Iarray::const_iterator cat = sugar.ChainAtoms().begin();
@@ -326,20 +333,20 @@ const
             // DEBUG
             groupType = IdFunctionalGroup(selected, rnum, *sat, o_idx, topIn);
             if (groupType != FunctionalGroup::UNRECOGNIZED_GROUP) {
-              so3_idx = *sat;
+              hvy_idx = *sat;
               break;
             }
           } // END loop over bonds to oxygen
-          if (so3_idx != -1) break;
+          if (hvy_idx != -1) break;
         } // END atom is oxygen
       } // END loop over bonds to carbon
-      if (so3_idx != -1) break;
+      if (hvy_idx != -1) break;
     } // END loop over chain atoms
     if (cat == sugar.ChainAtoms().end())
       atomsRemain = false;
     else {
       // sanity check
-      if (so3_idx == -1 || o_idx == -1 || selected.empty()) {
+      if (hvy_idx == -1 || o_idx == -1 || selected.empty()) {
         mprinterr("Internal Error: Functional group index is negative.\n");
         return 1;
       }
@@ -385,8 +392,9 @@ const
                   sugarName.c_str());
         return 1;
       }
-      // Set the split residue as terminal
+      // Set the split residue as terminal, increment the residue offset
       topIn.SetRes(rnum+1).SetTerminal(true);
+      resTypes_.push_back( groupType );
       // Reorder the frame to match
       Frame oldFrame = frameIn;
       frameIn.SetCoordinatesByMap( oldFrame, atomMap );
@@ -398,6 +406,18 @@ const
     //atomsRemain = false; // DEBUG
   } // END while atoms remain
 
+  // Record new residue numbers for found types.
+  int resOffset = (int)resTypes_.size();
+  if (resOffset > 0) {
+    mprintf("Info: Split off %i groups from residue %i: ", resOffset, rnum+1);
+    for (FTarray::const_iterator rt = resTypes_.begin(); rt != resTypes_.end(); ++rt) {
+      mprintf(" %i:%s", rnum+resOffset+1, FunctionalGroup::typeString(*rt));
+      foundGroups_.push_back( FxnResType(rnum+resOffset, *rt) );
+      --resOffset;
+    }
+    mprintf("\n");
+  }
+
   return 0;
 }
 
@@ -405,7 +425,6 @@ const
   * to be a separate ROH residue.
   */
 int FxnGroupBuilder::CheckIfSugarIsTerminal(Sugar& sugar, Topology& topIn, Frame& frameIn)
-const
 {
   int rnum = sugar.ResNum(topIn);
   int anomericAtom = sugar.AnomericAtom();
@@ -484,6 +503,7 @@ const
   }
   // Set the split residue as terminal
   topIn.SetRes(rnum+1).SetTerminal(true);
+  resTypes_.push_back( groupType );
   // DEBUG
   //for (int at = original_at0; at != original_at1; at++)
   //  mprintf("DEBUG:\t\tAtomMap[%i] = %i\n", at, atomMap[at]);
@@ -492,5 +512,152 @@ const
   frameIn.SetCoordinatesByMap( oldFrame, atomMap );
   // Remap the sugar indices
   sugar.RemapIndices( atomMap, original_at0, original_at1 );
+  return 0;
+}
+
+/** Print out warnings related to found functional groups. */
+void FxnGroupBuilder::LeapFxnGroupWarning(Topology const& topIn) const {
+  for (FRarray::const_iterator it = foundGroups_.begin(); it != foundGroups_.end(); ++it)
+  {
+    int rnum = it->Ires();
+    if ( it->Ftype() == FunctionalGroup::G_SO3 ) {
+    mprintf("Warning: Residue '%s'; after LEaP, will need to adjust the charge on the link oxygen by +0.031.\n",
+            topIn.TruncResNameNum(rnum).c_str());
+    } else if ( it->Ftype() == FunctionalGroup::G_CH3 ) {
+      mprintf("Warning: Residue '%s'; after LEaP, will need to adjust the charge on the carbon bonded to link oxygen by -0.039.\n",
+              topIn.TruncResNameNum(rnum).c_str());
+    } else if ( it->Ftype() == FunctionalGroup::G_ACX ) {
+      mprintf("Warning: Residue '%s'; after LEaP, will need to adjust the charge on the carbon bonded to link oxygen by +0.008.\n",
+              topIn.TruncResNameNum(rnum).c_str());
+    }
+  }
+}
+
+/// \return index of oxygen atom bonded to this atom but not in same residue
+static inline int getLinkOxygenIdx(Topology const& leaptop, int at, int rnum) {
+  int o_idx = -1;
+  for (Atom::bond_iterator bat = leaptop[at].bondbegin();
+                           bat != leaptop[at].bondend(); ++bat)
+  {
+    if (leaptop[*bat].Element() == Atom::OXYGEN && leaptop[*bat].ResNum() != rnum) {
+      o_idx = *bat;
+      break;
+    }
+  }
+  return o_idx;
+}
+
+/// \return index of carbon bonded to link oxygen not in same residue
+static inline int getLinkCarbonIdx(Topology const& leaptop, int at, int rnum)
+{
+  int o_idx = getLinkOxygenIdx(leaptop, at, rnum);
+  if (o_idx == -1) return o_idx;
+  int c_idx = -1;
+  for (Atom::bond_iterator bat = leaptop[o_idx].bondbegin();
+                           bat != leaptop[o_idx].bondend(); ++bat)
+  {
+    if (leaptop[*bat].Element() == Atom::CARBON && leaptop[*bat].ResNum() != rnum) {
+      c_idx = *bat;
+      break;
+    }
+  }
+  return c_idx;
+}
+
+/** Modify functional groups if needed. */
+int FxnGroupBuilder::ModifyFxnGroups(Topology& leaptop, bool& top_is_modified)
+const
+{
+  // Make necessary adjustments for found residues
+  // NOTE: If deoxy carbons are ever handled, need to add H1 hydrogen and
+  //       add the former -OH charge to the carbon.
+  for (FRarray::const_iterator it = foundGroups_.begin(); it != foundGroups_.end(); ++it)
+  {
+    int rnum = it->Ires();
+    Residue const& res = leaptop.Res(rnum);
+    if (it->Ftype() == FunctionalGroup::G_SO3) {
+      int o_idx = -1;
+      // Need to adjust the charge on the bonded oxygen by +0.031
+      for (int at = res.FirstAtom(); at != res.LastAtom(); at++) {
+        if (leaptop[at].Element() == Atom::SULFUR) {
+          o_idx = getLinkOxygenIdx( leaptop, at, rnum );
+          if (o_idx != -1) break;
+        }
+      }
+      if (o_idx == -1) {
+        mprinterr("Error: Could not find oxygen link atom for '%s'\n",
+                  leaptop.TruncResNameOnumId(rnum).c_str());
+        return 1;
+      }
+      double newcharge = leaptop[o_idx].Charge() + 0.031;
+      mprintf("\tFxn group '%s'; changing charge on %s from %f to %f\n", *(res.Name()),
+              leaptop.AtomMaskName(o_idx).c_str(), leaptop[o_idx].Charge(), newcharge);
+      leaptop.SetAtom(o_idx).SetCharge( newcharge );
+      top_is_modified = true;
+    } else if (it->Ftype() == FunctionalGroup::G_CH3) { // MEX
+      int c_idx = -1;
+      // Need to adjust the charge on the carbon bonded to link oxygen by -0.039
+      for (int at = res.FirstAtom(); at != res.LastAtom(); at++) {
+        if (leaptop[at].Element() == Atom::CARBON) {
+          c_idx = getLinkCarbonIdx( leaptop, at, rnum );
+          if (c_idx != -1) break;
+        }
+      }
+      if (c_idx == -1) {
+        mprinterr("Error: Could not find carbon bonded to oxygen link atom for '%s'\n",
+                  leaptop.TruncResNameOnumId(rnum).c_str());
+        return 1;
+      }
+      double newcharge = leaptop[c_idx].Charge() - 0.039;
+      mprintf("\tFxn group '%s'; changing charge on %s from %f to %f\n", *(res.Name()),
+              leaptop.AtomMaskName(c_idx).c_str(), leaptop[c_idx].Charge(), newcharge);
+      leaptop.SetAtom(c_idx).SetCharge( newcharge );
+      top_is_modified = true;
+    } else if (it->Ftype() == FunctionalGroup::G_ACX) {
+      int c_idx = -1;
+      // Need to adjust the charge on the carbon bonded to link oxygen by +0.008
+      for (int at = res.FirstAtom(); at != res.LastAtom(); at++) {
+        if (leaptop[at].Element() == Atom::CARBON) {
+          // This needs to be the acetyl carbon, ensure it is bonded to an oxygen
+          for (Atom::bond_iterator bat = leaptop[at].bondbegin();
+                                   bat != leaptop[at].bondend(); ++bat)
+          {
+            if (leaptop[*bat].Element() == Atom::OXYGEN) {
+              c_idx = getLinkCarbonIdx( leaptop, at, rnum );
+              if (c_idx != -1) break;
+            }
+          }
+          if (c_idx != -1) break;
+        }
+      }
+      if (c_idx == -1) {
+        mprinterr("Error: Could not find carbon bonded to oxygen link atom for '%s'\n",
+                  leaptop.TruncResNameOnumId(rnum).c_str());
+        return 1;
+      }
+      double newcharge = leaptop[c_idx].Charge() + 0.008;
+      mprintf("\tFxn group '%s'; changing charge on %s from %f to %f\n", *(res.Name()),
+              leaptop.AtomMaskName(c_idx).c_str(), leaptop[c_idx].Charge(), newcharge);
+      leaptop.SetAtom(c_idx).SetCharge( newcharge );
+      top_is_modified = true;
+    }
+  } // END loop over residues
+
+  // DEBUG: Print out total charge on each residue
+  double total_q = 0;
+  for (Topology::res_iterator res = leaptop.ResStart(); res != leaptop.ResEnd(); ++res)
+  {
+    double tcharge = 0;
+    for (int at = res->FirstAtom(); at != res->LastAtom(); ++at) {
+      total_q += leaptop[at].Charge();
+      tcharge += leaptop[at].Charge();
+    }
+    if (debug_ > 0) {
+      mprintf("DEBUG:\tResidue %10s charge= %12.5f\n",
+              leaptop.TruncResNameOnumId(res-leaptop.ResStart()).c_str(), tcharge);
+    }
+  }
+  mprintf("\tTotal charge: %16.8f\n", total_q);
+
   return 0;
 }

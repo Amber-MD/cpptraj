@@ -19,9 +19,11 @@ Exec_PermuteDihedrals::Exec_PermuteDihedrals() : Exec(COORDS),
   crdout_(0),
   check_for_clashes_(false),
   checkAllResidues_(false),
+  checkRings_(false),
   max_factor_(2),
   cutoff_(0.64), // 0.8^2
-  rescutoff_(100.0), // 10.0^2
+  //rescutoff_(100.0), // 10.0^2
+  rescutoff_(225.0), // 15.0^2
   backtrack_(5),
   increment_(1),
   max_increment_(360),
@@ -31,11 +33,13 @@ Exec_PermuteDihedrals::Exec_PermuteDihedrals() : Exec(COORDS),
 // Exec_PermuteDihedrals::Help()
 void Exec_PermuteDihedrals::Help() const {
   mprintf("\tcrdset <COORDS set> resrange <range> [{interval | random}]\n"
-          "\t[outtraj <filename> [<outfmt>]] [crdout <output COORDS>] [<dihedral types>]\n"
-          "  Options for 'random':\n"
-          "\t[rseed <rseed>] [out <# problems file> [<set name>]]\n"
+          "\t{[outtraj <filename> [<outfmt>]] [crdout <output COORDS>]} [<dihedral types>]\n");
+  mprintf("\t[%s]\n", DihedralSearch::newTypeArgsHelp());
+  mprintf("  Options for 'random':\n"
+          "\t[rseed <rseed>] [out <# problems file> [<set name>]] [noimage]\n"
           "\t[ check [cutoff <cutoff>] [rescutoff <rescutoff>] [maxfactor <max_factor>]\n"
-          "\t  [backtrack <backtrack> [checkallresidues] [increment <increment>]] ]\n"
+          "\t  [checkrings] [backtrack <backtrack> [checkallresidues]\n"
+          "\t                [increment <increment>]] ]\n"
           "  Options for 'interval':\n"
           "\t<interval deg>\n"
           "  <dihedral types> = ");
@@ -80,6 +84,8 @@ Exec::RetType Exec_PermuteDihedrals::Execute(CpptrajState& State, ArgList& argIn
   // Determine which angles to search for
   DihedralSearch dihSearch;
   dihSearch.SearchForArgs(argIn);
+  // Get custom dihedral arguments: dihtype <name>:<a0>:<a1>:<a2>:<a3>[:<offset>]
+  if (dihSearch.SearchForNewTypeArgs(argIn)) return CpptrajState::ERR;
   // If nothing is enabled, enable all 
   dihSearch.SearchForAll();
   mprintf("\tSearching for types:");
@@ -131,16 +137,18 @@ Exec::RetType Exec_PermuteDihedrals::Execute(CpptrajState& State, ArgList& argIn
       resCutoffDefault = 10.0;
       use_random2 = false;
     } else {
-      resCutoffDefault = 12.0;
+      resCutoffDefault = 15.0;
       use_random2 = true;
     }
     check_for_clashes_ = argIn.hasKey("check");
     checkAllResidues_ = argIn.hasKey("checkallresidues");
+    checkRings_ = argIn.hasKey("checkrings");
     cutoff_ = argIn.getKeyDouble("cutoff",0.8);
     rescutoff_ = argIn.getKeyDouble("rescutoff", resCutoffDefault);
     increment_ = argIn.getKeyInt("increment",1);
     max_factor_ = argIn.getKeyDouble("maxfactor", 2);
     int iseed = argIn.getKeyInt("rseed",-1);
+    bool imageOn = !(argIn.hasKey("noimage"));
     // Output file for # of problems
     DataFile* problemFile = State.DFL().AddDataFile(argIn.GetStringKey("out"), argIn);
     // Dataset to store number of problems
@@ -177,6 +185,8 @@ Exec::RetType Exec_PermuteDihedrals::Execute(CpptrajState& State, ArgList& argIn
       mprintf("\tRandom number generator will be seeded using %i\n",iseed);
     if (check_for_clashes_) {
       mprintf("\tWill attempt to recover from bad steric clashes.\n");
+      if (checkRings_)
+        mprintf("\tChecking for bond/ring intersections.\n");
       if (checkAllResidues_)
         mprintf("\tAll residues will be checked.\n");
       else
@@ -196,8 +206,11 @@ Exec::RetType Exec_PermuteDihedrals::Execute(CpptrajState& State, ArgList& argIn
     rescutoff_ *= rescutoff_;
     // Increment backtrack by 1 since we need to skip over current res
     ++backtrack_;
-    // Initialize CheckStructure
-    if (checkStructure_.SetOptions( false, false, false, State.Debug(), "*", "", 0.8, 1.15, 0.5, 4.0 )) {
+    // Initialize CheckStructure. The last 3 args being 0 means use defaults
+    // for the ring check.
+    if (checkStructure_.SetOptions( imageOn, checkRings_, false, State.Debug(), "*", "", 0.8, 1.15, 0.5, -1,
+                                    checkRings_, 0, 0, 0 ))
+    {
       mprinterr("Error: Could not set up structure check.\n");
       return CpptrajState::ERR;
     }
@@ -595,6 +608,51 @@ void Exec_PermuteDihedrals::RandomizeAngles(Frame& currentFrame, Topology const&
   mprintf("\tPerformed %u rotations for %zu dihedrals\n", number_of_rotations, BB_dihedrals_.size());
 }
 
+/** Count initial clashes in the structure. This is done to make sure
+  * new clashes arent introduced after a rotation.
+  */
+int Exec_PermuteDihedrals::countClashes(std::vector<int>& res_clashes,
+                                        Frame const& currentFrame, Topology const& topIn)
+const
+{
+  int total_clashes = 0;
+  res_clashes.assign( topIn.Nres(), 0 );
+  for (int res0 = 0; res0 != topIn.Nres(); res0++)
+  {
+    Residue const& R0 = topIn.Res(res0);
+    for (int res1 = res0 + 1; res1 != topIn.Nres(); res1++)
+    {
+      Residue const& R1 = topIn.Res(res1);
+      // Check if first atoms are anywhere near each other.
+      double r0r1_at0_dist2 = DIST2_NoImage( currentFrame.XYZ(R0.FirstAtom()),
+                                             currentFrame.XYZ(R1.FirstAtom()) );
+      if (r0r1_at0_dist2 < rescutoff_) {
+        // Residues are within each others vicinity
+        for (int at0 = R0.FirstAtom(); at0 != R0.LastAtom(); at0++)
+        {
+          const double* xyz0 = currentFrame.XYZ(at0);
+          for (int at1 = R1.FirstAtom(); at1 != R1.LastAtom(); at1++)
+          {
+            const double* xyz1 = currentFrame.XYZ(at1);
+            double d2 = DIST2_NoImage( xyz0, xyz1 );
+            if (d2 < cutoff_) {
+              if (debug_ > 0) {
+                mprintf("DEBUG: Initial clash: %s to %s (%g Ang)\n",
+                        topIn.TruncResAtomNameNum(at0).c_str(),
+                        topIn.TruncResAtomNameNum(at1).c_str(), sqrt(d2));
+              }
+              total_clashes++;
+              res_clashes[res0]++;
+              res_clashes[res1]++;
+            } // END atom-atom distance within cutoff_
+          } // END loop over R1 atoms
+        } // END loop over R0 atoms
+      } // END res-res distance wtihin rescutoff_
+    } // END inner loop over residues
+  } // END outer loop over residues
+  return total_clashes;
+}
+
 // Exec_PermuteDihedrals::RandomizeAngles_2()
 /** This algorithm is a more straightforward one than RandomizeAngles().
   *  1) Pick a random angle
@@ -622,6 +680,19 @@ void Exec_PermuteDihedrals::RandomizeAngles_2(Frame& currentFrame, Topology cons
   unsigned int total_rotations = 0;
 
   mprintf("\tMax number of rotations to try each dihedral: %u\n", max_rotations);
+
+  // Get count of initial clashes
+  std::vector<int> initialResClashes;
+  if (check_for_clashes_) {
+    int total_clashes = countClashes( initialResClashes, currentFrame, topIn );
+    mprintf("\t%i initial clashes:\n", total_clashes);
+    if (debug_ > 0) {
+      for (unsigned int ires = 0; ires != (unsigned int)topIn.Nres(); ires++) {
+        if (initialResClashes[ires] > 0)
+          mprintf("DEBUG:\t\t%s has %i initial clashes.\n", topIn.TruncResNameNum(ires).c_str(), initialResClashes[ires]);
+      }
+    }
+  }
 
   // Loop over all dihedrals
   for (std::vector<PermuteDihedralsType>::const_iterator dih = BB_dihedrals_.begin();
@@ -661,15 +732,20 @@ void Exec_PermuteDihedrals::RandomizeAngles_2(Frame& currentFrame, Topology cons
       if (!check_for_clashes_) break;
       // If we have exceeded the max number of rotations bail out.
       if (number_of_rotations > max_rotations) {
-        mprintf("Warning: Max # of rotations has been exceeded for dihedral %li res %8i.\n",
-                dih - BB_dihedrals_.begin(), dih->resnum+1);
+        mprintf("Warning: Max # of rotations has been exceeded for dihedral %li res %s.\n",
+                dih - BB_dihedrals_.begin(), topIn.TruncResNameNum(dih->resnum).c_str());
         break;
       }
       // Check resulting structure for issues.
+      std::vector<int> currentResClashes(topIn.Nres(), 0);
+      std::vector<bool> checkRingBonds;
+      if (checkRings_) checkRingBonds.assign(topIn.Nres(), false);
       bool clash = false;
       for (int res0 = 0; res0 != topIn.Nres(); res0++)
       {
         Residue const& R0 = topIn.Res(res0);
+        //int res1 = dih->resnum;
+        //if (res1 != res0)
         for (int res1 = res0 + 1; res1 != topIn.Nres(); res1++)
         {
           Residue const& R1 = topIn.Res(res1);
@@ -685,22 +761,98 @@ void Exec_PermuteDihedrals::RandomizeAngles_2(Frame& currentFrame, Topology cons
                 const double* xyz1 = currentFrame.XYZ(at1);
                 double d2 = DIST2_NoImage( xyz0, xyz1 );
                 if (d2 < cutoff_) {
-#                 ifdef DEBUG_PERMUTEDIHEDRALS
-                  mprintf("DEBUG: Clash: %s to %s (%g Ang)\n",
-                          topIn.TruncResAtomNameNum(at0).c_str(),
-                          topIn.TruncResAtomNameNum(at1).c_str(), sqrt(d2));
-#                 endif
-                  clash = true;
-                  break;
+                  if (debug_ > 0) {
+                    mprintf("DEBUG: Clash: %s to %s (%g Ang)\n",
+                            topIn.TruncResAtomNameNum(at0).c_str(),
+                            topIn.TruncResAtomNameNum(at1).c_str(), sqrt(d2));
+                  }
+                  if (currentResClashes[res0] == initialResClashes[res0])
+                    clash = true;
+                  else
+                    currentResClashes[res0]++;
+                  if (currentResClashes[res1] == initialResClashes[res1])
+                    clash = true;
+                  else
+                    currentResClashes[res1]++;
+                  if (clash) break;
                 }
               } // END loop over residue 1 atoms
               if (clash) break;
             } // END loop over residue 0 atoms
+            if (checkRings_) {
+              // If either of these residues is the one belonging to the
+              // rotated dihedral, add bonds to check for ring intersection.
+              if (res0 == dih->resnum || res1 == dih->resnum) {
+                checkRingBonds[res0] = true;
+                checkRingBonds[res1] = true;
+              }
+            }
           } // END residues within cutoff of each other
           if (clash) break;
         } // END inner loop over residues
         if (clash) break;
       } // END outer loop over residues
+      // Check rings
+      if (checkRings_ && !clash) {
+        Cpptraj::Structure::RingFinder resRings;
+        Cpptraj::Structure::RingFinder otherRings;
+        // Select atoms in residues to search for rings
+        AtomMask resMask(std::vector<int>(), topIn.Natom());
+        AtomMask otherMask(std::vector<int>(), topIn.Natom());
+        //resRings.SetupRingFinder(topIn, resMask);
+        // Add ring bonds
+        std::vector<StructureCheck::Btype> resBonds;
+        std::vector<StructureCheck::Btype> otherBonds;
+        for (int idx = 0; idx != topIn.Nres(); idx++)
+        {
+          if (checkRingBonds[idx]) {
+            Residue const& ringRes = topIn.Res(idx);
+            // Add heavy atom bonds
+            for (int rat = ringRes.FirstAtom(); rat != ringRes.LastAtom(); rat++) {
+              Atom const& resAt = topIn[rat];
+              if (resAt.Nbonds() > 1) {
+                if (idx == dih->resnum)
+                  resMask.AddSelectedAtom( rat );
+                else
+                  otherMask.AddSelectedAtom( rat );
+              }
+              for (Atom::bond_iterator bat = resAt.bondbegin(); bat != resAt.bondend(); ++bat) {
+                if (*bat > rat) {
+                  if (idx == dih->resnum)
+                    resBonds.push_back( StructureCheck::Btype(rat, *bat) );
+                  else
+                    otherBonds.push_back( StructureCheck::Btype(rat, *bat) );
+                }
+              }
+            }
+          }
+        } // END loop over residues for adding bonds to check
+        resRings.SetupRingFinder(topIn, resMask);
+        otherRings.SetupRingFinder(topIn, otherMask);
+        if (resRings.Nrings() > 0 || otherRings.Nrings() > 0) {
+          mprintf("DEBUG: Ring check, residue %i (%u rings).\n", dih->resnum+1, resRings.Nrings());
+          //resRings.PrintRings(topIn);
+          mprintf("DEBUG:\t\tChecking against %zu bonds.\n", otherBonds.size());
+          //int icol = 0;
+          //for (std::vector<StructureCheck::Btype>::const_iterator bt = ringBonds.begin(); bt != ringBonds.end(); ++bt)
+          //{
+          //  mprintf(" %s-%s\n", topIn.AtomMaskName(bt->A1()).c_str(), topIn.AtomMaskName(bt->A2()).c_str());
+          //  //if (icol == 5 || (bt+1) == ringBonds.end()) { 
+          //  //  mprintf("\n");
+          //  //  icol = 0;
+          //  //}
+          //}
+          int nRingProblems = checkStructure_.CheckRings(currentFrame, resRings, otherBonds);
+          mprintf("DEBUG:\t\t%u other rings, %zu residue bonds.\n", otherRings.Nrings(), resBonds.size());
+          nRingProblems += checkStructure_.CheckRings(currentFrame, otherRings, resBonds);
+          // Check self
+          nRingProblems += checkStructure_.CheckRings(currentFrame, resRings, resBonds);
+          if (nRingProblems > 0) {
+            mprintf("DEBUG: %i ring problems.\n", nRingProblems);
+            clash = true;
+          }
+        } // END rings are present
+      }
       if (!clash) {
         // No clash, all done
         rotate_dihedral = false;

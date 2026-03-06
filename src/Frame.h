@@ -158,6 +158,8 @@ class Frame {
     int SetupFrameFromMask(AtomMask const&, std::vector<Atom> const&, CoordinateInfo const&);
     /// Allocate frame for selected # atoms
     int SetupFrameFromMask(AtomMask const&);
+    /// Increase the maximum number of atoms the Frame can hold by given offset
+    int IncreaseX(int);
     // ----- Add/remove components from Frame ----
     int AddVelocities(Darray const&);
     void RemoveVelocities();
@@ -178,6 +180,8 @@ class Frame {
     void SetFrame(Frame const&, AtomMask const&);
     /// Copy entire input frame
     void SetFrame(Frame const&);
+    /// Append given frame to this one, reallocating if necessary
+    void AppendFrame(Frame const&);
     /// Zero the force array
     void ZeroForces();
     /// Zero the velocity array
@@ -223,6 +227,10 @@ class Frame {
     inline Vec3 VCenterOfMass(Unit const&) const;
     /// \return Geometric center of atoms in Unit
     inline Vec3 VGeometricCenter(Unit const&) const;
+    /// \return Center of mass of all atoms in Frame
+    inline Vec3 VCenterOfMass() const;
+    /// \return Geometric center of all atoms in Frame
+    inline Vec3 VGeometricCenter() const;
     /// Translate atoms in mask by Vec
     inline void Translate(Vec3 const&, AtomMask const&);
     /// Translate atoms in range by Vec
@@ -256,6 +264,8 @@ class Frame {
     void Scale(AtomMask const&, double, double, double);
     /// Translate atoms to origin.
     Vec3 CenterOnOrigin(bool);
+    /// Translate atoms to given point.
+    void CenterOnPoint(Vec3 const&, bool);
     // Align on reference
     void Align(Frame const&, AtomMask const&);
     // Coordinate calculation
@@ -275,7 +285,7 @@ class Frame {
     /// Calculate temperature of atoms in mask.
     double CalcTemperature(AtomMask const&,int) const;
     /// Set an orthogonal bounding box
-    void SetOrthoBoundingBox(std::vector<double> const& Radii, double);
+    int SetOrthoBoundingBox(std::vector<double> const& Radii, double);
 #   ifdef MPI
     // ----- Parallel Routines -------------------
     int SendFrame(int, Parallel::Comm const&) const;
@@ -306,7 +316,6 @@ class Frame {
     bool memIsExternal_; ///< True if Frame is not responsible for freeing memory.
 
     void swap(Frame&, Frame&);
-    void IncreaseX();
     inline bool ReallocateX(int);
     /// Allocate coords/velo/force based on given num atoms and coordinate info.
     bool setupFrame(unsigned int, CoordinateInfo const&);
@@ -380,6 +389,11 @@ Vec3 Frame::VCenterOfMass(int startAtom, int stopAtom) const {
   return Vec3( Coord0 / sumMass, Coord1 / sumMass, Coord2 / sumMass );
 }
 
+/** Center of mass of all atoms */
+Vec3 Frame::VCenterOfMass() const {
+  return VCenterOfMass(0, natom_);
+}
+
 /** Calculate the center of mass of a unit. */
 Vec3 Frame::VCenterOfMass(Unit const& unit) const {
   Vec3 out(0.0);
@@ -400,6 +414,7 @@ Vec3 Frame::VCenterOfMass(Unit const& unit) const {
   return out;
 }
 
+/** Geometric center of a range of atoms */
 Vec3 Frame::VGeometricCenter(int startAtom, int stopAtom) const {
   double Coord0 = 0.0;
   double Coord1 = 0.0;
@@ -414,6 +429,11 @@ Vec3 Frame::VGeometricCenter(int startAtom, int stopAtom) const {
   double sumMass = (double)(stopAtom - startAtom);
   if (sumMass == 0) return Vec3(0,0,0);
   return Vec3( Coord0 / sumMass, Coord1 / sumMass, Coord2 / sumMass );
+}
+
+/** Geometric center of all atoms */
+Vec3 Frame::VGeometricCenter() const {
+  return VGeometricCenter(0, natom_);
 }
 
 /** Calculate the Geometric center of a Unit. */

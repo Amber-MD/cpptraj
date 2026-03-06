@@ -1,13 +1,20 @@
 #CMake buildfile for CPPTRAJ Structure subdirectory.
 target_sources(cpptraj_common_obj PRIVATE
+  ${CMAKE_CURRENT_LIST_DIR}/AddIons.cpp
   ${CMAKE_CURRENT_LIST_DIR}/Builder.cpp
   ${CMAKE_CURRENT_LIST_DIR}/Chirality.cpp
+  ${CMAKE_CURRENT_LIST_DIR}/Creator.cpp
   ${CMAKE_CURRENT_LIST_DIR}/Disulfide.cpp
   ${CMAKE_CURRENT_LIST_DIR}/FunctionalGroup.cpp
   ${CMAKE_CURRENT_LIST_DIR}/FxnGroupBuilder.cpp
+  ${CMAKE_CURRENT_LIST_DIR}/GenerateConnectivityArrays.cpp
   ${CMAKE_CURRENT_LIST_DIR}/HisProt.cpp
   ${CMAKE_CURRENT_LIST_DIR}/InternalCoords.cpp
-  ${CMAKE_CURRENT_LIST_DIR}/Model.cpp
+  ${CMAKE_CURRENT_LIST_DIR}/LeastSquaresPlane.cpp
+  ${CMAKE_CURRENT_LIST_DIR}/MetalCenterFinder.cpp
+  ${CMAKE_CURRENT_LIST_DIR}/PdbCleaner.cpp
+  ${CMAKE_CURRENT_LIST_DIR}/RingFinder.cpp
+  ${CMAKE_CURRENT_LIST_DIR}/Solvate.cpp
   ${CMAKE_CURRENT_LIST_DIR}/StructureEnum.cpp
   ${CMAKE_CURRENT_LIST_DIR}/StructureRoutines.cpp
   ${CMAKE_CURRENT_LIST_DIR}/SugarBuilder.cpp

@@ -46,6 +46,7 @@ class Traj_Mol2File : public TrajectoryIO {
     bool hasCharges_;
     bool useSybylTypes_;
     bool prependExt_;
+    bool atomBondOrder_;
     Mol2File file_; 
 };
 #endif

@@ -84,9 +84,13 @@ class MaskTokenArray {
     virtual void InvertMask() = 0;
     /// \return Number of selected atoms.
     virtual int Nselected() const = 0;
+    /// \return Max number of potentially selected atoms (# atoms in topology).
+    virtual int Natom() const = 0;
     // -------------------------------------------
     /// \return true if no atoms selected
     bool None() const { return Nselected() == 0; }
+    /// \return true if all possible atoms selected
+    bool All()  const { return Nselected() == Natom(); }
   protected:
     void ClearTokens() { maskTokens_.clear(); maskExpression_.clear(); }
     /// \return array of characters with selected atoms marked with SelectedChar_

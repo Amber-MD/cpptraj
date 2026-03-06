@@ -18,7 +18,8 @@ TopInfo::TopInfo() :
   amn_width_(0),
   max_aname_len_(0),
   toStdout_(false),
-  noIntraRes_(false)
+  noIntraRes_(false),
+  printIndices_(true)
 {}
 
 /// CONSTRUCTOR - To Stdout
@@ -30,7 +31,8 @@ TopInfo::TopInfo(Topology const* pIn) :
   max_type_len_(0),
   max_aname_len_(0),
   toStdout_(false),
-  noIntraRes_(false)
+  noIntraRes_(false),
+  printIndices_(true)
 {
   SetupTopInfo( 0, pIn, 0 );
 }
@@ -42,7 +44,8 @@ TopInfo::~TopInfo() {
 }
 
 // TopInfo::SetupTopInfo()
-int TopInfo::SetupTopInfo(CpptrajFile* fIn, Topology const* pIn, DataSet_Coords* cIn) {
+int TopInfo::SetupTopInfo(CpptrajFile* fIn, Topology const* pIn, DataSet_Coords* cIn)
+{
   if (cIn == 0 && pIn == 0) {
     mprinterr("Internal Error: TopInfo: Null topology\n");
     return 1;
@@ -477,7 +480,10 @@ void TopInfo::PrintBonds(BondArray const& barray, BondParmArray const& bondparm,
         printBond = false;
     }
     if (printBond) {
-      outfile_->Printf("%*i", nw, nb);
+      if (printIndices_)
+        outfile_->Printf("%*i", nw, nb);
+      else
+        outfile_->Printf("%*c", nw, ' ');
       int bidx = batom->Idx();
       if ( bidx > -1 )
         outfile_->Printf(" %6.2f %6.3f", bondparm[bidx].Rk(), bondparm[bidx].Req());
@@ -501,8 +507,8 @@ void TopInfo::PrintBonds(BondArray const& barray, BondParmArray const& bondparm,
 int TopInfo::PrintBondInfo(std::string const& mask1exp, std::string const& mask2exp,
                            bool printUB) const
 {
-  if (printUB && !parm_->Chamber().HasChamber()) {
-    mprintf("Warning: '%s' does not have any CHARMM parameters.\n", parm_->c_str());
+  if (printUB && parm_->UB().empty()) {
+    mprintf("Warning: '%s' does not have any Urey-Bradley parameters.\n", parm_->c_str());
     return 0;
   }
   CharMask mask1( mask1exp );
@@ -514,8 +520,8 @@ int TopInfo::PrintBondInfo(std::string const& mask1exp, std::string const& mask2
   bool hasParams;
   if (printUB) {
     label = "#UB";
-    n_bonds = parm_->Chamber().UB().size();
-    hasParams = !parm_->Chamber().UBparm().empty();
+    n_bonds = parm_->UB().size();
+    hasParams = !parm_->UBparm().empty();
   } else {
     n_bonds = parm_->BondsH().size() + parm_->Bonds().size();
     hasParams = !parm_->BondParm().empty();
@@ -532,7 +538,7 @@ int TopInfo::PrintBondInfo(std::string const& mask1exp, std::string const& mask2
                    max_type_len_, "T1", max_type_len_, "T2");
   int nb = 1;
   if (printUB)
-    PrintBonds( parm_->Chamber().UB(), parm_->Chamber().UBparm(), mask1, mask2, nw, nb );
+    PrintBonds( parm_->UB(), parm_->UBparm(), mask1, mask2, nw, nb );
   else {
     PrintBonds( parm_->BondsH(), parm_->BondParm(), mask1, mask2, nw, nb );
     PrintBonds( parm_->Bonds(),  parm_->BondParm(), mask1, mask2, nw, nb );
@@ -570,7 +576,10 @@ void TopInfo::PrintAngles(AngleArray const& aarray, AngleParmArray const& anglep
                     mask1.AtomInCharMask(atom2) ||
                     mask1.AtomInCharMask(atom3));
     if (printAngle) {
-      outfile_->Printf("%*i", nw, na);
+      if (printIndices_)
+        outfile_->Printf("%*i", nw, na);
+      else
+        outfile_->Printf("%*c", nw, ' ');
       int aidx = aatom->Idx();
       if ( aidx > -1 )
         outfile_->Printf(" %6.3f %6.2f", angleparm[aidx].Tk(), 
@@ -628,7 +637,8 @@ int TopInfo::PrintAngleInfo(std::string const& mask1exp, std::string const& mask
 // TopInfo::PrintDihedrals()
 void TopInfo::PrintDihedrals(DihedralArray const& darray, DihedralParmArray const& dihedralparm,
                              CharMask const& mask1, CharMask const& mask2,
-                             CharMask const& mask3, CharMask const& mask4, int nw, int& nd) const
+                             CharMask const& mask3, CharMask const& mask4, int nw, int& nd,
+                             bool printExtraInfo, int tgtidx) const
 {
   if (darray.empty()) return;
   for (DihedralArray::const_iterator dih = darray.begin();
@@ -639,7 +649,9 @@ void TopInfo::PrintDihedrals(DihedralArray const& darray, DihedralParmArray cons
     int atom3 = dih->A3();
     int atom4 = dih->A4();
     bool printDihedral = false;
-    if (mask2.MaskStringSet() && mask3.MaskStringSet() && mask4.MaskStringSet())
+    if (tgtidx != -1)
+      printDihedral = (tgtidx == dih->Idx());
+    else if (mask2.MaskStringSet() && mask3.MaskStringSet() && mask4.MaskStringSet())
       printDihedral = (mask1.AtomInCharMask(atom1) &&
                        mask2.AtomInCharMask(atom2) &&
                        mask3.AtomInCharMask(atom3) &&
@@ -652,14 +664,26 @@ void TopInfo::PrintDihedrals(DihedralArray const& darray, DihedralParmArray cons
     if (printDihedral) {
       // Determine dihedral type: 'E'nd, 'I'mproper, or 'B'oth
       char type = ' ';
+      if (!printIndices_) type = 'D'; // DEBUG
       if      (dih->Type() == DihedralType::END     ) type = 'E';
       else if (dih->Type() == DihedralType::IMPROPER) type = 'I';
       else if (dih->Type() == DihedralType::BOTH    ) type = 'B';
-      outfile_->Printf("%c %*i", type, nw, nd);
+      if (printIndices_)
+        outfile_->Printf("%c %*i", type, nw, nd);
+      else
+        outfile_->Printf("%c %*c", type, nw, ' ');
       int didx = dih->Idx();
-      if ( didx > -1 )
+      if ( didx > -1 ) {
         outfile_->Printf(" %7.3f %5.2f %4.1f",dihedralparm[didx].Pk(),dihedralparm[didx].Phase(),
                  dihedralparm[didx].Pn());
+        if (printExtraInfo)
+          outfile_->Printf(" %4.1f %4.1f", dihedralparm[didx].SCEE(), dihedralparm[didx].SCNB());
+      } else {
+        // DEBUG
+        outfile_->Printf(" %7s %5s %4s", "NONE", "NONE", "NONE");
+        if (printExtraInfo)
+          outfile_->Printf(" %4s %4s", "NONE", "NONE");
+      }
       if ( !coords_.empty() )
         outfile_->Printf(" %7.2f", Torsion( coords_.XYZ(atom1),
                                             coords_.XYZ(atom2),
@@ -687,35 +711,37 @@ void TopInfo::PrintDihedrals(DihedralArray const& darray, DihedralParmArray cons
 // TopInfo::PrintDihedralInfo()
 int TopInfo::PrintDihedralInfo(std::string const& mask1exp, std::string const& mask2exp,
                                std::string const& mask3exp, std::string const& mask4exp,
-                               bool printImpropers) const
+                               bool printImpropers, bool printExtraInfo, int tgtidx) const
 {
-  CharMask mask1( mask1exp );
-  if (SetupMask( mask1 )) return 1;
-  CharMask mask2;
-  CharMask mask3;
-  CharMask mask4;
-  if (!mask2exp.empty() && SetupMask( mask2exp, mask2 )) return 1;
-  if (!mask3exp.empty() && SetupMask( mask3exp, mask3 )) return 1;
-  if (!mask4exp.empty() && SetupMask( mask4exp, mask4 )) return 1;
-  if (mask2exp.empty() != mask3exp.empty() || mask2exp.empty() != mask4exp.empty()) {
-    mprinterr("Error: Require either 1 mask or 4 masks.\n");
-    return 1;
+  CharMask mask1, mask2, mask3, mask4;
+  if (tgtidx == -1) {
+    if (!mask1exp.empty() && SetupMask( mask1exp, mask1 )) return 1;
+    if (!mask2exp.empty() && SetupMask( mask2exp, mask2 )) return 1;
+    if (!mask3exp.empty() && SetupMask( mask3exp, mask3 )) return 1;
+    if (!mask4exp.empty() && SetupMask( mask4exp, mask4 )) return 1;
+    if (mask2exp.empty() != mask3exp.empty() || mask2exp.empty() != mask4exp.empty()) {
+      mprinterr("Error: Require either 1 mask or 4 masks.\n");
+      return 1;
+    }
   }
   size_t n_torsions;
   const char* label = "Dih";
   bool hasParams;
   if (printImpropers) {
     label = "Imp";
-    n_torsions = parm_->Chamber().Impropers().size();
-    hasParams = !parm_->Chamber().ImproperParm().empty();
+    n_torsions = parm_->Impropers().size();
+    hasParams = !parm_->ImproperParm().empty();
   } else {
     n_torsions = parm_->DihedralsH().size() + parm_->Dihedrals().size();
     hasParams = !parm_->DihedralParm().empty();
   }
   int nw = std::max(3, DigitWidth(n_torsions));
   outfile_->Printf("# %*s", nw, label);
-  if (hasParams)
+  if (hasParams) {
     outfile_->Printf(" %7s %5s %4s", "PK", "Phase", "PN");
+    if (printExtraInfo)
+      outfile_->Printf(" %4s %4s", "SCEE", "SCNB");
+  }
   if (!coords_.empty())
     outfile_->Printf(" %7s", "Value");
   outfile_->Printf(" %-*s %-*s %-*s %-*s %*s %*s %*s %*s %*s %*s %*s %*s\n",
@@ -727,10 +753,10 @@ int TopInfo::PrintDihedralInfo(std::string const& mask1exp, std::string const& m
                    max_type_len_, "T3", max_type_len_, "T4");
   int nd = 1;
   if (printImpropers) {
-    PrintDihedrals( parm_->Chamber().Impropers(), parm_->Chamber().ImproperParm(), mask1, mask2, mask3, mask4, nw, nd );
+    PrintDihedrals( parm_->Impropers(), parm_->ImproperParm(), mask1, mask2, mask3, mask4, nw, nd, printExtraInfo, tgtidx );
   } else {
-    PrintDihedrals( parm_->DihedralsH(), parm_->DihedralParm(), mask1, mask2, mask3, mask4, nw, nd );
-    PrintDihedrals( parm_->Dihedrals(),  parm_->DihedralParm(), mask1, mask2, mask3, mask4, nw, nd );
+    PrintDihedrals( parm_->DihedralsH(), parm_->DihedralParm(), mask1, mask2, mask3, mask4, nw, nd, printExtraInfo, tgtidx );
+    PrintDihedrals( parm_->Dihedrals(),  parm_->DihedralParm(), mask1, mask2, mask3, mask4, nw, nd, printExtraInfo, tgtidx );
   }
   return 0;
 }

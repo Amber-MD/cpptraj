@@ -616,7 +616,7 @@ int StructureMapper::mapChiral(AtomMap& Ref, AtomMap& Tgt) {
       if (dR[1] < 0)
         ref_1 = -1;
       else
-        tgt_1 = 1;
+        ref_1 = 1;
       if (dT[0] < 0)
         tgt_0 = -1;
       else

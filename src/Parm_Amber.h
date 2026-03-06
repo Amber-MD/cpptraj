@@ -22,23 +22,25 @@ class Parm_Amber : public ParmIO {
     enum Type { UNKNOWN_FTYPE=0, FINT, FDOUBLE, FCHAR, FFLOAT };
     /// Enumerated type for Amber Parmtop Flags. KEEP IN SYNC WITH FLAGS_ ARRAY
     enum FlagType {
-      F_POINTERS = 0, F_NAMES,     F_CHARGE,    F_MASS,      F_RESNAMES,
-      F_RESNUMS,      F_TYPES,     F_BONDSH,    F_BONDS,     F_SOLVENT_POINTER,
-      F_ATOMSPERMOL,  F_PARMBOX,   F_ATYPEIDX,  F_NUMEX,     F_NB_INDEX,
-      F_LJ_A,         F_LJ_B,      F_LJ_C,      F_EXCLUDE,   F_RADII,
-      F_SCREEN,       F_BONDRK,    F_BONDREQ,   F_ANGLETK,   F_ANGLETEQ,
-      F_DIHPK,        F_DIHPN,     F_DIHPHASE,  F_SCEE,      F_SCNB,
-      F_SOLTY,        F_ANGLESH,   F_ANGLES,    F_DIHH,      F_DIH,
-      F_ASOL,         F_BSOL,      F_HBCUT,     F_ITREE,     F_JOIN,
-      F_IROTAT,       F_ATOMICNUM, F_TITLE,     F_RADSET,    F_LES_NTYP,
-      F_LES_TYPE,     F_LES_FAC,   F_LES_CNUM,  F_LES_ID,    F_CAP_INFO,
-      F_CAP_INFO2,    F_IPOL,      F_POLAR,     F_CTITLE,    F_CHM_UBC,
-      F_CHM_UB,       F_CHM_UBFC,  F_CHM_UBEQ,  F_CHM_NIMP,  F_CHM_IMP,
-      F_CHM_NIMPT,    F_CHM_IMPFC, F_CHM_IMPP,  F_LJ14A,     F_LJ14B,
-      F_CHM_CMAPC,    F_CHM_CMAPR, F_CHM_CMAPP, F_CHM_CMAPI, F_FF_TYPE,
-      F_PDB_RES,      F_PDB_CHAIN, F_PDB_ICODE, F_PDB_ALT,   F_PDB_BFAC,
-      F_PDB_OCC,      F_PDB_NUM,   F_CMAPC,     F_CMAPR,     F_CMAPP,
-      F_CMAPI
+      F_POINTERS = 0, F_NAMES,        F_CHARGE,    F_MASS,       F_RESNAMES,
+      F_RESNUMS,      F_TYPES,        F_BONDSH,    F_BONDS,      F_SOLVENT_POINTER,
+      F_ATOMSPERMOL,  F_PARMBOX,      F_ATYPEIDX,  F_NUMEX,      F_NB_INDEX,
+      F_LJ_A,         F_LJ_B,         F_LJ_C,      F_EXCLUDE,    F_RADII,
+      F_SCREEN,       F_BONDRK,       F_BONDREQ,   F_ANGLETK,    F_ANGLETEQ,
+      F_DIHPK,        F_DIHPN,        F_DIHPHASE,  F_SCEE,       F_SCNB,
+      F_SOLTY,        F_ANGLESH,      F_ANGLES,    F_DIHH,       F_DIH,
+      F_ASOL,         F_BSOL,         F_HBCUT,     F_ITREE,      F_JOIN,
+      F_IROTAT,       F_ATOMICNUM,    F_TITLE,     F_RADSET,     F_LES_NTYP,
+      F_LES_TYPE,     F_LES_FAC,      F_LES_CNUM,  F_LES_ID,     F_CAP_INFO,
+      F_CAP_INFO2,    F_IPOL,         F_POLAR,     F_CTITLE,     F_CHM_UBC,
+      F_CHM_UB,       F_CHM_UBFC,     F_CHM_UBEQ,  F_CHM_NIMP,   F_CHM_IMP,
+      F_CHM_NIMPT,    F_CHM_IMPFC,    F_CHM_IMPP,  F_LJ14A,      F_LJ14B,
+      F_CHM_CMAPC,    F_CHM_CMAPR,    F_CHM_CMAPP, F_CHM_CMAPI,  F_FF_TYPE,
+      F_CHM_CHARGE,   F_CHM_ANGLETEQ, F_CHM_LJ_A,  F_CHM_LJ_B,
+      F_PDB_RES,      F_PDB_CHAIN,    F_PDB_ICODE, F_PDB_ALT,    F_PDB_BFAC,
+      F_PDB_OCC,      F_PDB_NUM,      F_CMAPC,     F_CMAPR,      F_CMAPP,
+      F_CMAPI,        F_DIHH_LARGE,   F_DIH_LARGE, F_BNDH_LARGE, F_BND_LARGE,
+      F_ANGH_LARGE,   F_ANG_LARGE,    F_PNT_LARGE
     };
     /// Used to hold %FLAG/FORMAT string pairs. Corresponds to FlagType.
     struct ParmFlag {
@@ -143,9 +145,12 @@ class Parm_Amber : public ParmIO {
 
     // ----- Write -------------------------------
     FortranData WriteFormat(FlagType) const;
+    int BufferAlloc(FlagType, FortranData const&, int, int, std::string const&);
     int BufferAlloc(FlagType, FortranData const&, int, int);
     int BufferAlloc(FlagType, int, int);
+    int BufferAlloc(FlagType, int, int, std::string const&);
     int BufferAlloc(FlagType f, int n) { return BufferAlloc(f, n, -1); }
+    int flushFileBuffer(FlagType);
     int WriteLJ(FlagType, FlagType, NonbondArray const&);
     int WriteBondParm(FlagType, FlagType, BondParmArray const&);
     int WriteBonds(FlagType, BondArray const&);
@@ -156,6 +161,7 @@ class Parm_Amber : public ParmIO {
     int WriteIjoin(std::vector<int> const&);
     int WriteIrotat(std::vector<int> const&);
     int WriteExtra(Topology const&, int);
+    FlagType check_pointers(Topology const&, unsigned int, unsigned int, unsigned int) const;
  
     static const int AMBERPOINTERS_;
     /// Contain topology flags enumerated by FlagType
@@ -181,6 +187,7 @@ class Parm_Amber : public ParmIO {
     int UB_count_[2];   ///< Urey-Bradley count: # bonds (x3), # parameters
     int N_impropers_;   ///< Number of impropers (x5)
     int N_impTerms_;    ///< Number of improper terms
+    int ncoords_;       ///< Number of coordinates (# atoms * 3)
     int n_cmap_terms_;  ///< Number of CMAP terms
     int n_cmap_grids_;  ///< Number of CMAP grids
 
@@ -191,6 +198,10 @@ class Parm_Amber : public ParmIO {
     bool writeChamber_;     ///< If true write CHAMBER info
     bool writeEmptyArrays_; ///< If true try to write TREE, IROTATE, JOIN even if not present 
     bool writePdbInfo_;     ///< If true write chain IDs etc
+    bool writeComments_;    ///< If false suppress writing %COMMENT lines
+
+    bool has_valid_nonbond_params_; ///< Will set to false if invalid nonbonds detected on read
+    bool hasBadDihedrals_; ///< Set to true if bad dihedrals detected on read
 };
 // -----------------------------------------------------------------------------
 class Parm_Amber::FortranData {

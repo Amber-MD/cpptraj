@@ -4,7 +4,8 @@
 
 CleanFiles change.in ala3.mod.pdb ala3.chain.pdb crdala3.chain.pdb \
            AFV.zeroHmass.dat AFV.fluctMass.dat merged.?-?.mol2 \
-           AFV.zeroHcharge.dat AFV.1.offset.dat AFV.1.byfac.dat
+           AFV.zeroHcharge.dat AFV.1.offset.dat AFV.1.byfac.dat \
+           ala3.mod.namemap.pdb
 
 TESTNAME='Change command test'
 
@@ -23,6 +24,22 @@ trajout ala3.mod.pdb chainid " "
 EOF
   RunCpptraj "$UNITNAME"
   DoTest ala3.mod.pdb.save ala3.mod.pdb
+fi
+
+UNITNAME='Change atom name using name map test'
+CheckFor maxthreads 1
+if [ $? -eq 0 ] ; then
+  cat > change.in <<EOF
+parm ../Test_Charmm/ala3.psf
+trajin ../Test_Charmm/ala3.dcd 1 1
+change parmindex 0 resname from :1 to NALA
+change parmindex 0 resname from :3 to CALA
+readdata namemap.dat namemap
+change parmindex 0 atomname from @HN namemap namemap.dat
+trajout ala3.mod.namemap.pdb chainid " "
+EOF
+  RunCpptraj "$UNITNAME"
+  DoTest ala3.mod.pdb.save ala3.mod.namemap.pdb
 fi
 
 UNITNAME='Change chain ID test'

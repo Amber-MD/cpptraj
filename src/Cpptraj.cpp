@@ -139,6 +139,11 @@ void Cpptraj::Intro() const {
   }
 # endif
   mprintf("\n");
+#ifdef CPPTRAJ_USE_LEAP_PI
+  mprintf("Warning: CPPTRAJ was compiled with LEaP's value of PI.\n"
+          "Warning: This should only be used to compare directly to LEaP.\n"
+          "Warning: This will cause some test cases to fail.\n\n");
+#endif
 }
 
 void Cpptraj::Finalize() {
@@ -270,6 +275,21 @@ std::string Cpptraj::Defines() {
 #endif
 #ifdef HAS_OPENMM
   defined_str.append(" -DHAS_OPENMM");
+#endif
+#ifdef CPPTRAJ_USE_LEAP_PI
+  defined_str.append(" -DCPPTRAJ_USE_LEAP_PI");
+#endif
+#ifdef NO_READLINE
+  defined_str.append(" -DNO_READLINE");
+#endif
+#ifdef __HIP_PLATFORM_HCC__
+  defined_str.append(" -D__HIP_PLATFORM_HCC__");
+#endif
+#ifdef HAVE_FFTWD
+  defined_str.append(" -DHAVE_FFTWD");
+#endif
+#ifdef ENABLE_DTR
+  defined_str.append(" -DENABLE_DTR");
 #endif
   return defined_str;
 }

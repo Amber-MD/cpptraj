@@ -4,6 +4,9 @@
 #include "TypeNameHolder.h"
 #include "ParameterTypes.h"
 #include "DataSet_1D.h"
+#include "DataSet_NameMap.h"
+#include "Parm/GB_Params.h"
+#include "Parm/LJ1264_Params.h"
 
 // Exec_Change::Help()
 void Exec_Change::Help() const
@@ -14,16 +17,21 @@ void Exec_Change::Help() const
           "\t  chainid of <mask> to <value> |\n"
           "\t  oresnums of <mask> min <range min> max <range max> |\n"
           "\t  icodes of <mask> min <char min> max <char max> resnum <#> |\n"
-          "\t  atomname from <mask> to <value> |\n"
+          "\t  atomname from <mask> {to <value>|namemap <mapset>} |\n"
           "\t  addbond <mask1> <mask2> [req <length> <rk> <force constant>] |\n"
           "\t  removebonds <mask1> [<mask2>] [out <file>] |\n"
           "\t  bondparm <mask1> [<mask2>] {setrk|scalerk|setreq|scalereq} <value> |\n"
           "\t  {mass|charge} [of <mask>] {to <value> |by <offset> |\n"
           "\t                             byfac <factor> |fromset <data set>} |\n"
-          "\t  mergeres firstres <start res#> lastres <stop res#>\n"
+          "\t  mergeres firstres <start res#> lastres <stop res#> |\n"
+          "\t  %s |\n"
+          "\t  lj1264 %s\n"
           "\t}\n"
           "  Change specified parts of topology or topology of a COORDS data set.\n",
-          DataSetList::TopArgs);
+          DataSetList::TopArgs,
+          Cpptraj::Parm::GB_Params::HelpText().c_str(),
+          Cpptraj::Parm::LJ1264_Params::HelpText().c_str()
+         );
 }
 
 // Exec_Change::Execute()
@@ -32,7 +40,7 @@ Exec::RetType Exec_Change::Execute(CpptrajState& State, ArgList& argIn)
   // Change type
   enum ChangeType { UNKNOWN = 0, RESNAME, CHAINID, ORESNUMS, ICODES,
                     ATOMNAME, ADDBOND, REMOVEBONDS, SPLITRES, BONDPARM,
-                    MASS, CHARGE, MERGERES };
+                    MASS, CHARGE, MERGERES, GBRADII, LJ1264 };
   ChangeType type = UNKNOWN;
   if (argIn.hasKey("resname"))
     type = RESNAME;
@@ -58,6 +66,10 @@ Exec::RetType Exec_Change::Execute(CpptrajState& State, ArgList& argIn)
     type = CHARGE;
   else if (argIn.hasKey("mergeres"))
     type = MERGERES;
+  else if (argIn.hasKey("lj1264"))
+    type = LJ1264;
+  else if (argIn.Contains("gb"))
+    type = GBRADII;
   if (type == UNKNOWN) {
     mprinterr("Error: No change type specified.\n");
     return CpptrajState::ERR;
@@ -84,7 +96,7 @@ Exec::RetType Exec_Change::Execute(CpptrajState& State, ArgList& argIn)
     case CHAINID  : err = ChangeChainID(*parm, argIn); break;
     case ORESNUMS : err = ChangeOresNums(*parm, argIn); break;
     case ICODES   : err = ChangeIcodes(*parm, argIn); break;
-    case ATOMNAME : err = ChangeAtomName(*parm, argIn); break;
+    case ATOMNAME : err = ChangeAtomName(*parm, argIn, State.DSL()); break;
     case ADDBOND  : err = AddBond(*parm, argIn); break;
     case REMOVEBONDS : err = RemoveBonds(State, *parm, argIn); break;
     case BONDPARM    : err = ChangeBondParameters(*parm, argIn); break;
@@ -92,10 +104,30 @@ Exec::RetType Exec_Change::Execute(CpptrajState& State, ArgList& argIn)
     case MASS        : err = ChangeMassOrCharge(*parm, argIn, State.DSL(), 0); break;
     case CHARGE      : err = ChangeMassOrCharge(*parm, argIn, State.DSL(), 1); break;
     case MERGERES    : err = ChangeMergeRes(*parm, argIn); break;
+    case GBRADII     : err = ChangeGbRadii(*parm, argIn); break;
+    case LJ1264      : err = ChangeLJ1264(*parm, argIn, State.Debug()); break;
     case UNKNOWN  : err = 1; // sanity check
   }
   if (err != 0) return CpptrajState::ERR;
   return CpptrajState::OK;
+}
+
+/** Change the LJ 1264 params */
+int Exec_Change::ChangeLJ1264(Topology& parm, ArgList& argIn, int debugIn) const {
+  mprintf("Warning: If topology '%s' was not generated with the proper LJ 12-6-4 frcmod loaded\n"
+          "Warning:   this will not be adding the correct C coefficients!\n", parm.c_str());
+  Cpptraj::Parm::LJ1264_Params lj1264;
+  if (lj1264.Init_LJ1264(argIn, debugIn, "")) return 1;
+  if (lj1264.AssignLJ1264(parm)) return 1;
+  return 0;
+}
+
+/** Change the GB radii */
+int Exec_Change::ChangeGbRadii(Topology& parm, ArgList& argIn) const {
+  Cpptraj::Parm::GB_Params gbradii;
+  if (gbradii.Init_GB_Radii(argIn, Cpptraj::Parm::UNKNOWN_GB)) return 1;
+  if (gbradii.Assign_GB_Radii(parm)) return 1;
+  return 0;
 }
 
 // Exec_Change::ChangeSplitRes()
@@ -319,16 +351,31 @@ const
 }
 
 // Exec_Change::ChangeAtomName()
-int Exec_Change::ChangeAtomName(Topology& topIn, ArgList& argIn)
+int Exec_Change::ChangeAtomName(Topology& topIn, ArgList& argIn, DataSetList const& dsl)
 const
 {
-  // Name to change to.
-  std::string name = argIn.GetStringKey("to");
-  if (name.empty()) {
-    mprinterr("Error: Specify atom name to change to ('to <name>').\n");
-    return 1;
+  // Get Name/Names to change to.
+  // Name map set.
+  DataSet_NameMap* namemap = 0;
+  std::string name = argIn.GetStringKey("namemap");
+  if (!name.empty()) {
+    DataSet* ds = dsl.FindSetOfType(name, DataSet::NAMEMAP);
+    if (ds == 0) {
+      mprinterr("Error: No name map set with name '%s' found.\n", name.c_str());
+      return 1;
+    }
+    namemap = static_cast<DataSet_NameMap*>( ds );
   }
-  NameType aname( name );
+  // Single name
+  NameType aname;
+  if (namemap == 0) {
+    name = argIn.GetStringKey("to");
+    if (name.empty()) {
+      mprinterr("Error: Specify atom name to change to ('to <name>').\n");
+      return 1;
+    }
+    aname = NameType( name );
+  }
   // Atoms to change
   std::string mexpr = argIn.GetStringKey("from");
   if (mexpr.empty()) {
@@ -342,10 +389,23 @@ const
     mprintf("Warning: No atoms selected by mask.\n");
     return 1;
   }
-  for (AtomMask::const_iterator it = mask.begin(); it != mask.end(); ++it)
-  {
-    mprintf("\tChanging atom %s to %s\n", topIn[*it].c_str(), *aname);
-    topIn.SetAtom(*it).SetName( aname );
+  if (namemap == 0) {
+    // Change to a single name
+    for (AtomMask::const_iterator it = mask.begin(); it != mask.end(); ++it)
+    {
+      mprintf("\tChanging atom %s to %s\n", topIn[*it].c_str(), *aname);
+      topIn.SetAtom(*it).SetName( aname );
+    }
+  } else {
+    // Use a name map
+    for (AtomMask::const_iterator it = mask.begin(); it != mask.end(); ++it)
+    {
+      bool nameMatch = namemap->GetName(aname, topIn[*it].Name());
+      if (nameMatch) {
+        mprintf("\tChanging atom %s to %s\n", topIn[*it].c_str(), *aname);
+        topIn.SetAtom(*it).SetName( aname );
+      }
+    }
   }
   return 0;
 }
@@ -376,7 +436,7 @@ int Exec_Change::FindBondTypeIdx(Topology const& topIn, BondArray const& bonds,
     TypeNameHolder thisType(2);
     thisType.AddName( topIn[bnd->A1()].Type() );
     thisType.AddName( topIn[bnd->A2()].Type() );
-    if (thisType == tgtType) {
+    if (thisType.Match_NoWC( tgtType )) {
       bidx = bnd->Idx();
       break;
     }

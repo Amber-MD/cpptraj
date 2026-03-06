@@ -3,16 +3,13 @@
 #include "DataSet_Coords.h"
 
 // CONSTRUCTOR
-Action_ReplicateCell::Action_ReplicateCell() : coords_(0), ncopies_(0), writeTraj_(false) {} 
-
-void Action_ReplicateCell::Help() const {
-  mprintf("\t[out <traj filename>] [name <dsname>]\n"
-          "\t{ all | dir <XYZ> [dir <XYZ> ...] } [<mask>]\n");
-  mprintf("%s", ActionTopWriter::Keywords());
-  mprintf("  Replicate unit cell in specified (or all) directions for atoms in <mask>.\n"
-          "    <XYZ>: X= 1, 0, -1, replicate in specified direction (e.g. 100 is +X only)\n");
-  mprintf("%s", ActionTopWriter::Options());
-}
+Action_ReplicateCell::Action_ReplicateCell() :
+  coords_(0),
+  ncopies_(0),
+  debug_(0),
+  verbose_(0),
+  writeTraj_(false)
+{} 
 
 static inline int toDigit(char c) {
   switch (c) {
@@ -30,9 +27,20 @@ static inline int toDigit(char c) {
   return 0; // SANITY CHECK
 }
 
+void Action_ReplicateCell::Help() const {
+  mprintf("\t[out <traj filename>] [name <dsname>] [verbose <#>]\n"
+          "\t{ all | dir <XYZ> [dir <XYZ> ...] } [<mask>]\n");
+  mprintf("%s", ActionTopWriter::Keywords());
+  mprintf("  Replicate unit cell in specified (or all) directions for atoms in <mask>.\n"
+          "    <XYZ>: X= 1, 0, -1, replicate in specified direction (e.g. 100 is +X only)\n");
+  mprintf("%s", ActionTopWriter::Options());
+}
+
 // Action_ReplicateCell::Init()
 Action::RetType Action_ReplicateCell::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
+  debug_ = debugIn;
+  verbose_ = actionArgs.getKeyInt("verbose", 0);
   // Set up output traj
   std::string trajfilename = actionArgs.GetStringKey("out");
   topWriter_.InitTopWriter( actionArgs, "replicated cell", debugIn );
@@ -151,8 +159,10 @@ Action::RetType Action_ReplicateCell::Setup(ActionSetup& setup) {
     // Set up topology and frame.
     Topology* stripParm = setup.Top().modifyStateByMask( Mask1_ );
     if (stripParm == 0) return Action::ERR;
+    combinedTop_.SetDebug( debug_ );
+    // Merge topologies, reduce bond and angle params
     for (int cell = 0; cell != ncopies_; cell++)
-      combinedTop_.AppendTop( *stripParm );
+      combinedTop_.AppendTop( *stripParm, verbose_, true, true );
     combinedTop_.Brief("Combined parm:");
     delete stripParm;
     topWriter_.ModifyTop( &combinedTop_ );

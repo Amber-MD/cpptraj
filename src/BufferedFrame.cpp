@@ -144,7 +144,7 @@ int BufferedFrame::AttemptReadFrame() {
   */
 bool BufferedFrame::ReadFrame() {
   int nread = Read(buffer_, frameSize_);
-  //mprintf("DEBUG: %i bytes read.\n", nread);
+  //mprintf("DEBUG: %i bytes read, frameSize %zu.\n", nread, frameSize_);
   if (nread != (int)frameSize_) {
     if (nread < 0)
       mprinterr("Error: Read %i bytes, expected %zu\n", nread, frameSize_);

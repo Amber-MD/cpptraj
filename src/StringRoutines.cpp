@@ -1,6 +1,7 @@
 #include <cmath>     // log10
 #include <cctype>    // isspace, isdigit
 #include <ctime>     // for TimeString()
+#include <locale>    // for ToLower()
 #include <sstream>   // istringstream, ostringstream
 #include <stdexcept> // BadConversion
 #include "StringRoutines.h"
@@ -26,6 +27,17 @@ std::string AppendNumber(std::string const &fname, int number) {
   std::ostringstream oss;
   oss << fname << "." << number;
   return oss.str();
+}
+
+/** Convert string to all lowercase */
+std::string ToLower(std::string const& strIn) {
+  if (strIn.empty()) return strIn;
+  std::locale loc;
+  std::string strOut;
+  strOut.reserve( strIn.size() );
+  for (std::string::const_iterator it = strIn.begin(); it != strIn.end(); ++it)
+    strOut += std::tolower( *it, loc );
+  return strOut;
 }
 
 /** \return 1 if S1 matches S2. 0 otherwise.

@@ -71,11 +71,11 @@ crdaction TCS strip !:TCS
 combinecrd FabI NDP TCS parmname combinedParm crdname combinedCrd
 # Get recombined system energies. Should match exactly.
 crdaction combinedCrd energy out E2.dat noheader
-parmwrite out FabI.NDP.TCS.parm7
+parmwrite out FabI.NDP.TCS.parm7 crdset combinedCrd
 EOF
   RunCpptraj "Split coords and recombine test."
   DoTest E1.dat E2.dat
-  DoTest ../FtuFabI.NAD.TCL.parm7 FabI.NDP.TCS.parm7 -I %VERSION
+  DoTest FabI.NDP.TCS.parm7.save FabI.NDP.TCS.parm7 -I %VERSION
 fi
 
 EndTest

@@ -1,6 +1,7 @@
 /*! \file TorsionRoutines.cpp
     \brief Routines used to calculate torsions and angles.
  */
+#include <algorithm>
 #include <cmath>
 #include "TorsionRoutines.h"
 #include "Constants.h" // PI, TWOPI
@@ -38,6 +39,93 @@ double Torsion(const double *a1, const double *a2, const double *a3, const doubl
     angle = -angle;
 
   return angle;
+}
+
+/** Calculate the torsion and partial derivative.
+  * From Tom Darden's generic torsion code in AM_VAL_GEOM_torsion in
+  * amoeba_valence.f.
+  * Adapted to C++ by DRR - any mistakes are mine!
+  */
+void Torsion_and_part_deriv(const double* XA, const double* XB, const double* XC, const double* XD,
+                            Vec3& dA, Vec3& dB, Vec3& dC, Vec3& dD,
+                            double& cosphi, double& sinphi)
+{
+  Vec3 rab( XA[0] - XB[0],
+            XA[1] - XB[1],
+            XA[2] - XB[2] );
+  Vec3 rcb( XC[0] - XB[0],
+            XC[1] - XB[1],
+            XC[2] - XB[2] );
+  Vec3 rdc( XD[0] - XC[0],
+            XD[1] - XC[1],
+            XD[2] - XC[2] );
+
+  double onesizcb = 1.0/sqrt(rcb[0]*rcb[0]+rcb[1]*rcb[1]+rcb[2]*rcb[2]);
+  Vec3 ucb = rcb*onesizcb;
+  double dotp_ab_cb = rab[0]*ucb[0]+rab[1]*ucb[1]+rab[2]*ucb[2];
+  // upab is unit vector along component rab perp to ucb
+  double dot = rab[0]*ucb[0]+rab[1]*ucb[1]+rab[2]*ucb[2];
+  Vec3 upab = rab - ucb*dot; //dot*ucb;
+  double onesizpab = 1.0/sqrt(upab[0]*upab[0]+upab[1]*upab[1]+upab[2]*upab[2]);
+       upab = upab * onesizpab;
+  double dotp_dc_cb = rdc[0]*ucb[0]+rdc[1]*ucb[1]+rdc[2]*ucb[2];
+  // updc is unit vector along component rdc perp to ucb
+         dot = rdc[0]*ucb[0]+rdc[1]*ucb[1]+rdc[2]*ucb[2];
+  Vec3 updc = rdc - ucb*dot; //dot*ucb;
+  double onesizpdc = 1.0/sqrt(updc[0]*updc[0]+updc[1]*updc[1]+updc[2]*updc[2]);
+       updc = updc * onesizpdc;
+  // cosine of phi is given by dot product of upab and updc
+
+  // cosphi must be returned in the range -1.d0 to 1.d0
+  // small rounding issues in the 16th decimal place of the
+  // folloing sum can cause this value to lie outside of this range
+  // by 1E-16 when:
+  //  upab[0] = updc[0] and upab[1] = updc[1] and upab[2] = updc[2]
+
+  double cosphi_pre = upab[0]*updc[0]+upab[1]*updc[1]+upab[2]*updc[2];
+         cosphi = std::min( std::max(cosphi_pre, -1.0), 1.0);
+
+  // sine of phi is given by dot product of ucb and upab x updc
+  Vec3 rcross(upab[1]*updc[2] - upab[2]*updc[1],
+              upab[2]*updc[0] - upab[0]*updc[2],
+              upab[0]*updc[1] - upab[1]*updc[0]);
+
+  //See note above of cosphi_pre
+  double sinphi_pre = rcross[0]*ucb[0]+rcross[1]*ucb[1]+rcross[2]*ucb[2];
+         sinphi = std::min( std::max(sinphi_pre, -1.0), 1.0);
+
+  // gradient of phi wrt ra is perp to abc plane---movement of ra by dr perp
+  // to abc plane results in dphi of dr/sizpab
+  // perp to abc given by upab x ucb  (these are orthogonal unit vectors)
+  Vec3 upabc(upab[1]*ucb[2] - upab[2]*ucb[1],
+             upab[2]*ucb[0] - upab[0]*ucb[2],
+             upab[0]*ucb[1] - upab[1]*ucb[0]);
+  // grad of phi wrt rd is perp to bcd plane--calc sim to grad phi wrt ra
+  // perp given by updc x ucb or ucb x updc
+  Vec3 upbcd(ucb[1]*updc[2] - ucb[2]*updc[1],
+             ucb[2]*updc[0] - ucb[0]*updc[2],
+             ucb[0]*updc[1] - ucb[1]*updc[0]);
+  // now have enough for gradphi for a and d
+  dA = upabc * onesizpab;
+  dD = upbcd * onesizpdc;
+  //do m = 1,3
+  //  gradphi_abcd(m) = upabc(m) * onesizpab
+  //  gradphi_abcd(9+m) = upbcd(m) * onesizpdc
+  //enddo
+  // following chap 5 of thesis of Bekker we have grad phi wrt b = -grad phi wrt a
+  // plus some vec S and rad phi wrt c = -grad phi wrt d - S
+  // S is perp to rcb; using simple torque rule and identity for
+  // triple cross product he derives S (eqn 5.20)
+  for (int m = 0; m < 3; m++) {
+    double vecS = (dotp_ab_cb*onesizcb)*dA[m] + (dotp_dc_cb*onesizcb)*dD[m];
+    dB[m] = vecS - dA[m];
+    dC[m] = -vecS - dD[m];
+  }
+  //do m = 1,3
+  //  vecS(m) = (dotp_ab_cb*onesizcb)*gradphi_abcd(m) + (dotp_dc_cb*onesizcb)*gradphi_abcd(m+9)
+  //  gradphi_abcd(m+3) = vecS(m) - gradphi_abcd(m)
+  //  gradphi_abcd(m+6) = -vecS(m) - gradphi_abcd(m+9)
+  //enddo
 }
 
 /// Constant used in AS pucker calc

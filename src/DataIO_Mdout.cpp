@@ -37,6 +37,7 @@ DataIO_Mdout::DataIO_Mdout() {
   termIdxMap_.insert(NameIdxPair("TEMP(K)", TEMP));
   termIdxMap_.insert(NameIdxPair("PRESS", PRESS));
   termIdxMap_.insert(NameIdxPair("DV/DL", DVDL));
+  termIdxMap_.insert(NameIdxPair("CMAP", CMAP));
 }
 
 // DataIO_Mdout::ID_DataFormat()
@@ -67,7 +68,7 @@ const char* DataIO_Mdout::Enames_[] = {
   "ANGLE",  "DIHED",  "VDW",   "EELEC",      "EGB",     "EPB", "ECAVITY", "EDISPER",
   "VDW1-4", "EEL1-4", "RST",   "EAMBER",     "Density",
   "RMS",    "EKtot",  "ESURF", "EAMD_BOOST", "VOLUME",  "TEMP",
-  "PRESS",  "DVDL",   0
+  "PRESS",  "DVDL",   "CMAP",  0
 };
 
 /** \return FieldType corresponding to given term name, or N_FIELDTYPES if

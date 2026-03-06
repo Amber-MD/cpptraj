@@ -5,6 +5,7 @@
 #include <map>
 class Atom;
 class Residue;
+class ModXNA_Info;
 /// Used to access mol2 files.
 class Mol2File : private CpptrajFile {
   public: 
@@ -19,6 +20,9 @@ class Mol2File : private CpptrajFile {
     void WriteHeader( TRIPOSTAG );
     /// Read in MOLECULE section of mol2file.
     bool ReadMolecule();
+    /// Check for modXNA info in the title
+    ModXNA_Info* CheckForModxna();
+    /// Write Mol2 info
     bool WriteMolecule(bool,int);
     //// Used to only read # atoms in next MOLECULE record.
     int NextMolecule();

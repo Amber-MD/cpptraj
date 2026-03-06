@@ -33,6 +33,7 @@ Exec::RetType Exec_CrdAction::DoCrdAction(CpptrajState& State, ArgList& actionar
     return CpptrajState::ERR;
   // If the topology was modified, we will need a new COORDS set.
   DataSet_Coords* crdOut = 0;
+  bool box_needs_update = false;
   if ( setup_ret == Action::MODIFY_TOPOLOGY ) {
     // This will not work for a TRJ set.
     switch ( CRD->Type() ) {
@@ -47,6 +48,12 @@ Exec::RetType Exec_CrdAction::DoCrdAction(CpptrajState& State, ArgList& actionar
     if (frameCount.TotalReadFrames() != (int)CRD->Size())
       mprintf("Info: crdaction: Previous size= %zu, new size is %i\n",
               CRD->Size(), frameCount.TotalReadFrames());
+    // Note if we will have to update the coordinate info box data
+    if (originalSetup.CoordInfo().HasBox()) {
+      if (State.Debug() > 0)
+        mprintf("DEBUG: Need up update box info in COORDS set.\n");
+      box_needs_update = true;
+    }
     // Set up set, copy original metadata
     crdOut->SetMeta( CRD->Meta() );
     if (crdOut->CoordsSetup( originalSetup.Top(), originalSetup.CoordInfo() ))
@@ -60,8 +67,9 @@ Exec::RetType Exec_CrdAction::DoCrdAction(CpptrajState& State, ArgList& actionar
       return CpptrajState::ERR;
     }
   }
-    
+
   // Loop over all frames in COORDS.
+  Box updateBox;
   ProgressBar* progress = 0;
   if (State.ShowProgress())
     progress = new ProgressBar( frameCount.TotalReadFrames() );
@@ -85,6 +93,8 @@ Exec::RetType Exec_CrdAction::DoCrdAction(CpptrajState& State, ArgList& actionar
       else
         CRD->SetCRD( frame, frm.Frm() );
     }
+    if (frame == frameCount.Start() && box_needs_update)
+      updateBox = frm.Frm().BoxCrd();
   } 
   if (progress != 0) delete progress;
 # ifdef MPI
@@ -96,7 +106,15 @@ Exec::RetType Exec_CrdAction::DoCrdAction(CpptrajState& State, ArgList& actionar
             CRD->legend(), actionargs.Command());
     State.DSL().RemoveSet( CRD );
     State.DSL().AddSet( crdOut );
-  } 
+  }
+  // Update CoordinateInfo box if needed
+  if (box_needs_update) {
+    crdOut->UpdateCoordsInfoBox( updateBox );
+    mprintf("Info: crdaction: Box for '%s' was modified by action '%s'\n",
+            crdOut->legend(), actionargs.Command());
+    if (State.Debug() > 0)
+      crdOut->CoordsInfo().TrajBox().PrintInfo();
+  }
   act->Print();
   State.MasterDataFileWrite();
   total_time.Stop();

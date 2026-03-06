@@ -1,6 +1,7 @@
 #include "Disulfide.h"
 #include "ResStatArray.h"
 #include "StructureRoutines.h"
+#include "../ArgList.h"
 #include "../CpptrajStdio.h"
 #include "../DistRoutines.h"
 #include "../Frame.h"
@@ -9,14 +10,54 @@
 
 using namespace Cpptraj::Structure;
 
+/** CONSTRUCTOR */
+Disulfide::Disulfide() :
+  disulfidecut_(2.5),
+  searchForNewDisulfides_(true),
+  addNewBonds_(NO_ADD_BONDS)
+{}
+
+/** Keywords recognized by InitDisulfide */
+const char* Disulfide::keywords_ =
+  "\t[{nodisulfides |\n"
+  "\t  existingdisulfides |\n"
+  "\t  [cysmask <cysmask>] [disulfidecut <cut>] [newcysname <name>]}]\n";
+
+/** Init with args */
+int Disulfide::InitDisulfide(ArgList& argIn, AddType addTypeIn, int debugIn)
+{
+  addNewBonds_ = addTypeIn;
+  disulfidecut_ = argIn.getKeyDouble("disulfidecut", 2.5);
+  newcysnamestr_ = argIn.GetStringKey("newcysname", "CYX");
+  cysmaskstr_ = argIn.GetStringKey("cysmask", ":CYS@SG");
+  searchForNewDisulfides_ = !argIn.hasKey("existingdisulfides");
+  return 0;
+}
+
+/** Print info to stdout. */
+//void Disulfide::DisulfideInfo() const {
+
+
 /** Search for disulfide bonds. */
-int Cpptraj::Structure::SearchForDisulfides(ResStatArray& resStat,
+int Disulfide::SearchForDisulfides(ResStatArray& resStat, Topology& topIn,
+                                   Frame const& frameIn,
+                                   std::vector<BondType>& LeapBonds)
+const
+{
+  return searchForDisulfides(resStat, disulfidecut_, newcysnamestr_,
+                             cysmaskstr_, searchForNewDisulfides_,
+                             topIn, frameIn, LeapBonds, addNewBonds_);
+}
+
+/** Search for disulfide bonds. */
+int Disulfide::searchForDisulfides(ResStatArray& resStat,
                                              double disulfidecut,
                                              std::string const& newcysnamestr,
                                              std::string const& cysmaskstr,
                                              bool searchForNewDisulfides,
                                              Topology& topIn, Frame const& frameIn,
-                                             std::vector<BondType>& LeapBonds)
+                                             std::vector<BondType>& LeapBonds,
+                                             AddType addNewBonds)
 {
   // Disulfide search
   typedef std::vector<int> Iarray;
@@ -34,6 +75,8 @@ int Cpptraj::Structure::SearchForDisulfides(ResStatArray& resStat,
   }
   if (topIn.SetupIntegerMask( cysmask )) return 1; 
   cysmask.MaskInfo();
+  typedef std::vector<bool> Barray;
+  Barray cysSulfurHasH( cysmask.Nselected(), false );
   if (cysmask.None())
     mprintf("Warning: No cysteine sulfur atoms selected by %s\n", cysmaskstr.c_str());
   else {
@@ -43,6 +86,13 @@ int Cpptraj::Structure::SearchForDisulfides(ResStatArray& resStat,
       if (topIn[*at].Element() != Atom::SULFUR)
         mprintf("Warning: Atom '%s' does not appear to be sulfur.\n",
                 topIn.ResNameNumAtomNameNum(*at).c_str());
+      // Check if the sulfur is bonded to a hydrogen.
+      for (Atom::bond_iterator bat = topIn[*at].bondbegin();
+                               bat != topIn[*at].bondend(); ++bat)
+      {
+        if ( topIn[*bat].Element() == Atom::HYDROGEN )
+          cysSulfurHasH[at - cysmask.begin()] = true;
+      }
     }
 
     int nExistingDisulfides = 0;
@@ -86,9 +136,11 @@ int Cpptraj::Structure::SearchForDisulfides(ResStatArray& resStat,
     if (searchForNewDisulfides) {
       // Only search with atoms that do not have an existing partner.
       Iarray s_idxs; // Indices into cysmask/disulfidePartner
-      for (int idx = 0; idx != cysmask.Nselected(); idx++)
-        if (disulfidePartner[idx] == -1)
+      for (int idx = 0; idx != cysmask.Nselected(); idx++) {
+        if (disulfidePartner[idx] == -1) {
           s_idxs.push_back( idx );
+        }
+      }
       mprintf("\t%zu sulfur atoms do not have a partner.\n", s_idxs.size());
       if (!s_idxs.empty()) {
         // In some structures, there may be 2 potential disulfide partners
@@ -135,8 +187,16 @@ int Cpptraj::Structure::SearchForDisulfides(ResStatArray& resStat,
             mprintf("\t  Potential disulfide: %s to %s (%g Ang.)\n",
                     topIn.ResNameNumAtomNameNum(at1).c_str(),
                     topIn.ResNameNumAtomNameNum(at2).c_str(), sqrt(it->first));
+            if (cysSulfurHasH[it->second.first])
+              mprintf("Warning: Sulfur %s could disulfide bond but already has a bond to hydrogen. Check for improperly added hydrogen.\n",
+                      topIn.ResNameNumAtomNameNum(at1).c_str());
+            if (cysSulfurHasH[it->second.second])
+              mprintf("Warning: Sulfur %s could disulfide bond but already has a bond to hydrogen. Check for improperly added hydrogen.\n",
+                      topIn.ResNameNumAtomNameNum(at2).c_str());
             disulfidePartner[it->second.first ] = it->second.second;
             disulfidePartner[it->second.second] = it->second.first;
+            if (addNewBonds == ADD_BONDS)
+              topIn.AddBond( at1, at2 );
           }
         } // END loop over sorted distances
       } // END s_idxs not empty()

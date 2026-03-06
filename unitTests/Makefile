@@ -7,6 +7,9 @@ test: test.all
 unit.NameType:
 	@-cd NameType && ./UnitTest.sh $(OPT)
 
+unit.Frame:
+	@-cd Frame && ./UnitTest.sh $(OPT)
+
 unit.ArgList:
 	@-cd ArgList && ./UnitTest.sh $(OPT)
 
@@ -19,13 +22,22 @@ unit.StringRoutines:
 unit.Range:
 	@-cd Range && ./UnitTest.sh $(OPT)
 
+unit.TypeNameHolder:
+	@-cd TypeNameHolder && ./UnitTest.sh $(OPT)
+
+unit.ImproperParmHolder:
+	@-cd ImproperParmHolder && ./UnitTest.sh $(OPT)
+
 # ----- Every unit test should go here -----------
 COMPLETETESTS= \
   unit.NameType \
+  unit.Frame \
   unit.ArgList \
   unit.GistEntropyUtils \
   unit.StringRoutines \
-  unit.Range
+  unit.Range \
+  unit.TypeNameHolder \
+  unit.ImproperParmHolder
 
 test.cpptraj: $(COMPLETETESTS)
 

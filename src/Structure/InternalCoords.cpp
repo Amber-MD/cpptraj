@@ -67,3 +67,19 @@ void InternalCoords::printIC(Topology const& top) const {
           top.AtomMaskName(AtL()).c_str(),
           val_[0], val_[1], val_[2]);
 }
+
+/** Remap internal coords indices. */
+/*void InternalCoords::RemapIndices(std::vector<int> const& map) {
+  if (ati_    != NO_ATOM) ati_    = map[AtI()];
+  if (idx_[0] != NO_ATOM) idx_[0] = map[AtJ()];
+  if (idx_[1] != NO_ATOM) idx_[1] = map[AtK()];
+  if (idx_[2] != NO_ATOM) idx_[2] = map[AtL()];
+}*/
+
+/** Offset internal coords indices. */
+void InternalCoords::OffsetIndices(int offset) {
+  if (ati_    != NO_ATOM) ati_    += offset;
+  if (idx_[0] != NO_ATOM) idx_[0] += offset;
+  if (idx_[1] != NO_ATOM) idx_[1] += offset;
+  if (idx_[2] != NO_ATOM) idx_[2] += offset;
+}

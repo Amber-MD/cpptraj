@@ -176,9 +176,12 @@ int ParmFile::ReadTopology(Topology& Top, FileName const& fnameIn,
   if (parmio->processReadArgs(argIn)) return 1;
   int err = parmio->ReadParm( parmName_.Full(), Top);
   // Perform setup common to all parm files.
-  if (err == 0) 
+  if (err == 0) {
     err = Top.CommonSetup( molsearch, renumberResidues );
-  else
+    if (Top.HasNoncontiguousMols())
+      mprintf("Warning: The 'fixatomorder' command can be used to reorder the topology and any\n"
+              "Warning:  associated coordinates.\n");
+  } else
     mprinterr("Error reading topology file '%s'\n", parmName_.full());
   delete parmio;
   if (err > 0) return 1;

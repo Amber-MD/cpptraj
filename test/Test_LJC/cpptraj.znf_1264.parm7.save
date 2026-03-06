@@ -1,4 +1,4 @@
-%VERSION  VERSION_STAMP = V0001.000  DATE = 07/22/21 15:13:48                  
+%VERSION  VERSION_STAMP = V0001.000  DATE = 06/28/24 14:43:01                  
 %FLAG TITLE                                                                     
 %FORMAT(20a4)                                                                   
 default_name                                                                    
@@ -2998,6 +2998,9 @@ modified Bondi radii (mbondi)
   8.50000000E-01  7.20000000E-01  8.50000000E-01  7.20000000E-01  8.50000000E-01
   7.20000000E-01  8.50000000E-01  7.20000000E-01  8.50000000E-01  8.50000000E-01
   8.00000000E-01
+%FLAG IPOL                                                                      
+%FORMAT(1I8)                                                                    
+       0
 %FLAG LENNARD_JONES_CCOEF                                                       
 %FORMAT(5E16.8)                                                                 
   0.00000000E+00  0.00000000E+00  0.00000000E+00  0.00000000E+00  0.00000000E+00

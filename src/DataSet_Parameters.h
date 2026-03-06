@@ -1,9 +1,9 @@
 #ifndef INC_DATASET_PARAMETERS_H
 #define INC_DATASET_PARAMETERS_H
 #include "DataSet.h"
-#include "ParameterSet.h"
+#include "Parm/ParameterSet.h"
 /// DataSet wrapper around ParameterSet
-class DataSet_Parameters : public DataSet, public ParameterSet  {
+class DataSet_Parameters : public DataSet, public Cpptraj::Parm::ParameterSet  {
   public:
     DataSet_Parameters();
     static DataSet* Alloc() { return (DataSet*)new DataSet_Parameters(); }

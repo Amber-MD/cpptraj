@@ -12,7 +12,8 @@ Traj_Mol2File::Traj_Mol2File() :
   currentSet_(0),
   hasCharges_(false),
   useSybylTypes_(false),
-  prependExt_(false)
+  prependExt_(false),
+  atomBondOrder_(false)
 {}
 
 bool Traj_Mol2File::ID_TrajFormat(CpptrajFile& fileIn) {
@@ -92,12 +93,13 @@ int Traj_Mol2File::readFrame(int set, Frame& frameIn) {
 }
 
 void Traj_Mol2File::WriteHelp() {
-  mprintf("\tsingle   : Write to a single file.\n"
-          "\tmulti    : Write each frame to a separate file.\n"
-          "\tsybyltype: Convert Amber atom types (if present) to SYBYL types.\n"
-          "\tsybylatom: Amber to SYBYL atom type corresponding file (optional).\n"
-          "\tsybylbond: Amber to SYBYL bond type corresponding file (optional).\n"
-          "\tkeepext  : Keep filename extension; write '<name>.<num>.<ext>' instead (implies 'multi').\n");
+  mprintf("\tsingle        : Write to a single file.\n"
+          "\tmulti         : Write each frame to a separate file.\n"
+          "\tsybyltype     : Convert Amber atom types (if present) to SYBYL types.\n"
+          "\tsybylatom     : Amber to SYBYL atom type corresponding file (optional).\n"
+          "\tsybylbond     : Amber to SYBYL bond type corresponding file (optional).\n"
+          "\tkeepext       : Keep filename extension; write '<name>.<num>.<ext>' instead (implies 'multi').\n"
+          "\tatombondorder : Sort bonds by first atom index.\n");
 }
 
 // Traj_Mol2File::processWriteArgs()
@@ -112,6 +114,7 @@ int Traj_Mol2File::processWriteArgs(ArgList& argIn, DataSetList const& DSLin) {
     useSybylTypes_ = true;
   prependExt_ = argIn.hasKey("keepext"); // Implies MULTI
   if (prependExt_) mol2WriteMode_ = MULTI;
+  atomBondOrder_ = argIn.hasKey("atombondorder");
   return 0;
 }
 
@@ -235,16 +238,30 @@ int Traj_Mol2File::writeFrame(int set, Frame const& frameOut) {
   if (file_.Mol2Nbonds() > 0) {
     file_.WriteHeader(Mol2File::BOND);
     int bondnum = 1;
-    for (BondArray::const_iterator bidx = mol2Top_->Bonds().begin();
-                                   bidx != mol2Top_->Bonds().end(); ++bidx)
-      file_.WriteMol2Bond(bondnum++, bidx->A1()+1, bidx->A2()+1,
-                          (*mol2Top_)[bidx->A1()].Type(),
-                          (*mol2Top_)[bidx->A2()].Type());
-    for (BondArray::const_iterator bidx = mol2Top_->BondsH().begin();
-                                   bidx != mol2Top_->BondsH().end(); ++bidx)
-      file_.WriteMol2Bond(bondnum++, bidx->A1()+1, bidx->A2()+1,
-                          (*mol2Top_)[bidx->A1()].Type(),
-                          (*mol2Top_)[bidx->A2()].Type());
+    if (atomBondOrder_) {
+      // Use atom array
+      for (Topology::atom_iterator atom = mol2Top_->begin(); atom != mol2Top_->end(); ++atom) {
+        atnum = atom - mol2Top_->begin();
+        for (Atom::bond_iterator bit = atom->bondbegin(); bit != atom->bondend(); ++bit) {
+          if (*bit > atnum)
+            file_.WriteMol2Bond(bondnum++, (atnum + 1), (*bit + 1),
+                                (*mol2Top_)[atnum].Type(),
+                                (*mol2Top_)[*bit ].Type());
+        }
+      }
+    } else {
+      // Use bond arrays
+      for (BondArray::const_iterator bidx = mol2Top_->Bonds().begin();
+                                     bidx != mol2Top_->Bonds().end(); ++bidx)
+        file_.WriteMol2Bond(bondnum++, bidx->A1()+1, bidx->A2()+1,
+                            (*mol2Top_)[bidx->A1()].Type(),
+                            (*mol2Top_)[bidx->A2()].Type());
+      for (BondArray::const_iterator bidx = mol2Top_->BondsH().begin();
+                                     bidx != mol2Top_->BondsH().end(); ++bidx)
+        file_.WriteMol2Bond(bondnum++, bidx->A1()+1, bidx->A2()+1,
+                            (*mol2Top_)[bidx->A1()].Type(),
+                            (*mol2Top_)[bidx->A2()].Type());
+    }
   }
   //@<TRIPOS>SUBSTRUCTURE section
   file_.WriteHeader(Mol2File::SUBSTRUCT);

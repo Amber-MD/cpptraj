@@ -103,6 +103,7 @@ UsageFull() {
   echo "    -gprofile         : Use Gnu compiler GLIBC profiling (>= V4.5)*"
   echo "    -vtune            : Enable options for use with Intel Vtune."
   echo "    -single-ensemble  : Enable support for reading/writing single ensemble trajectories."
+  echo "    -leappi           : Use LEaP's value of PI for converting radians/degrees."
   echo ""
   echo "*NOTE: -profile and -gprofile are mutually exclusive."
   echo ""
@@ -202,6 +203,7 @@ icpp=0            # Used to count cmake_prefix_paths
 
 USE_SINGLEENSEMBLE=0 # Enable support for single ensemble trajectories
 USE_CPPTRAJDEBUG=0   # Enable internal cpptraj debug flags
+USE_LEAP_PI=0        # Use LEaP's value of PI for converting radians/degrees
 
 CLEAN='yes'          # yes = clean after configure, no = do not
 PERFORM_CHECKS='yes' # yes = Check compilers/libraries, no = do not
@@ -257,7 +259,7 @@ LIB_STTC[$LNETCDF]='libnetcdf.a'     # Expected static location relative to home
 LIB_D_ON[$LNETCDF]='-DBINTRAJ'       # Directive if library on
 LIB_DOFF[$LNETCDF]=''                # Directive if library off
 LIB_LINK[$LNETCDF]='dynamic'         # How to link the library
-LIB_TYPE[$LNETCDF]='ld'              # ld = LDFLAGS, cpp = cpptraj, blank = special
+LIB_TYPE[$LNETCDF]='ld'              # ld = LDFLAGS, cpp = cpptraj/libcpptraj, cpptraj=cpptraj only, blank = special
 
 LIB_STAT[$LPARANC]='off'
 LIB_CKEY[$LPARANC]='pnetcdf'
@@ -347,7 +349,7 @@ LIB_FLAG[$LSANDER]='-lsander'
 LIB_STTC[$LSANDER]=''
 LIB_D_ON[$LSANDER]='-DUSE_SANDERLIB'
 LIB_DOFF[$LSANDER]=''
-LIB_TYPE[$LSANDER]='ld'
+LIB_TYPE[$LSANDER]='cpptraj'
 
 LIB_STAT[$LTIMER]='off'
 LIB_CKEY[$LTIMER]='timer'
@@ -1334,6 +1336,7 @@ SetupFinalFlags() {
       DIRECTIVES="$DIRECTIVES -DLIBPME -DHAVE_FFTWD=1"
     fi
   fi
+  if [ $USE_LEAP_PI -eq 1 ] ; then DIRECTIVES="$DIRECTIVES -DCPPTRAJ_USE_LEAP_PI" ; fi
   # Determine if this is a GitHub or AmberTools build
   if [ ! -z "$AMBERHOME" ] ; then
     AMBCFGDIR=`pwd | grep "AmberTools/src"`
@@ -1384,6 +1387,7 @@ SetupFinalFlags() {
   # Set up include and linking flags
   ldf=''
   CPPTRAJ_LIB=''
+  CPPTRAJONLY_LIB=''
   CPPTRAJ_INC=''
   nincl=0
   for ((i=0; i < $NLIB; i++)) ; do
@@ -1420,6 +1424,8 @@ SetupFinalFlags() {
         ldf="$ldf ${LIB_FLAG[$i]}"
       elif [ "${LIB_TYPE[$i]}" = 'cpp' ] ; then
         CPPTRAJ_LIB="$CPPTRAJ_LIB ${LIB_FLAG[$i]}"
+      elif [ "${LIB_TYPE[$i]}" = 'cpptraj' ] ; then
+        CPPTRAJONLY_LIB="$CPPTRAJONLY_LIB ${LIB_FLAG[$i]}"
       fi
     fi
   done
@@ -2842,6 +2848,7 @@ while [ ! -z "$1" ] ; do
     '-nolfs'           ) LFS='' ;;
     '-single-ensemble' ) USE_SINGLEENSEMBLE=1 ;;
     '-debugon'         ) USE_CPPTRAJDEBUG=1 ;;
+    '-leappi'          ) USE_LEAP_PI=1 ;;
     # Code profiling
     '-profile'  ) USE_PROFILE=1 ;;
     '-gprofile' ) USE_PROFILE=2 ;;
@@ -2851,7 +2858,7 @@ while [ ! -z "$1" ] ; do
     '-libstatic'        ) USE_STATIC=2 ;;
     '-shared'           )
       USE_SHARED=1
-      LIB_STAT[$LSANDER]='off'
+#      LIB_STAT[$LSANDER]='off'
       ;;
     '-amberlib'         )
       if [ -z "$AMBERHOME" ] ; then
@@ -3064,12 +3071,16 @@ if [ $USE_STATIC -eq 1 ] ; then
 elif [ $USE_STATIC -eq 2 ] ; then
   echo "  Specified libraries will be linked statically if possible."
 fi
+if [ $USE_LEAP_PI -eq 1 ] ; then
+  echo "  Using LEaP's value of PI for converting radians/degrees."
+fi
 #echo DIRECTIVES $DIRECTIVES
 #echo CFLAGS $CFLAGS
 #echo CXXFLAGS $CXXFLAGS
 #echo FFLAGS $FFLAGS
 #echo LDFLAGS $LDFLAGS
 #echo CPPTRAJ_LIB $CPPTRAJ_LIB
+#echo CPPTRAJONLY_LIB $CPPTRAJONLY_LIB
 #echo CPPTRAJ_INC $CPPTRAJ_INC
 #echo REQUIRES_FLINK $REQUIRES_FLINK FLINK $FLINK
 echo ""
@@ -3179,6 +3190,7 @@ ARPACK_TARGET=$ARPACK_TARGET
 FFT_TARGET=$FFT_TARGET
 
 CPPTRAJ_LIB=$CPPTRAJ_LIB
+CPPTRAJONLY_LIB=$CPPTRAJONLY_LIB
 LDFLAGS=$LDFLAGS
 SFX=$SFX
 EXE=$EXE

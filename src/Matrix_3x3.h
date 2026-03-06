@@ -124,12 +124,10 @@ class Matrix_3x3 {
     int RotationAngles(double&, double&, double&) const;
     /// Given theta, extract axis of rotation from rotation matrix
     Vec3 AxisOfRotation(double) const;
-
-    /// Calculate rotation matrix around Z axis. TODO make private
-    void RotationAroundZ(double, double);
-    /// Calculate rotation matrix around Y axis. TODO make private
-    void RotationAroundY(double, double);
-
+    /// Given an angle in radians, calculate rotation matrix around Z axis
+    void RotateAroundZ(double);
+    /// Given an angle in radians, calculate rotation matrix around Y axis
+    void RotateAroundY(double);
 
 #   ifdef MPI
     /// Broadcast from master to other ranks
@@ -142,6 +140,10 @@ class Matrix_3x3 {
   private:
     /// Try to fix eigenvector sign flips (Diagonalize_Sort_Chirality())
     int jacobiCheckChirality();
+    /// Calculate rotation matrix around Z axis.
+    void RotationAroundZ(double, double);
+    /// Calculate rotation matrix around Y axis.
+    void RotationAroundY(double, double);
 
     double M_[9];
     // The following three variables are set during Diagonalize_Sort. They

@@ -15,7 +15,8 @@ PairList::PairList() :
   nGridZ_(-1),
   nGridX_0_(-1),
   nGridY_0_(-1),
-  nGridZ_0_(-1)
+  nGridZ_0_(-1),
+  small_grid_(false)
 {}
 
 /** This leads to cellNeighbor_ dimensions of 7x10 */
@@ -223,9 +224,17 @@ int PairList::SetupGrids(Vec3 const& recipLengths) {
   int myindexhi = (int)cells_.size();
   CalcGridPointers(myindexlo, myindexhi);
 
+  if (debug_ > 1)
+    PrintCellMap(); // DEBUG
+
   PrintMemory();
 
   return 0;
+}
+
+/** \return True if the given cell index is valid. */
+bool PairList::validCellIndex(int cidx) const {
+  return (cidx > -1 && cidx < (int)cells_.size());
 }
 
 /** Calculate all of the forward neighbors for each grid cell and if
@@ -239,6 +248,7 @@ int PairList::SetupGrids(Vec3 const& recipLengths) {
   * care about forward direction.
   */
 void PairList::CalcGridPointers(int myindexlo, int myindexhi) {
+  small_grid_ = false;
   // DEBUG - Check for duplicated interactions
 /*  Matrix<int> PairCalcd;
   PairCalcd.resize(cells_.size(), 0); // Half matrix
@@ -275,12 +285,16 @@ void PairList::CalcGridPointers(int myindexlo, int myindexhi) {
             // Wrap ix if necessary
             if (ix < nGridX_) {
 //              mprintf(" %i+0", idx2+ix);
-              Nbr.push_back( idx2 + ix );
-              Ntr.push_back( 4 ); // No translation. 0 0 0
+              if (validCellIndex( idx2 + ix )) {
+                Nbr.push_back( idx2 + ix );
+                Ntr.push_back( 4 ); // No translation. 0 0 0
+              }
             } else {
 //              mprintf(" %i+1", idx2+ix - nGridX_);
-              Nbr.push_back( idx2 + ix - nGridX_ );
-              Ntr.push_back( 5 ); // Translate by +1 in X. 1 0 0
+              if (validCellIndex( idx2 + ix - nGridX_ )) {
+                Nbr.push_back( idx2 + ix - nGridX_ );
+                Ntr.push_back( 5 ); // Translate by +1 in X. 1 0 0
+              }
             }
           }
           // Get all cells in the Y+ direction
@@ -314,9 +328,11 @@ void PairList::CalcGridPointers(int myindexlo, int myindexhi) {
               // Calc new index
               int jdx = jdx2 + wx; // Absolute neighbor grid cell index
 //              mprintf(" %i%+i%+i", jdx, ox-1, oy-1);
-              Nbr.push_back( jdx );
-              int tidx = oy*3 + ox;
-              Ntr.push_back( tidx );
+              if (validCellIndex( jdx )) {
+                Nbr.push_back( jdx );
+                int tidx = oy*3 + ox;
+                Ntr.push_back( tidx );
+              }
             }
           }
           // Get all cells in the +Z direction
@@ -364,9 +380,11 @@ void PairList::CalcGridPointers(int myindexlo, int myindexhi) {
                 // Calc new index
                 int jdx = jdx2 + wx; // Absolute neighbor grid cell index
 //                mprintf(" %i%+i%+i%+i", jdx, ox-1, oy-1, oz);
-                Nbr.push_back( jdx );
-                int tidx = oz*9 + oy*3 + ox;
-                Ntr.push_back( tidx );
+                if (validCellIndex( jdx )) {
+                  Nbr.push_back( jdx );
+                  int tidx = oz*9 + oy*3 + ox;
+                  Ntr.push_back( tidx );
+                }
               }
             }
           }
@@ -390,10 +408,21 @@ void PairList::CalcGridPointers(int myindexlo, int myindexhi) {
           }
 */
           // END DEBUG
+          // Check if any of the neighbors is in fact this cell
+          if (!small_grid_) {
+            for (unsigned int nidx = 1; nidx < Nbr.size(); nidx++) {
+              if ( idx == Nbr[nidx] ) {
+                small_grid_ = true;
+                break;
+              }
+            }
+          }
         } // END my cell
       } // nx
     } // ny
   } // nz
+  if (small_grid_)
+    mprintf("Warning: One or more cells is a neighbor of itself. This usually indicates a very small box.\n");
 }
 
 void PairList::Timing(double total) const { Timing(total, 2); }
@@ -420,6 +449,24 @@ void PairList::PrintCells() const {
         mprintf(" %i", atm->Idx()+1);
       }
       mprintf("\n");
+    }
   }
+}
+
+void PairList::PrintCellMap() const {
+  mprintf("DEBUG: %zu cells.\n", cells_.size());
+  for (Carray::const_iterator cell = cells_.begin(); cell != cells_.end(); ++cell) {
+    if (cell->CellList().empty())
+      mprintf("\t%li : No Neighbors\n", cell - cells_.begin());
+    else {
+      Iarray::const_iterator it = cell->CellList().begin();
+      Iarray::const_iterator tt = cell->TransList().begin();
+      mprintf("\tCell %i(%i) :", *it, *tt);
+      ++it;
+      ++tt;
+      for (; it != cell->CellList().end(); ++it, ++tt)
+        mprintf(" %i(%i)", *it, *tt);
+      mprintf("\n");
+    }
   }
 }

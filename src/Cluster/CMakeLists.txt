@@ -21,8 +21,8 @@ target_sources(cpptraj_common_obj PRIVATE
   ${CMAKE_CURRENT_LIST_DIR}/Metric_Matrix2D.cpp
   ${CMAKE_CURRENT_LIST_DIR}/Metric_QuatRMSD.cpp
   ${CMAKE_CURRENT_LIST_DIR}/Metric_RMS.cpp
-  ${CMAKE_CURRENT_LIST_DIR}/Metric_SRMSD.cpp
   ${CMAKE_CURRENT_LIST_DIR}/Metric_Scalar.cpp
+  ${CMAKE_CURRENT_LIST_DIR}/Metric_SRMSD.cpp
   ${CMAKE_CURRENT_LIST_DIR}/Metric_Torsion.cpp
   ${CMAKE_CURRENT_LIST_DIR}/Node.cpp
   ${CMAKE_CURRENT_LIST_DIR}/Output.cpp

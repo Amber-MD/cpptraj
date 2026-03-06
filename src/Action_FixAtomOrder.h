@@ -11,6 +11,8 @@ class Action_FixAtomOrder: public Action {
     ~Action_FixAtomOrder();
     DispatchObject* Alloc() const { return (DispatchObject*)new Action_FixAtomOrder(); }
     void Help() const;
+    /// Standalone routine for e.g. the Exec_Build command
+    int FixMoleculeOrder(Topology&, Frame&, int);
   private:
     Action::RetType Init(ArgList&, ActionInit&, int);
     Action::RetType Setup(ActionSetup&);
@@ -18,8 +20,8 @@ class Action_FixAtomOrder: public Action {
     void Print() {}
 
     void VisitAtom(int,int,Topology const&);
-    Action::RetType PdbOrder(ActionSetup&);
-    Action::RetType FixMolecules(ActionSetup&);
+    Action::RetType PdbOrder(Topology const&);
+    Action::RetType FixMolecules(Topology const&);
 
     enum ModeType {FIX_MOLECULES = 0, PDB_ORDER};
 

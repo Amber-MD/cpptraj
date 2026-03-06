@@ -30,6 +30,9 @@ class Exec_PermuteDihedrals : public Exec {
     int CheckResidue( Frame const&, Topology const&, PermuteDihedralsType const&,int,double&);
     /// Randomly rotate dihedrals
     void RandomizeAngles(Frame&, Topology const&);
+    /// Count residue clashes in given frame
+    int countClashes(std::vector<int>&, Frame const&, Topology const&) const;
+    /// Randomly rotate dihedrals, slightly faster version
     void RandomizeAngles_2(Frame&, Topology const&);
 
     /// Permute types 
@@ -52,6 +55,7 @@ class Exec_PermuteDihedrals : public Exec {
     // 'random' options
     bool check_for_clashes_;
     bool checkAllResidues_;
+    bool checkRings_;   ///< If true, check for bond/ring intersections
     double max_factor_; ///< Max rotations to attempt will be max_factor_ * #dihedrals
     double cutoff_;     ///< When checking for clashes, atom cutoff
     double rescutoff_;  ///< When checking for clashes, residue cutoff

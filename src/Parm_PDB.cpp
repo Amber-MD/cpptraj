@@ -131,6 +131,7 @@ int Parm_PDB::ReadParm(FileName const& fname, Topology &TopIn) {
         continue;
       }
       TopIn.AddAtomAltLoc( altLoc );
+      TopIn.AddPdbSerialNum( atnum );
       if (atnum >= (int)serial.size())
         serial.resize( atnum+1, -1 );
       serial[atnum] = TopIn.Natom();

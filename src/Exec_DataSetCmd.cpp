@@ -385,6 +385,8 @@ Exec::RetType Exec_DataSetCmd::SetConnect(CpptrajState& State, ArgList& argIn) {
         mprinterr("Error: Neither head atom nor tail atom could be set via mask.\n");
         return CpptrajState::ERR;
       }
+      if (head > -1) mprintf("\tHead atom# %i\n", head+1);
+      if (tail > -1) mprintf("\tTail atom# %i\n", tail+1);
       connect = AssociatedData_Connect(head, tail);
     }
     // Check for existing associated data

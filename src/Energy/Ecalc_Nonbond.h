@@ -6,6 +6,10 @@ class CharMask;
 class EwaldOptions;
 class Topology;
 namespace Cpptraj {
+/** @brief The namespace that all energy-related classes should be in.
+  *
+  * Namespace for all classes and functions related to calculating energy/forces.
+  */
 namespace Energy {
 class EwaldCalc;
 /// Calculate nonbonded energy for atoms
@@ -13,7 +17,7 @@ class Ecalc_Nonbond {
   public:
     typedef std::vector<double> Darray;
 
-    enum CalcType { SIMPLE = 0, PME, LJPME, REGULAR_EWALD, UNSPECIFIED };
+    enum CalcType { SIMPLE = 0, PME, LJPME, LJCPME, REGULAR_EWALD, UNSPECIFIED };
     /// CONSTRUCTOR
     Ecalc_Nonbond();
     /// DESTRUCTOR

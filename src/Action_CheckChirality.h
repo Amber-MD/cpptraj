@@ -5,7 +5,7 @@
 /// Determine if amino acids are D or L 
 class Action_CheckChirality: public Action {
   public:
-    Action_CheckChirality() {}
+    Action_CheckChirality();
     DispatchObject* Alloc() const { return (DispatchObject*)new Action_CheckChirality(); }
     void Help() const;
   private:
@@ -35,6 +35,12 @@ class Action_CheckChirality: public Action {
     DataSet* data_L_;     ///< Hold number of times each residue was L
     DataSet* data_D_;     ///< Hold number of times each residue was D
     std::string setname_; ///< Data set name
+    DataFile* outfile_;   ///< Output file
+    std::vector<DataSet*> atomChiralitySets_; ///< For each atom, hold chirality each frame
     ActionInit Init_;     ///< Master DSL/DFL
+    bool byatom_;
+    Topology* currentTop_;
+    int debug_;
+//    Topology* top_; // DEBUG
 };
 #endif

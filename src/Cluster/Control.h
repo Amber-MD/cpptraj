@@ -15,6 +15,10 @@ class DataFile;
 class DataFileList;
 class DataSetList;
 namespace Cpptraj {
+/** @brief The namespace for all clustering-related classes.
+  *
+  * All cluster classes and related functions belong in this namespace.
+  */
 namespace Cluster {
 class Algorithm;
 class Results;

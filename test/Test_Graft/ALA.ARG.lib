@@ -1,0 +1,269 @@
+!!index array str
+ "ALA"
+ "ARG"
+!entry.ALA.unit.atoms table  str name  str type  int typex  int resx  int flags  int seq  int elmnt  dbl chg
+ "N" "N" 0 1 131072 1 7 -0.415700
+ "H" "H" 0 1 131072 2 1 0.271900
+ "CA" "XC" 0 1 131072 3 6 0.033700
+ "HA" "H1" 0 1 131072 4 1 0.082300
+ "CB" "CT" 0 1 131072 5 6 -0.182500
+ "HB1" "HC" 0 1 131072 6 1 0.060300
+ "HB2" "HC" 0 1 131072 7 1 0.060300
+ "HB3" "HC" 0 1 131072 8 1 0.060300
+ "C" "C" 0 1 131072 9 6 0.597300
+ "O" "O" 0 1 131072 10 8 -0.567900
+!entry.ALA.unit.atomspertinfo table  str pname  str ptype  int ptypex  int pelmnt  dbl pchg
+ "N" "N" 0 -1 0.0
+ "H" "H" 0 -1 0.0
+ "CA" "XC" 0 -1 0.0
+ "HA" "H1" 0 -1 0.0
+ "CB" "CT" 0 -1 0.0
+ "HB1" "HC" 0 -1 0.0
+ "HB2" "HC" 0 -1 0.0
+ "HB3" "HC" 0 -1 0.0
+ "C" "C" 0 -1 0.0
+ "O" "O" 0 -1 0.0
+!entry.ALA.unit.boundbox array dbl
+ -1.000000
+ 0.0
+ 0.0
+ 0.0
+ 0.0
+!entry.ALA.unit.childsequence single int
+ 2
+!entry.ALA.unit.connect array int
+ 1
+ 9
+!entry.ALA.unit.connectivity table  int atom1x  int atom2x  int flags
+ 1 2 1
+ 1 3 1
+ 3 4 1
+ 3 5 1
+ 3 9 1
+ 5 6 1
+ 5 7 1
+ 5 8 1
+ 9 10 1
+!entry.ALA.unit.hierarchy table  str abovetype  int abovex  str belowtype  int belowx
+ "U" 0 "R" 1
+ "R" 1 "A" 1
+ "R" 1 "A" 2
+ "R" 1 "A" 3
+ "R" 1 "A" 4
+ "R" 1 "A" 5
+ "R" 1 "A" 6
+ "R" 1 "A" 7
+ "R" 1 "A" 8
+ "R" 1 "A" 9
+ "R" 1 "A" 10
+!entry.ALA.unit.name single str
+ "ALA"
+!entry.ALA.unit.positions table  dbl x  dbl y  dbl z
+ 3.325770 1.547909 -1.607204E-06
+ 3.909407 0.723611 -2.739882E-06
+ 3.970048 2.845795 -1.311163E-07
+ 3.671663 3.400129 -0.889820
+ 3.576965 3.653838 1.232143
+ 3.877484 3.115795 2.131197
+ 4.075059 4.623017 1.205786
+ 2.496995 3.801075 1.241379
+ 5.485541 2.705207 -4.398755E-06
+ 6.008824 1.593175 -8.449768E-06
+!entry.ALA.unit.residueconnect table  int c1x  int c2x  int c3x  int c4x  int c5x  int c6x
+ 1 9 0 0 0 0
+!entry.ALA.unit.residues table  str name  int seq  int childseq  int startatomx  str restype  int imagingx
+ "ALA" 1 11 1 "p" 0
+!entry.ALA.unit.residuesPdbSequenceNumber array int
+ 0
+!entry.ALA.unit.solventcap array dbl
+ -1.000000
+ 0.0
+ 0.0
+ 0.0
+ 0.0
+!entry.ALA.unit.velocities table  dbl x  dbl y  dbl z
+ 0.0 0.0 0.0
+ 0.0 0.0 0.0
+ 0.0 0.0 0.0
+ 0.0 0.0 0.0
+ 0.0 0.0 0.0
+ 0.0 0.0 0.0
+ 0.0 0.0 0.0
+ 0.0 0.0 0.0
+ 0.0 0.0 0.0
+ 0.0 0.0 0.0
+!entry.ARG.unit.atoms table  str name  str type  int typex  int resx  int flags  int seq  int elmnt  dbl chg
+ "N" "N" 0 1 131072 1 7 -0.347900
+ "H" "H" 0 1 131072 2 1 0.274700
+ "CA" "XC" 0 1 131072 3 6 -0.263700
+ "HA" "H1" 0 1 131072 4 1 0.156000
+ "CB" "C8" 0 1 131072 5 6 -0.000700
+ "HB2" "HC" 0 1 131072 6 1 0.032700
+ "HB3" "HC" 0 1 131072 7 1 0.032700
+ "CG" "C8" 0 1 131072 8 6 0.039000
+ "HG2" "HC" 0 1 131072 9 1 0.028500
+ "HG3" "HC" 0 1 131072 10 1 0.028500
+ "CD" "C8" 0 1 131072 11 6 0.048600
+ "HD2" "H1" 0 1 131072 12 1 0.068700
+ "HD3" "H1" 0 1 131072 13 1 0.068700
+ "NE" "N2" 0 1 131072 14 7 -0.529500
+ "HE" "H" 0 1 131072 15 1 0.345600
+ "CZ" "CA" 0 1 131072 16 6 0.807600
+ "NH1" "N2" 0 1 131072 17 7 -0.862700
+ "HH11" "H" 0 1 131072 18 1 0.447800
+ "HH12" "H" 0 1 131072 19 1 0.447800
+ "NH2" "N2" 0 1 131072 20 7 -0.862700
+ "HH21" "H" 0 1 131072 21 1 0.447800
+ "HH22" "H" 0 1 131072 22 1 0.447800
+ "C" "C" 0 1 131072 23 6 0.734100
+ "O" "O" 0 1 131072 24 8 -0.589400
+!entry.ARG.unit.atomspertinfo table  str pname  str ptype  int ptypex  int pelmnt  dbl pchg
+ "N" "N" 0 -1 0.0
+ "H" "H" 0 -1 0.0
+ "CA" "XC" 0 -1 0.0
+ "HA" "H1" 0 -1 0.0
+ "CB" "C8" 0 -1 0.0
+ "HB2" "HC" 0 -1 0.0
+ "HB3" "HC" 0 -1 0.0
+ "CG" "C8" 0 -1 0.0
+ "HG2" "HC" 0 -1 0.0
+ "HG3" "HC" 0 -1 0.0
+ "CD" "C8" 0 -1 0.0
+ "HD2" "H1" 0 -1 0.0
+ "HD3" "H1" 0 -1 0.0
+ "NE" "N2" 0 -1 0.0
+ "HE" "H" 0 -1 0.0
+ "CZ" "CA" 0 -1 0.0
+ "NH1" "N2" 0 -1 0.0
+ "HH11" "H" 0 -1 0.0
+ "HH12" "H" 0 -1 0.0
+ "NH2" "N2" 0 -1 0.0
+ "HH21" "H" 0 -1 0.0
+ "HH22" "H" 0 -1 0.0
+ "C" "C" 0 -1 0.0
+ "O" "O" 0 -1 0.0
+!entry.ARG.unit.boundbox array dbl
+ -1.000000
+ 0.0
+ 0.0
+ 0.0
+ 0.0
+!entry.ARG.unit.childsequence single int
+ 2
+!entry.ARG.unit.connect array int
+ 1
+ 23
+!entry.ARG.unit.connectivity table  int atom1x  int atom2x  int flags
+ 1 2 1
+ 1 3 1
+ 3 4 1
+ 3 5 1
+ 3 23 1
+ 5 6 1
+ 5 7 1
+ 5 8 1
+ 8 9 1
+ 8 10 1
+ 8 11 1
+ 11 12 1
+ 11 13 1
+ 11 14 1
+ 14 15 1
+ 14 16 1
+ 16 17 1
+ 16 20 1
+ 17 18 1
+ 17 19 1
+ 20 21 1
+ 20 22 1
+ 23 24 1
+!entry.ARG.unit.hierarchy table  str abovetype  int abovex  str belowtype  int belowx
+ "U" 0 "R" 1
+ "R" 1 "A" 1
+ "R" 1 "A" 2
+ "R" 1 "A" 3
+ "R" 1 "A" 4
+ "R" 1 "A" 5
+ "R" 1 "A" 6
+ "R" 1 "A" 7
+ "R" 1 "A" 8
+ "R" 1 "A" 9
+ "R" 1 "A" 10
+ "R" 1 "A" 11
+ "R" 1 "A" 12
+ "R" 1 "A" 13
+ "R" 1 "A" 14
+ "R" 1 "A" 15
+ "R" 1 "A" 16
+ "R" 1 "A" 17
+ "R" 1 "A" 18
+ "R" 1 "A" 19
+ "R" 1 "A" 20
+ "R" 1 "A" 21
+ "R" 1 "A" 22
+ "R" 1 "A" 23
+ "R" 1 "A" 24
+!entry.ARG.unit.name single str
+ "ARG"
+!entry.ARG.unit.positions table  dbl x  dbl y  dbl z
+ 3.325770 1.547909 -1.607204E-06
+ 3.909407 0.723611 -2.739882E-06
+ 3.970048 2.845795 -1.311163E-07
+ 3.671663 3.400129 -0.889820
+ 3.576965 3.653838 1.232143
+ 2.496995 3.801075 1.241379
+ 3.877484 3.115795 2.131197
+ 4.274186 5.009602 1.194577
+ 5.354271 4.863178 1.185788
+ 3.973781 5.548460 0.295972
+ 3.881105 5.817645 2.426721
+ 2.801135 5.964881 2.435959
+ 4.181626 5.279602 3.325774
+ 4.540320 7.142723 2.424483
+ 5.151805 7.375492 1.655065
+ 4.364284 8.040989 3.389382
+ 3.575026 7.807606 4.434133
+ 3.088949 6.925423 4.508848
+ 3.465367 8.513631 5.147998
+ 5.006254 9.201287 3.286991
+ 5.604855 9.375325 2.492329
+ 4.892216 9.903045 4.004368
+ 5.485541 2.705207 -4.398755E-06
+ 6.008824 1.593175 -8.449768E-06
+!entry.ARG.unit.residueconnect table  int c1x  int c2x  int c3x  int c4x  int c5x  int c6x
+ 1 23 0 0 0 0
+!entry.ARG.unit.residues table  str name  int seq  int childseq  int startatomx  str restype  int imagingx
+ "ARG" 1 25 1 "p" 0
+!entry.ARG.unit.residuesPdbSequenceNumber array int
+ 0
+!entry.ARG.unit.solventcap array dbl
+ -1.000000
+ 0.0
+ 0.0
+ 0.0
+ 0.0
+!entry.ARG.unit.velocities table  dbl x  dbl y  dbl z
+ 0.0 0.0 0.0
+ 0.0 0.0 0.0
+ 0.0 0.0 0.0
+ 0.0 0.0 0.0
+ 0.0 0.0 0.0
+ 0.0 0.0 0.0
+ 0.0 0.0 0.0
+ 0.0 0.0 0.0
+ 0.0 0.0 0.0
+ 0.0 0.0 0.0
+ 0.0 0.0 0.0
+ 0.0 0.0 0.0
+ 0.0 0.0 0.0
+ 0.0 0.0 0.0
+ 0.0 0.0 0.0
+ 0.0 0.0 0.0
+ 0.0 0.0 0.0
+ 0.0 0.0 0.0
+ 0.0 0.0 0.0
+ 0.0 0.0 0.0
+ 0.0 0.0 0.0
+ 0.0 0.0 0.0
+ 0.0 0.0 0.0
+ 0.0 0.0 0.0

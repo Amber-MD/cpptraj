@@ -146,8 +146,8 @@ const
 
   Eresults Ebond(bondDeltaE_, bondDeltaR_);
   CalcEnergy<BondType, BondParmType>(Ebond, bondout_,
-                                     frame0, commonBonds0_, top0.BondParm(),
-                                     frame1, commonBonds1_, top1.BondParm(),
+                                     frame0, commonBonds0_.Array(), top0.BondParm().Array(),
+                                     frame1, commonBonds1_.Array(), top1.BondParm().Array(),
                                      bondNames_, EBONDFXN);
   Ebond.Print( bondout_, "Bond" );
 }
@@ -234,8 +234,8 @@ const
 
   Eresults Eangle(angleDeltaE_, angleDeltaR_);
   CalcEnergy<AngleType, AngleParmType>(Eangle, angleout_,
-                                     frame0, commonAngles0_, top0.AngleParm(),
-                                     frame1, commonAngles1_, top1.AngleParm(),
+                                     frame0, commonAngles0_.Array(), top0.AngleParm().Array(),
+                                     frame1, commonAngles1_.Array(), top1.AngleParm().Array(),
                                      angleNames_, EANGFXN);
   Eangle.Print( angleout_, "Angle" );
 }
@@ -324,8 +324,8 @@ const
 
   Eresults Edihedral(dihedralDeltaE_, dihedralDeltaR_);
   CalcEnergy<DihedralType, DihedralParmType>(Edihedral, dihedralout_,
-                                             frame0, commonDihedrals0_, top0.DihedralParm(),
-                                             frame1, commonDihedrals1_, top1.DihedralParm(),
+                                             frame0, commonDihedrals0_.Array(), top0.DihedralParm().Array(),
+                                             frame1, commonDihedrals1_.Array(), top1.DihedralParm().Array(),
                                              dihedralNames_, EDIHFXN);
   Edihedral.Print( dihedralout_, "Dihedral" );
 }

@@ -111,43 +111,49 @@ int main() {
   int grid_Nz = 3;
   Vec3 grid_origin(0, 0, 0);
   double grid_spacing = 0.5;
+  float w4 = 0.0;
+  float x4 = 0.0;
+  float y4 = 0.0;
+  float z4 = 0.0;
   assertClose(searchGridNearestNeighbors6D(
-    Vec3(1, 0, 0), 0, 1, 0, 0, grid_crd, grid_Q, grid_Nx, grid_Ny, grid_Nz, grid_origin, grid_spacing, 2, -1).first,
+    Vec3(1, 0, 0), 0, 1, 0, w4, x4, y4, z4, grid_crd, grid_Q, grid_Nx, grid_Ny, grid_Nz, grid_spacing, 2, -1).first,
     GIST_HUGE, "Wrong trans. dist. with empty grid.");
 
-  // after adding a point in the same voxel, it should be found.
+  // after adding a point in the same voxel, it should be foundi.
+  // grid index 9 corresponds to 1 0 0
   grid_crd[9].push_back(0.6); grid_crd[9].push_back(0); grid_crd[9].push_back(0);
   grid_Q[9].push_back(1); grid_Q[9].push_back(0); grid_Q[9].push_back(0); grid_Q[9].push_back(0);
   std::pair<double, double>nbrs;
-  nbrs = searchGridNearestNeighbors6D(Vec3(1, 0, 0), 0, 1, 0, 0, grid_crd, grid_Q, grid_Nx, grid_Ny, grid_Nz, grid_origin, grid_spacing, 1, -1);
+  nbrs = searchGridNearestNeighbors6D(Vec3(1, 0, 0), 0, 1, 0, w4, x4, y4, z4, grid_crd, grid_Q, grid_Nx, grid_Ny, grid_Nz, grid_spacing, 1, -1);
   assertClose(nbrs.first, 0.16, "Wrong trans. dist. with empty grid.");
   assertClose(nbrs.second, PI_SQR + 0.16, "Wrong trans. dist. with empty grid.");
   
-  nbrs = searchGridNearestNeighbors6D(Vec3(1, 0, 0), 0, 1, 0, 0, grid_crd, grid_Q, grid_Nx, grid_Ny, grid_Nz, grid_origin, grid_spacing, 0, -1);
+  nbrs = searchGridNearestNeighbors6D(Vec3(1, 0, 0), 0, 1, 0, w4, x4, y4, z4, grid_crd, grid_Q, grid_Nx, grid_Ny, grid_Nz, grid_spacing, 0, -1);
   assertClose(nbrs.first, GIST_HUGE, "Does not omit outer shells in NN search.");
 
-  nbrs = searchGridNearestNeighbors6D(Vec3(-1, 0, 0), 0, 1, 0, 0, grid_crd, grid_Q, grid_Nx, grid_Ny, grid_Nz, grid_origin, grid_spacing, 10, -1);
+  nbrs = searchGridNearestNeighbors6D(Vec3(-1, 0, 0), 0, 1, 0, w4, x4, y4, z4, grid_crd, grid_Q, grid_Nx, grid_Ny, grid_Nz, grid_spacing, 10, -1);
   assertClose(nbrs.first, 1.6*1.6, "Does not work for out of bounds center.");
 
   // add another point one voxel higher, with different rotation;
   // Depending on rotation, this might be the NN. But might not be found if n_layers is < 2;
+  // grid index 18 corresponds to 2 0 0
   grid_crd[18].push_back(1.1); grid_crd[18].push_back(0); grid_crd[18].push_back(0);
   grid_Q[18].push_back(0); grid_Q[18].push_back(1); grid_Q[18].push_back(0); grid_Q[18].push_back(0);
 
-  nbrs = searchGridNearestNeighbors6D(Vec3(0.1, 0, 0), 0, 1, 0, 0, grid_crd, grid_Q, grid_Nx, grid_Ny, grid_Nz, grid_origin, grid_spacing, 2, -1);
+  nbrs = searchGridNearestNeighbors6D(Vec3(0.1, 0, 0), 0, 1, 0, w4, x4, y4, z4, grid_crd, grid_Q, grid_Nx, grid_Ny, grid_Nz, grid_spacing, 2, -1);
   assertClose(nbrs.first, 0.5 * 0.5, "Does not find correct trans NN.");
   assertClose(nbrs.second, 1.0 * 1.0, "Does not find correct six NN with n_layers=2.");
 
-  nbrs = searchGridNearestNeighbors6D(Vec3(0.1, 0, 0), 0, 1, 0, 0, grid_crd, grid_Q, grid_Nx, grid_Ny, grid_Nz, grid_origin, grid_spacing, 1, -1);
+  nbrs = searchGridNearestNeighbors6D(Vec3(0.1, 0, 0), 0, 1, 0, w4, x4, y4, z4, grid_crd, grid_Q, grid_Nx, grid_Ny, grid_Nz, grid_spacing, 1, -1);
   assertClose(nbrs.first, 0.5*0.5, "Does not find correct trans NN.");
   assertClose(nbrs.second, 0.5*0.5 + PI_SQR, "Does not find correct six NN with n_layers=1.");
 
   // test that a molecule can be omitted in the central voxel.
-  nbrs = searchGridNearestNeighbors6D(Vec3(0.6, 0, 0), 0, 1, 0, 0, grid_crd, grid_Q, grid_Nx, grid_Ny, grid_Nz, grid_origin, grid_spacing, 1, 0);
+  nbrs = searchGridNearestNeighbors6D(Vec3(0.6, 0, 0), 0, 1, 0, w4, x4, y4, z4, grid_crd, grid_Q, grid_Nx, grid_Ny, grid_Nz, grid_spacing, 1, 0);
   assertClose(nbrs.first, 0.5*0.5, "Does not find correct trans NN.");
 
   // test that no molecule is always omitted in the central voxel.
-  nbrs = searchGridNearestNeighbors6D(Vec3(0.6, 0, 0), 0, 1, 0, 0, grid_crd, grid_Q, grid_Nx, grid_Ny, grid_Nz, grid_origin, grid_spacing, 1, -1);
+  nbrs = searchGridNearestNeighbors6D(Vec3(0.6, 0, 0), 0, 1, 0, w4, x4, y4, z4, grid_crd, grid_Q, grid_Nx, grid_Ny, grid_Nz, grid_spacing, 1, -1);
   assertClose(nbrs.first, 0.0, "Does not find correct trans NN.");
 
   // Test quaternion distance with slightly non-normalized quaternions

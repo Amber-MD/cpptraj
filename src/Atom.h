@@ -73,6 +73,7 @@ class Atom {
     void SetTypeIndex(int tin)               { atype_index_ = tin;  }
     void SetName(NameType const& nin)        { aname_ = nin;        }
     void SetTypeName(NameType const& tin)    { atype_ = tin;        }
+    void SetElementFromSymbol(char,char);
     // Internal vars -----------------------------
     inline bool NoMol()                const { return ( mol_ < 0 ); }
     inline const char *c_str()         const { return *aname_; }
@@ -84,6 +85,7 @@ class Atom {
     double PaulingElectroNeg()         const { return PaulingElectroNeg_[element_]; }
     inline const NameType& Name()      const { return aname_; }
     inline const NameType& Type()      const { return atype_; }
+    inline bool HasType()              const { return (atype_.len() > 0); }
     inline int TypeIndex()             const { return atype_index_; }
     inline int MolNum()                const { return mol_; }
     inline int Nbonds()                const { return (int)bonds_.size(); }
@@ -125,7 +127,6 @@ class Atom {
 
     static void WarnBondLengthDefault(AtomicElementType, AtomicElementType, double);
     void SetElementFromName();
-    void SetElementFromSymbol(char,char);
     void SetElementFromMass();
 };
 #endif

@@ -32,12 +32,14 @@ EnergyDecomposer::EnergyDecomposer() :
   outfile_(0),
   debug_(0),
   saveComponents_(false),
+  lj1264_(false),
+  useLj1264_(false),
   currentTop_(0)
 { }
 
 void EnergyDecomposer::HelpText() {
   mprintf("\t[<name>] [<mask>] [out <filename>] [savecomponents]\n"
-          "\t[ pme %s\n"
+          "\t[ pme %s [lj1264]\n"
           "\t      %s\n"
           "\t      %s\n",
           EwaldOptions::KeywordsCommon1(),
@@ -53,6 +55,8 @@ int EnergyDecomposer::InitDecomposer(ArgList& argIn, DataSetList& DSLin, DataFil
   // Process keywords
   outfile_ = DFLin.AddDataFile( argIn.GetStringKey("out"), argIn );
   saveComponents_ = argIn.hasKey("savecomponents");
+  // LJ 12-6-4
+  useLj1264_ = argIn.hasKey("lj1264");
   nbcalctype_ = Ecalc_Nonbond::SIMPLE;
   if (argIn.hasKey("pme"))
     nbcalctype_ = Ecalc_Nonbond::PME;
@@ -63,10 +67,22 @@ int EnergyDecomposer::InitDecomposer(ArgList& argIn, DataSetList& DSLin, DataFil
       return 1;
     if (ewaldOpts_.Type() == EwaldOptions::LJPME)
       nbcalctype_ = Ecalc_Nonbond::LJPME;
+    if (useLj1264_) {
+      if (nbcalctype_ != Ecalc_Nonbond::PME) {
+        mprinterr("Error: 'lj1264' is only compatible with regular PME.\n");
+        return 1;
+      }
+      nbcalctype_ = Ecalc_Nonbond::LJCPME;
+    }
 #   else
     mprinterr("Error: 'pme' with energy decomposition requires compilation with LIBPME.\n");
     return 1;
 #   endif
+  } else {
+    if (useLj1264_) {
+      mprinterr("Error: 'lj1264' currently requires 'pme'.\n");
+      return 1;
+    }
   }
   // Get atom mask
   if (selectedAtoms_.SetMaskString( argIn.GetMaskNext() ))
@@ -142,14 +158,16 @@ void EnergyDecomposer::PrintOpts() const {
     mprintf("\tOutput file: %s\n", outfile_->DataFilename().full());
   if (nbcalctype_ != Ecalc_Nonbond::SIMPLE) {
     mprintf("\tUsing PME.\n");
+    if (useLj1264_)
+      mprintf("\tWill use LJ 12-6-4 (C) coefficients if present.\n");
     ewaldOpts_.PrintOptions();
   }
 }
 
 // -----------------------------------------------------------------------------
 /** Set up bonds. */
-int EnergyDecomposer::setupBonds(BndArrayType const& bondsIn) {
-  for (BndArrayType::const_iterator bnd = bondsIn.begin(); bnd != bondsIn.end(); ++bnd)
+int EnergyDecomposer::setupBonds(BondArray const& bondsIn) {
+  for (BondArray::const_iterator bnd = bondsIn.begin(); bnd != bondsIn.end(); ++bnd)
   {
     if ( selectedAtoms_.AtomInCharMask( bnd->A1() ) ||
          selectedAtoms_.AtomInCharMask( bnd->A2() ) )
@@ -166,8 +184,8 @@ int EnergyDecomposer::setupBonds(BndArrayType const& bondsIn) {
 }
 
 /** Set up angles. */
-int EnergyDecomposer::setupAngles(AngArrayType const& anglesIn) {
-  for (AngArrayType::const_iterator ang = anglesIn.begin(); ang != anglesIn.end(); ++ang)
+int EnergyDecomposer::setupAngles(AngleArray const& anglesIn) {
+  for (AngleArray::const_iterator ang = anglesIn.begin(); ang != anglesIn.end(); ++ang)
   {
     if ( selectedAtoms_.AtomInCharMask( ang->A1() ) ||
          selectedAtoms_.AtomInCharMask( ang->A2() ) ||
@@ -185,8 +203,8 @@ int EnergyDecomposer::setupAngles(AngArrayType const& anglesIn) {
 }
 
 /** Set up dihedrals. */
-int EnergyDecomposer::setupDihedrals(DihArrayType const& dihedralsIn) {
-  for (DihArrayType::const_iterator dih = dihedralsIn.begin(); dih != dihedralsIn.end(); ++dih)
+int EnergyDecomposer::setupDihedrals(DihedralArray const& dihedralsIn) {
+  for (DihedralArray::const_iterator dih = dihedralsIn.begin(); dih != dihedralsIn.end(); ++dih)
   {
     if ( selectedAtoms_.AtomInCharMask( dih->A1() ) ||
          selectedAtoms_.AtomInCharMask( dih->A2() ) ||
@@ -217,6 +235,27 @@ int EnergyDecomposer::SetupDecomposer(Topology const& topIn, Box const& boxIn) {
   if (selectedAtoms_.None()) {
     mprintf("Warning: Nothing selected by mask '%s'\n", selectedAtoms_.MaskString());
     return -1;
+  }
+  // Check for LJ terms
+  lj1264_ = false;
+  if (topIn.Nonbond().HasNonbond())
+  {
+    if (useLj1264_) {
+      if (topIn.Nonbond().Has_C_Coeff()) {
+        lj1264_ = true;
+        mprintf("\tLJ 12-6-4 (C) terms are active.\n");
+      } else
+        mprintf("Warning: 'lj1264' specified but no LJ 12-6-4 (C) terms present in topology '%s'\n", topIn.c_str());
+    } else {
+      if (topIn.Nonbond().Has_C_Coeff()) {
+        mprintf("Warning: Topology has LJ C coefficients. To use these, specify 'lj1264'\n");
+      }
+    }
+  } else {
+    if (useLj1264_) {
+      mprinterr("Error: 'lj1264' specified but no nonbond parameters present.\n");
+      return 1;
+    }
   }
   // Set up calculation arrays
   if (energies_.empty()) {
@@ -282,13 +321,13 @@ int EnergyDecomposer::SetupDecomposer(Topology const& topIn, Box const& boxIn) {
       if (selectedAtoms_.AtomInCharMask( idx ))
         mprintf("\t%s\n", topIn.AtomMaskName( idx ).c_str());
     mprintf("DEBUG: Bonds:\n");
-    for (BndArrayType::const_iterator bnd = bonds_.begin(); bnd != bonds_.end(); ++bnd)
+    for (BondArray::const_iterator bnd = bonds_.begin(); bnd != bonds_.end(); ++bnd)
       mprintf("\t%s - %s\n", topIn.AtomMaskName(bnd->A1()).c_str(), topIn.AtomMaskName(bnd->A2()).c_str());
     mprintf("DEBUG: Angles:\n");
-    for (AngArrayType::const_iterator ang = angles_.begin(); ang != angles_.end(); ++ang)
+    for (AngleArray::const_iterator ang = angles_.begin(); ang != angles_.end(); ++ang)
       mprintf("\t%s - %s - %s\n", topIn.AtomMaskName(ang->A1()).c_str(), topIn.AtomMaskName(ang->A2()).c_str(), topIn.AtomMaskName(ang->A3()).c_str());
     mprintf("DEBUG: Dihedrals:\n");
-    for (DihArrayType::const_iterator dih = dihedrals_.begin(); dih != dihedrals_.end(); ++dih)
+    for (DihedralArray::const_iterator dih = dihedrals_.begin(); dih != dihedrals_.end(); ++dih)
       mprintf("\t%s - %s - %s - %s\n", topIn.AtomMaskName(dih->A1()).c_str(), topIn.AtomMaskName(dih->A2()).c_str(), topIn.AtomMaskName(dih->A3()).c_str(), topIn.AtomMaskName(dih->A4()).c_str());
   }
 
@@ -309,7 +348,7 @@ void EnergyDecomposer::saveEne(int idx, double ene_cont, Darray& componentEne) {
 
 /** Calculate bond energies. */
 void EnergyDecomposer::calcBonds( Frame const& frameIn ) {
-  for (BndArrayType::const_iterator bnd = bonds_.begin(); bnd != bonds_.end(); ++bnd)
+  for (BondArray::const_iterator bnd = bonds_.begin(); bnd != bonds_.end(); ++bnd)
   {
     BondParmType const& BP = currentTop_->BondParm()[ bnd->Idx() ];
     double ene = Ene_Bond<double>( frameIn.XYZ( bnd->A1() ),
@@ -327,7 +366,7 @@ void EnergyDecomposer::calcBonds( Frame const& frameIn ) {
 
 /** Calculate angle energies. */
 void EnergyDecomposer::calcAngles( Frame const& frameIn ) {
-  for (AngArrayType::const_iterator ang = angles_.begin(); ang != angles_.end(); ++ang)
+  for (AngleArray::const_iterator ang = angles_.begin(); ang != angles_.end(); ++ang)
   {
     AngleParmType const& AP = currentTop_->AngleParm()[ ang->Idx() ];
     double ene = Ene_Angle<double>( frameIn.XYZ( ang->A1() ),
@@ -347,7 +386,7 @@ void EnergyDecomposer::calcAngles( Frame const& frameIn ) {
 
 /** Calculate dihedral and LJ 1-4 energies. */
 void EnergyDecomposer::calcDihedrals( Frame const& frameIn ) {
-  for (DihArrayType::const_iterator dih = dihedrals_.begin(); dih != dihedrals_.end(); ++dih)
+  for (DihedralArray::const_iterator dih = dihedrals_.begin(); dih != dihedrals_.end(); ++dih)
   {
     DihedralParmType const& DP = currentTop_->DihedralParm()[ dih->Idx() ];
 

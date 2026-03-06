@@ -46,7 +46,7 @@ int FunctionalGroup::SetupFromTop(Topology const& groupTop, Atom::AtomicElementT
   AtomMap groupmap;
   //groupmap.SetDebug(10); // DEBUG
   groupmap.Setup( groupTop, Frame() );
-  groupmap.DetermineAtomIDs();
+  groupmap.AssignUniqueAtomIDs();
 
   for (int idx = 0; idx != groupmap.Natom(); idx++)
     AddAtom( groupmap[idx].Name(), groupmap[idx].Unique() );

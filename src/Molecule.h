@@ -12,6 +12,8 @@ class Molecule {
     void SetSolvent()   { isSolvent_ = true;  }
     void SetNoSolvent() { isSolvent_ = false; }
     Unit& ModifyUnit()  { return unit_;       }
+    /// Add atom number to the molecule.
+    int AddAtnum(int at) { return unit_.AddIndex(at); }
 
     bool IsSolvent()        const { return isSolvent_;   }
     unsigned int NumAtoms() const { return unit_.Size(); }

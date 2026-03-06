@@ -238,3 +238,13 @@ DataSet* DataIO::DetermineMatrixType(std::vector<double> const& matrixArray, int
   }
   return ds;
 }
+
+/** Clear any sets added by AddedByMe() */
+void DataIO::ClearAddedByMe() {
+  mySets_.clear();
+}
+
+/** Note a set added by this DataIO */
+void DataIO::AddedByMe(DataSet* ds) {
+  mySets_.push_back( ds );
+} 

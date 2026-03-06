@@ -1,13 +1,20 @@
 # Files for Structure subdirectory.
 STRUCTURE_SOURCES= \
+  AddIons.cpp \
   Builder.cpp \
   Chirality.cpp \
+  Creator.cpp \
   Disulfide.cpp \
   FunctionalGroup.cpp \
   FxnGroupBuilder.cpp \
+  GenerateConnectivityArrays.cpp \
   HisProt.cpp \
   InternalCoords.cpp \
-  Model.cpp \
+  LeastSquaresPlane.cpp \
+  MetalCenterFinder.cpp \
+  PdbCleaner.cpp \
+  RingFinder.cpp \
+  Solvate.cpp \
   StructureEnum.cpp \
   StructureRoutines.cpp \
   SugarBuilder.cpp \

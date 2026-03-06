@@ -22,7 +22,7 @@ class DataIO_Mdout : public DataIO {
                      ANGLE, DIHED, VDWAALS, EEL, EGB, EPB, ECAVITY, EDISPER,
                      VDW14, EEL14, RESTRAINT, EAMBER, DENSITY,
                      RMS, EKTOT, ESURF, EAMD_BOOST, VOLUME, TEMP,
-                     PRESS, DVDL, N_FIELDTYPES };
+                     PRESS, DVDL, CMAP, N_FIELDTYPES };
 
     FieldType getTermIdx(std::string const&) const;
     int GetAmberEterms(const char*, Darray&, std::vector<bool>&);

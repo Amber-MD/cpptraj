@@ -46,7 +46,7 @@ CPPTRAJ see the following publication:
 Disclaimer and Copyright
 ========================
 
-CPPTRAJ is Copyright (c) 2010-2025 Daniel R. Roe.
+CPPTRAJ is Copyright (c) 2010-2026 Daniel R. Roe.
 The terms for using, copying, modifying, and distributing CPPTRAJ are
 specified in the file LICENSE.
 
@@ -80,7 +80,7 @@ the following libraries:
 * Parallel NetCDF (-mpi build only, for NetCDF trajectory output in parallel)
 * CUDA (-cuda build only)
 * HIP (-hip build only)
-* FFTW (mostly optional; required for PME functionality and very large FFTs)
+* FFTW (mostly optional but recommended; required for PME functionality and very large FFTs)
 
 CPPTRAJ also makes use of the following libraries that are bundled with CPPTRAJ. External ones can be used in place of these if desired.
 

@@ -6,6 +6,7 @@
 #include "Residue.h"
 #include "CpptrajStdio.h" // To print debug info
 #include "StringRoutines.h" // RemoveTrailingWhitespace
+#include "ModXNA_Info.h"
 
 // CONSTRUCTOR
 Mol2File::Mol2File() : 
@@ -61,6 +62,26 @@ int Mol2File::ScanTo( TRIPOSTAG tag ) {
 
 void Mol2File::WriteHeader( Mol2File::TRIPOSTAG tag ) {
   Printf("%s\n", TRIPOSTAGTEXT[tag] );
+}
+
+/** Check for ModXNA info in the title. */
+ModXNA_Info* Mol2File::CheckForModxna() {
+  // Check for modxna info
+  size_t pos = mol2title_.find_first_of( "modXNA-fragment" );
+  if (pos != std::string::npos) {
+    ModXNA_Info* minfo = new ModXNA_Info();
+    ModXNA_Info::StatType ret = minfo->ParseModxnaStr( mol2title_ );
+    if (ret == ModXNA_Info::OK) {
+      mprintf("\tMol2 file has ModXNA info:\n");
+      minfo->PrintModxna();
+      return minfo;
+    } else {
+      delete minfo;
+      if (ret == ModXNA_Info::ERR)
+        mprinterr("Error: Could not parse modxna string '%s'\n", mol2title_.c_str());
+    }
+  }
+  return 0;
 }
 
 // Mol2File::ReadMolecule()
@@ -189,7 +210,7 @@ int Mol2File::Mol2Atom(Atom& atom, Residue& res, double* XYZ) {
     mol2resname = field6;
     mol2charge = field7;
   } else {
-    mprinterr("Error: Malformed mol2 line: %s\n", linebuffer_);
+    mprinterr("Error: Malformed mol2 line (%i fields read): %s\n", nread, linebuffer_);
     return 1;
   }
 

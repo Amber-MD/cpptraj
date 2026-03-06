@@ -17,6 +17,8 @@ class TopInfo {
     void SetNoIntraRes(bool b) { noIntraRes_ = b; }
     int SetupTopInfo(CpptrajFile*, Topology const*, DataSet_Coords*);
     int SetupTopInfo(Topology const* p, DataSet_Coords* c) { return SetupTopInfo(0, p, c); }
+    /// Toggle printing of parameter indices
+    void SetPrintParameterIndices(bool b) { printIndices_ = b; }
 
     int PrintAtomInfo(std::string const&) const;
     int PrintShortResInfo(std::string const&, int, int) const;
@@ -27,7 +29,7 @@ class TopInfo {
     int PrintBondParm() const;
     int PrintAngleInfo(std::string const&, std::string const&, std::string const&) const;
     int PrintDihedralInfo(std::string const&, std::string const&,
-                          std::string const&, std::string const&,bool) const;
+                          std::string const&, std::string const&,bool,bool,int) const;
     int PrintChargeInfo(std::string const&, double&) const;
     int PrintMassInfo(std::string const&, double&) const;
   private:
@@ -48,7 +50,7 @@ class TopInfo {
                      int, int&) const;
     void PrintDihedrals(DihedralArray const&, DihedralParmArray const&,
                         CharMask const&, CharMask const&,
-                        CharMask const&, CharMask const&, int, int&) const;
+                        CharMask const&, CharMask const&, int, int&,bool,int) const;
 
     CpptrajFile* outfile_;
     Topology const* parm_;
@@ -59,5 +61,6 @@ class TopInfo {
     int max_aname_len_; ///< Max width of atom name in topology
     bool toStdout_;
     bool noIntraRes_;   ///< If true, ignore intra-residue bonds/angles/dihedrals etc
+    bool printIndices_; ///< If true, print leading indices
 };
 #endif

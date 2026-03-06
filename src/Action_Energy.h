@@ -7,6 +7,11 @@
 #include "ExclusionArray.h"
 #include "EwaldOptions.h"
 #include "Energy/Ecalc_Nonbond.h"
+namespace Cpptraj {
+namespace Energy {
+class CMAP;
+}
+}
 class PotentialFunction;
 /// Calculate energy 
 class Action_Energy: public Action {
@@ -23,14 +28,15 @@ class Action_Energy: public Action {
     void Print();
 
     /// Corresponds to data sets.
-    enum Etype { BOND = 0, ANGLE, DIHEDRAL, V14, Q14, VDW, ELEC, KE, TOTAL};
+    enum Etype { BOND = 0, ANGLE, DIHEDRAL, CMAP, V14, Q14, VDW, ELEC, KE, TOTAL};
     /// Add energy data set of specified type.
     int AddSet(Etype, DataSetList&, DataFile*, std::string const&);
     /// For debugging the direct sum convergence
     double Dbg_Direct(Frame const&,int);
     /// Corresponds to calculations.
     enum CalcType { C_BND = 0, C_ANG, C_DIH, C_N14, C_NBD, C_LJ,
-                    C_COULOMB, C_DIRECT, C_EWALD, C_PME, C_KEAUTO, C_KEVEL, C_KEVV };
+                    C_COULOMB, C_DIRECT, C_EWALD, C_PME, C_KEAUTO, C_KEVEL, C_KEVV,
+                    C_CMAP };
     /// Corresponds to type of electrostatics.
     enum ElecType { NO_ELE = 0, SIMPLE, DIRECTSUM, EWALD, PME };
     /// Corresponds to type of KE calc.
@@ -54,6 +60,8 @@ class Action_Energy: public Action {
     Cpptraj::Energy::Ecalc_Nonbond::CalcType nbCalcType_; ///< Nonbond calculation type
     EwaldOptions ewaldOpts_;       ///< Ewald options
 
+    Cpptraj::Energy::CMAP* cmap_;  ///< For calculating cmap energies
+
     PotentialFunction* potential_; ///< TODO currently just for openmm, use for everything
     bool use_openmm_;              ///< If true use openmm for calculating total E
 
@@ -61,6 +69,8 @@ class Action_Energy: public Action {
     bool need_lj_params_;          ///< True if LJ parameters needed.
     bool needs_exclList_;          ///< True if Excluded_ needs to be set up.
     bool bondsToH_;                ///< True if we want to calculate energy of bonds with H
+    bool lj1264_;                  ///< True if LJ 12-6-4 (C) terms are active
+    bool useLj1264_;               ///< True if we want to use LJ 12-6-4 (C) terms if present
     Timer time_total_;
     Timer time_bond_;
     Timer time_angle_;
@@ -68,5 +78,6 @@ class Action_Energy: public Action {
     Timer time_14_;
     Timer time_NB_;
     Timer time_ke_;
+    Timer time_cmap_;
 };
 #endif

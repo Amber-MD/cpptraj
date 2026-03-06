@@ -11,6 +11,8 @@
  */
 /// Append '.<number>' to string, useful for e.g. appending number to file name.
 std::string AppendNumber(std::string const &, int);
+/// \return Input string converted to lowercase
+std::string ToLower(std::string const& strIn);
 /// \return 1 if first string (containing wildcards *, ?) matches second.
 int WildcardMatch(std::string const&, std::string const&);
 /// \return number of characters needed to represent given digit.

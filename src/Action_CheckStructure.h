@@ -2,6 +2,9 @@
 #define INC_ACTION_CHECKSTRUCTURE_H
 #include "Action.h"
 #include "StructureCheck.h"
+#ifdef TIMER
+# include "Timer.h"
+#endif
 class Action_CheckStructure : public Action {
   public:
     Action_CheckStructure();
@@ -16,9 +19,7 @@ class Action_CheckStructure : public Action {
     int SyncAction();
 #   endif
 
-    enum FmtType { F_ATOM =0, F_BOND };
-
-    void WriteProblems(FmtType, int, Topology const&);
+    void WriteProblems(StructureCheck::FmtType, int, Topology const&);
 
     StructureCheck check_;  ///< Structure checker
     CpptrajFile* outfile_;  ///< Report file.
@@ -26,7 +27,6 @@ class Action_CheckStructure : public Action {
     DataSet* num_problems_; ///< Save number of problems each frame
     bool silent_;           ///< If true suppress output
     bool skipBadFrames_;    ///< If true skip frames with problems
-    static const char* Fmt_[]; ///< Output format strings
 #   ifdef MPI
     Parallel::Comm trajComm_;
     DataSet* ds_fn_; ///< Frame number
@@ -37,6 +37,12 @@ class Action_CheckStructure : public Action {
     DataSet* ds_n2_; ///< Name 2
     DataSet* ds_d_;  ///< Distance
     int idx_;        ///< Index into ds_X data sets.
+#   endif
+#   ifdef TIMER
+    Timer t_total_;
+    Timer t_overlap_;
+    Timer t_bonds_;
+    Timer t_rings_;
 #   endif
 };
 #endif

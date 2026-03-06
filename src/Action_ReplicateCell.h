@@ -24,6 +24,8 @@ class Action_ReplicateCell: public Action {
     DataSet_Coords* coords_;    ///< Combined cell COORDS DataSet
     AtomMask Mask1_;            ///< Mask of atoms to replicate
     int ncopies_;               ///< Total # of replications to make
+    int debug_;
+    int verbose_;               ///< Parameter assignment verbosity during merge
     bool writeTraj_;            ///< If true, write output combined cell traj
     Topology combinedTop_;      ///< Combined cell topology
     Frame combinedFrame_;       ///< Combined cell frame

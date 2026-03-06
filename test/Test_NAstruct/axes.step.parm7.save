@@ -1,4 +1,4 @@
-%VERSION  VERSION_STAMP = V0001.000  DATE = 07/11/23 09:21:41                  
+%VERSION  VERSION_STAMP = V0001.000  DATE = 06/28/24 14:08:01                  
 %FLAG TITLE                                                                     
 %FORMAT(20a4)                                                                   
 StepAxes                                                                        
@@ -132,3 +132,20 @@ G5  G   G   C   G   C   C
 %FORMAT(20a4)                                                                   
                                                                                 
                                 
+%FLAG TREE_CHAIN_CLASSIFICATION                                                 
+%FORMAT(20a4)                                                                   
+BLA BLA BLA BLA BLA BLA BLA BLA BLA BLA BLA BLA BLA BLA BLA BLA BLA BLA BLA BLA 
+BLA BLA BLA BLA BLA BLA BLA BLA 
+%FLAG JOIN_ARRAY                                                                
+%FORMAT(10I8)                                                                   
+       0       0       0       0       0       0       0       0       0       0
+       0       0       0       0       0       0       0       0       0       0
+       0       0       0       0       0       0       0       0
+%FLAG IROTAT                                                                    
+%FORMAT(10I8)                                                                   
+       0       0       0       0       0       0       0       0       0       0
+       0       0       0       0       0       0       0       0       0       0
+       0       0       0       0       0       0       0       0
+%FLAG IPOL                                                                      
+%FORMAT(1I8)                                                                    
+       0

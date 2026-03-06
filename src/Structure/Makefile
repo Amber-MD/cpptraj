@@ -8,6 +8,11 @@ DEL_FILE = /bin/rm -f
 # Objects
 OBJECTS=$(STRUCTURE_SOURCES:.cpp=.o)
 
+# General rules
+.cpp.o:
+	$(VB)echo CXX $<
+	$(VB)$(CXX) $(DIRECTIVES) $(CPPTRAJ_INC) $(CXXFLAGS) -c -o $@ $<
+
 # Default target: objects
 all: $(OBJECTS)
 

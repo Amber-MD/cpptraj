@@ -1,10 +1,10 @@
 #if defined(USE_SANDERLIB) && !defined(LIBCPPTRAJ)
-#include <locale>
-#include <cstdio> // remove()
 #include "Energy_Sander.h"
 #include "CpptrajStdio.h"
-#include "ParmFile.h" // For writing temporary top
 #include "File_TempName.h"
+#include "ParmFile.h" // For writing temporary top
+#include "StringRoutines.h" // ToLower
+#include <cstdio> // remove()
 
 Energy_Sander::Energy_Sander() :
   debug_(0),
@@ -43,11 +43,11 @@ const char* Energy_Sander::Estring_[] = {
 // Energy_Sander::Easpect()
 std::string Energy_Sander::Easpect(Etype typeIn) {
   if (typeIn == N_ENERGYTYPES) return std::string();
-  std::locale loc;
+/*  std::locale loc;
   std::string aspect( Estring_[typeIn] );
   for (std::string::iterator it = aspect.begin(); it != aspect.end(); ++it)
-    *it = std::tolower( *it, loc );
-  return aspect;
+    *it = std::tolower( *it, loc );*/
+  return ToLower( std::string(Estring_[typeIn]) );
 }
 
 // Energy_Sander::Energy()
@@ -132,10 +132,34 @@ void Energy_Sander::SetDefaultInput() {
   input_.fswitch = -1.0;
   input_.restraint_wt = 0.0;
 
+  input_.ala = 0.0;
+  input_.arg = 0.0;
+  input_.asn = 0.0;
+  input_.asp = 0.0;
+  input_.cys = 0.0;
+  input_.gln = 0.0;
+  input_.glu = 0.0;
+  input_.gly = 0.0;
+  input_.his = 0.0;
+  input_.hip = 0.0;
+  input_.ile = 0.0;
+  input_.leu = 0.0;
+  input_.lys = 0.0;
+  input_.met = 0.0;
+  input_.phe = 0.0;
+  input_.pro = 0.0;
+  input_.ser = 0.0;
+  input_.thr = 0.0;
+  input_.triptophan = 0.0;
+  input_.tyr = 0.0;
+  input_.valine = 0.0;
+  input_.bb = 0.0;
+
   input_.igb = 0;
   input_.alpb = 0;
   input_.gbsa = 0;
   input_.lj1264 = -1;
+  input_.plj1264 = -1;
   input_.ipb = 0;
   input_.inp = 2;
   input_.vdwmeth = 1;
@@ -147,6 +171,7 @@ void Energy_Sander::SetDefaultInput() {
   input_.ntc = 2;
   input_.ntr = 0;
   input_.ibelly = 0;
+  input_.mask_from_ref = 0;
 
   input_.restraintmask[0] = '\0';
   input_.bellymask[0] = '\0';
@@ -155,7 +180,7 @@ void Energy_Sander::SetDefaultInput() {
 
 const char* Energy_Sander::supportedNamelist_ = 
 "extdiel intdiel rgbmax saltcon cut dielc igb alpb gbsa lj1264 ipb inp vdwmeth ew_type ntb";
- 
+
 /** Check and set input for Sander.*/
 int Energy_Sander::SetInput(ArgList& argIn) {
   SetDefaultInput();
@@ -351,7 +376,7 @@ int Energy_Sander::CommonInit(Topology const& topIn, Frame& fIn) { // TODO const
      )
     isActive_[HBOND] = true;
   // Are CHARMM terms present?
-  if (topIn.Chamber().HasChamber()) {
+  if (topIn.HasChamber()) {
     isActive_[ANGLE_UB] = true;
     isActive_[IMP] = true;
   }

@@ -6,7 +6,7 @@ class AssociatedData {
     /// Destructor. Virtual since this class is inherited.
     virtual ~AssociatedData() {}
     /// Associated data types
-    enum AssociatedType { NOE = 0, CONNECT };
+    enum AssociatedType { NOE = 0, CONNECT, RESID };
     /// CONSTRUCTOR - take associated data type
     AssociatedData(AssociatedType t) : type_(t) {}
     /// \return Associated data type

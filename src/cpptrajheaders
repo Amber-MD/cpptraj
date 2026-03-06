@@ -101,6 +101,7 @@ CPPTRAJ_HEADERS = \
         ./Action_Volume.h \
         ./Action_Watershell.h \
         ./Action_XtalSymm.h \
+        ./AmberParamFile.h \
         ./Analysis_AmdBias.h \
         ./Analysis_AutoCorr.h \
         ./Analysis_Average.h \
@@ -171,6 +172,7 @@ CPPTRAJ_HEADERS = \
         ./CharmmParamFile.h \
         ./CIFfile.h \
         ./ClusterMap.h \
+        ./CmapParmHolder.h \
         ./Cmd.h \
         ./CmdInput.h \
         ./CmdList.h \
@@ -196,6 +198,8 @@ CPPTRAJ_HEADERS = \
         ./DataFileList.h \
         ./DataFilter.h \
         ./DataIO_AmberEne.h \
+        ./DataIO_AmberFF.h \
+        ./DataIO_AmberFrcmod.h \
         ./DataIO_AmberLib.h \
         ./DataIO_AmberPrep.h \
         ./DataIO_CCP4.h \
@@ -205,11 +209,13 @@ CPPTRAJ_HEADERS = \
         ./DataIO_CharmmRtfPrm.h \
         ./DataIO_Cmatrix_Binary.h \
         ./DataIO_Cmatrix_NC.h \
+        ./DataIO_Coords.h \
         ./DataIO_Cpout.h \
         ./DataIO_Evecs.h \
         ./DataIO_Gnuplot.h \
         ./DataIO_Grace.h \
         ./DataIO.h \
+        ./DataIO_LeapRC.h \
         ./DataIO_Mdout.h \
         ./DataIO_NetCDF.h \
         ./DataIO_Numpy.h \
@@ -236,16 +242,19 @@ CPPTRAJ_HEADERS = \
         ./DataSet_integer_disk.h \
         ./DataSet_integer.h \
         ./DataSet_integer_mem.h \
+        ./DataSet_LeapOpts.h \
         ./DataSetList.h \
         ./DataSet_Mat3x3.h \
         ./DataSet_MatrixDbl.h \
         ./DataSet_MatrixFlt.h \
         ./DataSet_Mesh.h \
         ./DataSet_Modes.h \
+        ./DataSet_NameMap.h \
         ./DataSet_PairwiseCache.h \
         ./DataSet_PairwiseCache_MEM.h \
         ./DataSet_PairwiseCache_NC.h \
         ./DataSet_Parameters.h \
+        ./DataSet_PdbResMap.h \
         ./DataSet_pH.h \
         ./DataSet_PHREMD_Explicit.h \
         ./DataSet_PHREMD.h \
@@ -283,6 +292,7 @@ CPPTRAJ_HEADERS = \
         ./Exec_AddMissingRes.h \
         ./Exec_AddMissingRes_Pres.h \
         ./Exec_Analyze.h \
+        ./Exec_Build.h \
         ./Exec_Calc.h \
         ./Exec_CatCrd.h \
         ./Exec_Change.h \
@@ -299,6 +309,7 @@ CPPTRAJ_HEADERS = \
         ./Exec_DataFile.h \
         ./Exec_DataFilter.h \
         ./Exec_DataSetCmd.h \
+        ./Exec_Desc.h \
         ./Exec_Emin.h \
         ./Exec_ExtendedComparison.h \
         ./Exec_Flatten.h \
@@ -331,6 +342,7 @@ CPPTRAJ_HEADERS = \
         ./Exec_Set.h \
         ./Exec_Show.h \
         ./Exec_SortEnsembleData.h \
+        ./Exec_Source.h \
         ./Exec_SplitCoords.h \
         ./Exec_System.h \
         ./Exec_Top.h \
@@ -367,6 +379,7 @@ CPPTRAJ_HEADERS = \
         ./GridBin.h \
         ./Grid.h \
         ./GridMover.h \
+        ./GuessAtomHybridization.h \
         ./helpme_standalone.h \
         ./HipDefinitions.h \
         ./HistBin.h \
@@ -416,8 +429,6 @@ CPPTRAJ_HEADERS = \
         ./Parallel.h \
         ./ParallelNetcdf.h \
         ./ParallelSetFrameNum.h \
-        ./ParameterHolders.h \
-        ./ParameterSet.h \
         ./ParameterTypes.h \
         ./Parm_Amber.h \
         ./Parm_CharmmPsf.h \
@@ -430,6 +441,7 @@ CPPTRAJ_HEADERS = \
         ./Parm_SDF.h \
         ./Parm_Tinker.h \
         ./PDBfile.h \
+        ./PdbResMapType.h \
         ./PotentialFunction.h \
         ./PotentialTerm_Angle.h \
         ./PotentialTerm_Bond.h \
@@ -453,6 +465,7 @@ CPPTRAJ_HEADERS = \
         ./ReferenceAction.h \
         ./ReferenceFrame.h \
         ./RemdReservoirNC.h \
+        ./Remote.h \
         ./ReplicaDimArray.h \
         ./ReplicaInfo.h \
         ./Residue.h \
@@ -561,17 +574,21 @@ CPPTRAJ_HEADERS = \
         Cluster/Results.h \
         Cluster/Sieve.h \
         Cluster/Silhouette.h \
-        Structure/BuildAtom.h \
         Structure/Builder.h \
         Structure/Chirality.h \
+        Structure/Creator.h \
         Structure/Disulfide.h \
         Structure/FunctionalGroup.h \
         Structure/FxnGroupBuilder.h \
+        Structure/GenerateConnectivityArrays.h \
         Structure/HisProt.h \
         Structure/InternalCoords.h \
+        Structure/LeastSquaresPlane.h \
         Structure/LinkAtom.h \
-        Structure/Model.h \
+        Structure/MetalCenterFinder.h \
+        Structure/PdbCleaner.h \
         Structure/ResStatArray.h \
+        Structure/RingFinder.h \
         Structure/StructureEnum.h \
         Structure/StructureRoutines.h \
         Structure/SugarBuilder.h \

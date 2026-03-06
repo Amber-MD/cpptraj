@@ -1,4 +1,4 @@
-%VERSION  VERSION_STAMP = V0001.000  DATE = 08/06/20 12:51:08                  
+%VERSION  VERSION_STAMP = V0001.000  DATE = 06/28/24 14:52:24                  
 %FLAG TITLE                                                                     
 %FORMAT(20a4)                                                                   
                                                                                 
@@ -1356,6 +1356,9 @@ modified Bondi radii (mbondi)
   8.50000000E-01  7.90000000E-01  8.50000000E-01  8.50000000E-01  8.50000000E-01
   7.20000000E-01  8.50000000E-01  7.90000000E-01  8.50000000E-01  8.50000000E-01
   8.50000000E-01  8.50000000E-01  8.50000000E-01
+%FLAG IPOL                                                                      
+%FORMAT(1I8)                                                                    
+       0
 %FLAG RESIDUE_NUMBER                                                            
 %FORMAT(20I4)                                                                   
    1   2   3   4   5   6   7   8   9  10  11  12  13  17

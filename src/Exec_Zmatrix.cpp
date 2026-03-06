@@ -7,14 +7,18 @@ using namespace Cpptraj::Structure;
 
 /** Get Zmatrix for specified molecule at specified frame number. */
 int Exec_Zmatrix::getZmatrix(DataSet_Coords* CRD, int molnum, int frmidx,
-                             std::string const& dsname, DataFile* outfile, CpptrajState& State)
+                             std::string const& dsname, DataFile* outfile, CpptrajState& State,
+                             bool complete_zmatrix)
 const
 {
  if (CRD == 0) {
     mprinterr("Error: No COORDS set specified.\n");
     return CpptrajState::ERR;
   }
-  mprintf("\tGetting Z-matrix from set '%s'\n", CRD->legend());
+  if (complete_zmatrix)
+    mprintf("\tGetting complete Z-matrix from set '%s'\n", CRD->legend());
+  else
+    mprintf("\tGetting minimal Z-matrix from set '%s'\n", CRD->legend());
   if (CRD->Size() < 1) {
     mprinterr("Error: Set '%s' is empty.\n", CRD->legend());
     return 1; 
@@ -41,7 +45,11 @@ const
   Zmatrix& zmatrix = *(zset->Zptr());
 
   zmatrix.SetDebug( State.Debug() );
-  int errStat = zmatrix.SetFromFrame( frmIn, CRD->Top(), molnum );
+  int errStat;
+  if (complete_zmatrix)
+    errStat = zmatrix.SetFromFrameAndConnect(frmIn, CRD->Top());
+  else
+    errStat = zmatrix.SetFromFrame( frmIn, CRD->Top(), molnum );
   if (debug_ > 0) zmatrix.print(); // DEBUG
   return errStat;
 }
@@ -108,11 +116,13 @@ const
 void Exec_Zmatrix::Help() const
 {
   mprintf("\t<COORDS set name> [name <output set name>]\n"
-          "\t{ zset <input zmatrix set> [parm <top>|parmindex <#>] |\n"
-          "\t  [molnum <mol#>] [frame <frame#>] [out <zmatrix file>] }\n"
+          "\t{ zset <input zmatrix set> [parm <top>|parmindex <#>]|\n"
+          "\t  [complete] [molnum <mol#>] [frame <frame#>] [out <zmatrix file>] }\n"
           "  If 'zset' is specified, use Z-matrix to generate coordinates using\n"
           "  a specified topology or topology from specified COORDS set;\n"
-          "  output is a new COORDS set.\n"
+          "  output is a new COORDS set. If 'complete is specified, generate\n"
+          "  as many internal coordinates as possible, otherwise a minimal\n"
+          "  set (1 internal coordinate per atom) will be generated.\n"
           "  Otherwise calculate Zmatrix for specified molecule/frame of\n"
           "  specified COORDS set; output is a Z-matrix set.\n");
 }
@@ -123,6 +133,7 @@ Exec::RetType Exec_Zmatrix::Execute(CpptrajState& State, ArgList& argIn)
   debug_ = State.Debug();
   std::string dsname = argIn.GetStringKey("name");
   std::string zsetname = argIn.GetStringKey("zset");
+  bool complete_zmatrix = argIn.hasKey("complete");
   int molnum = -1;
   int frmidx = -1;
   DataFile* outfile = 0;
@@ -151,7 +162,7 @@ Exec::RetType Exec_Zmatrix::Execute(CpptrajState& State, ArgList& argIn)
   if (!zsetname.empty()) {
     errStat = putZmatrix(CRD, topIn, zsetname, dsname, State);
   } else {
-    errStat = getZmatrix(CRD, molnum, frmidx, dsname, outfile, State);
+    errStat = getZmatrix(CRD, molnum, frmidx, dsname, outfile, State, complete_zmatrix);
   }
 
   if (errStat != 0) return CpptrajState::ERR;

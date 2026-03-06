@@ -55,13 +55,45 @@ Action::RetType Action_FixAtomOrder::Init(ArgList& actionArgs, ActionInit& init,
   return Action::OK;
 }
 
+/** Separate routine that will just fix the atom order. */
+int Action_FixAtomOrder::FixMoleculeOrder(Topology& topOut, Frame& frameOut, int debugIn)
+{
+  debug_ = debugIn;
+  mode_ = FIX_MOLECULES;
+  if (FixMolecules(topOut) != Action::OK) {
+    mprinterr("Error: Fixing molecule order failed.\n");
+    return 1;
+  }
+  if (debug_ > 0) {
+    mprintf("\tNew atom mapping:\n");
+    for (MapType::const_iterator atom = atomMap_.begin();
+                                 atom != atomMap_.end(); ++atom)
+      mprintf("\t\tNew atom %8li => old atom %8i\n", atom - atomMap_.begin() + 1, *atom + 1);
+  }
+  // Create new topology based on map
+  if (newParm_ != 0) delete newParm_;
+  newParm_ = topOut.ModifyByMap( atomMap_ );
+  if (newParm_ == 0) {
+    mprinterr("Error: Could not create re-ordered topology.\n");
+    return Action::ERR;
+  }
+  topOut = *newParm_;
+  
+  // Allocate space for new frame and reorder coords
+  newFrame_.SetupFrameV( newParm_->Atoms(), frameOut.CoordsInfo() );
+  newFrame_.SetCoordinatesByMap( frameOut, atomMap_ );
+  frameOut = newFrame_;
+
+  return 0;
+}
+
 // Action_FixAtomOrder::setup()
 Action::RetType Action_FixAtomOrder::Setup(ActionSetup& setup) {
   Action::RetType ret;
   if (mode_ == FIX_MOLECULES)
-    ret = FixMolecules(setup);
+    ret = FixMolecules(setup.Top());
   else if (mode_ == PDB_ORDER)
-    ret = PdbOrder(setup);
+    ret = PdbOrder(setup.Top());
   else
     return Action::ERR;
 
@@ -98,18 +130,18 @@ Action::RetType Action_FixAtomOrder::Setup(ActionSetup& setup) {
 }
 
 /** Try to make the order match original PDB info. */
-Action::RetType Action_FixAtomOrder::PdbOrder(ActionSetup& setup) {
+Action::RetType Action_FixAtomOrder::PdbOrder(Topology const& topIn) {
   if (hetatm_.MaskStringSet()) {
-    if (setup.Top().SetupCharMask( hetatm_ )) return Action::ERR;
+    if (topIn.SetupCharMask( hetatm_ )) return Action::ERR;
     hetatm_.MaskInfo();
   } else {
-    hetatm_ = CharMask( setup.Top().Natom() );
+    hetatm_ = CharMask( topIn.Natom() );
   }
   // Create array with PDB info.
   std::vector<AtomTopType> atoms;
-  for (int idx = 0; idx != setup.Top().Natom(); idx++)
+  for (int idx = 0; idx != topIn.Natom(); idx++)
   {
-    Residue const& res = setup.Top().Res( setup.Top()[idx].ResNum() );
+    Residue const& res = topIn.Res( topIn[idx].ResNum() );
     AtomTopType::PdbType pt;
     if (hetatm_.AtomInCharMask(idx))
       pt = AtomTopType::HETATM;
@@ -122,7 +154,7 @@ Action::RetType Action_FixAtomOrder::PdbOrder(ActionSetup& setup) {
   std::sort(atoms.begin(), atoms.end());
   // Put indices in atomMap_
   atomMap_.clear();
-  atomMap_.reserve( setup.Top().Natom() );
+  atomMap_.reserve( topIn.Natom() );
   for (std::vector<AtomTopType>::const_iterator it = atoms.begin();
                                                 it != atoms.end(); ++it)
     atomMap_.push_back( it->AtomIdx() );
@@ -131,11 +163,11 @@ Action::RetType Action_FixAtomOrder::PdbOrder(ActionSetup& setup) {
 }
 
 /** Fix molecules that are not contiguous. */
-Action::RetType Action_FixAtomOrder::FixMolecules(ActionSetup& setup) {
+Action::RetType Action_FixAtomOrder::FixMolecules(Topology const& topIn) {
   atomMap_.clear();
-  atomMap_.reserve( setup.Top().Natom() );
-  for (Topology::mol_iterator mol = setup.Top().MolStart();
-                              mol != setup.Top().MolEnd(); ++mol)
+  atomMap_.reserve( topIn.Natom() );
+  for (Topology::mol_iterator mol = topIn.MolStart();
+                              mol != topIn.MolEnd(); ++mol)
   {
     for (Unit::const_iterator seg = mol->MolUnit().segBegin();
                               seg != mol->MolUnit().segEnd(); ++seg)

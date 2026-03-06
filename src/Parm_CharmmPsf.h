@@ -1,7 +1,7 @@
 #ifndef INC_PARM_CHARMMPSF_H
 #define INC_PARM_CHARMMPSF_H
 #include "ParmIO.h"
-#include "ParameterSet.h"
+#include "Parm/ParameterSet.h"
 class BufferedLine;
 class Parm_CharmmPsf : public ParmIO {
   public :
@@ -26,7 +26,7 @@ class Parm_CharmmPsf : public ParmIO {
 
     inline void WriteSectionHeader(CpptrajFile&, const char*, int) const;
 
-    ParameterSet params_;
+    Cpptraj::Parm::ParameterSet params_;
     bool extfmt_; ///< (write) If true use extended format
     bool cheq_;   ///< (write) If true include extra columns for polarization (CHarge EQuilibration)
     bool xplor_;  ///< (write) If true use XPLOR format PSF

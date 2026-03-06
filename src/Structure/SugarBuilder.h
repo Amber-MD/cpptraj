@@ -8,6 +8,7 @@ class NameType;
 namespace Cpptraj {
 namespace Structure {
 // Forward declares
+class FxnGroupBuilder;
 class Sugar;
 class ResStatArray;
 /// Class for preparing sugars in a topology
@@ -17,15 +18,25 @@ class SugarBuilder {
     typedef std::vector<Sugar> Array;
     /// CONSTRUCTOR - Take debug level
     SugarBuilder(int);
-    /// Init options: hasGlycam, residue cutoff, bond offset, sugar mask str, determineSugarsBy, resmapfile
-    int InitOptions(bool, double, double, std::string const&, std::string const&, std::string const&);
+    /// DESTRUCTOR
+    ~SugarBuilder();
+    /// Keywords
+    static const char* keywords_;
+    /// Initialize from ArgList
+    int InitSugarBuilder(ArgList&);
     /// \return true if given res name is a recognized PDB sugar
     bool IsRecognizedPdbSugar(NameType const&) const;
     /// ID sugar rings, find missing C1 links, split off functional groups
     int FixSugarsStructure(Topology&, Frame&,
-                           bool, bool, NameType const&);
+                           bool, bool, NameType const&, std::vector<BondType>&);
     /// Identify sugars, do renaming, remove bonds, generate leap input
     int PrepareSugars(bool, ResStatArray&, Topology&, Frame const&, std::vector<BondType>&);
+    /// Set each sugar as a terminal residue
+    void SetEachSugarAsTerminal(Topology&) const;
+    /// Print any found functional group warnings
+    void PrintFxnGroupWarnings(Topology const&) const;
+    /// Perform any necessary modifications for found functional groups
+    int ModifyFoundFxnGroups(Topology&, bool&) const;
   private:
     typedef std::vector<int> Iarray;
 
@@ -38,6 +49,8 @@ class SugarBuilder {
     typedef std::pair<std::string, int> ResIdxPairType;
     typedef std::map<std::string, int> ResIdxMapType;
 
+    /// Init options: hasGlycam, residue cutoff, bond offset, sugar mask str, determineSugarsBy, resmapfile
+    int InitOptions(bool, double, double, std::string const&, std::string const&, std::string const&);
     /// Set a reduced PDB res to glycam map when dat file not found.
     void SetGlycamPdbResMap();
     /// Load PDB res to glycam map from dat file
@@ -86,7 +99,7 @@ class SugarBuilder {
     /// Cache residue centers for determining linkages
     void CacheResidueCenters(Topology const&, Frame const&);
     /// Try to find missing linkages to anomeric carbon in sugar.
-    int FindSugarC1Linkages(int, int, Topology&, Frame const&, NameType const&) const;
+    int FindSugarC1Linkages(int, int, Topology&, Frame const&, NameType const&, std::vector<BondType>&) const;
     
 
 
@@ -116,6 +129,7 @@ class SugarBuilder {
     bool useSugarName_;        ///< If true, base form/chirality on name instead of geometry
     AtomMap myMap_;            ///< Used to determine unique atoms for chirality
     int debug_;
+    FxnGroupBuilder* FGB_;
 };
 }
 }

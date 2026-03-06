@@ -4,11 +4,12 @@
 #include <cstring> // strncmp
 #include <cctype> // isdigit
 #include "Parm_CharmmPsf.h"
-#include "CpptrajStdio.h"
-#include "StringRoutines.h"
-#include "Mol.h" // UniqueCount()
-#include "CharmmParamFile.h"
 #include "BufferedLine.h"
+#include "CharmmParamFile.h"
+#include "CpptrajStdio.h"
+#include "Mol.h" // UniqueCount()
+#include "Parm/AssignParams.h"
+#include "StringRoutines.h"
 
 /// CONSTRUCTOR
 Parm_CharmmPsf::Parm_CharmmPsf() :
@@ -132,8 +133,13 @@ int Parm_CharmmPsf::ReadDihedrals(BufferedLine& infile, int ndihedral, const cha
             }
           } else {
             // Charmm Improper. Expect only one paramter per type.
-            DihedralParmType ipt = params_.IP().FindParam( types, found );
-            parmOut.AddCharmmImproper( dih, ipt );
+            DihedralParmArray ipa = params_.IP().FindParam( types, found );
+            if (found) {
+              if (ipa.size() > 1)
+                mprintf("Warning: %zu improper parameters found for types %s - %s - %s - %s, expected only one."
+                        "Warning: Only using first parameter.\n", ipa.size(), *(types[0]), *(types[1]), *(types[2]), *(types[3]));
+              parmOut.AddCharmmImproper( dih, ipa.front() );
+            }
           } 
           if (!found) {
             mprintf("Warning: Parameters not found for %s %s - %s - %s - %s\n", typestr, parmOut.AtomMaskName(a1).c_str(), parmOut.AtomMaskName(a2).c_str(), parmOut.AtomMaskName(a3).c_str(), parmOut.AtomMaskName(a4).c_str());
@@ -369,7 +375,7 @@ int Parm_CharmmPsf::ReadParm(FileName const& fname, Topology &parmOut) {
   double psfcharge;
   double psfmass;
 //  typedef std::vector<std::string> Sarray;
-  ParmHolder<AtomType>& atomTypes = params_.AT();
+  Cpptraj::Parm::ParmHolder<AtomType>& atomTypes = params_.AT();
 //  Sarray SegIDs;
   bool firstLine = true;
   enum PsfFormatType { T_CHARMM = 0, T_VMD };
@@ -566,7 +572,11 @@ int Parm_CharmmPsf::ReadParm(FileName const& fname, Topology &parmOut) {
 
   // Add nonbonded parameters
   if (params_.HasLJparams()) {
-    parmOut.AssignNonbondParams( atomTypes, params_.NB() );
+    Cpptraj::Parm::AssignParams AP;
+    AP.SetDebug( debug_ );
+    AP.SetVerbose( debug_ ); // TODO separate verbosity?
+    AP.AssignNonbondParams( parmOut, atomTypes, params_.NB(), params_.NB14(),
+                            params_.LJC(), params_.HB() );
   }
 
   return 0;
@@ -762,9 +772,9 @@ int Parm_CharmmPsf::WriteParm(FileName const& fname, Topology const& parm) {
   if ((idx % 2)==0) outfile.Printf("\n");
   outfile.Printf("\n");
   // Write out NIMPHI section
-  WriteSectionHeader(outfile, "!NIMPHI: impropers", parm.Chamber().Impropers().size());
+  WriteSectionHeader(outfile, "!NIMPHI: impropers", parm.Impropers().size());
   idx = 1;
-  WriteDihedrals(parm.Chamber().Impropers(), idx, outfile, dihfmt);
+  WriteDihedrals(parm.Impropers(), idx, outfile, dihfmt);
   if ((idx % 2)==0) outfile.Printf("\n");
   outfile.Printf("\n");
 

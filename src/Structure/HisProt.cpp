@@ -1,10 +1,64 @@
 #include "HisProt.h"
 #include "StructureRoutines.h"
+#include "../ArgList.h"
 #include "../CpptrajStdio.h"
 #include "../NameType.h"
 #include "../Topology.h"
 
 using namespace Cpptraj::Structure;
+
+/** CONSTRUCTOR */
+HisProt::HisProt() {}
+
+/// Warn if name length greater than NameType max
+static inline void warn_length(std::string const& nameIn) {
+  if (nameIn.size() >= NameType::max())
+    mprintf("Warning: Name '%s' is too large and will be truncated.\n", nameIn.c_str());
+}
+
+const char* HisProt::keywords_ =
+  "\t[{nohisdetect |\n"
+  "\t  [nd1 <nd1>] [ne2 <ne2] [hisname <his>] [hiename <hie>]\n"
+  "\t  [hidname <hid>] [hipname <hip]} [defaulthis <default>]]\n";
+
+/** Initialize from args. Get atom/residue names. */
+int HisProt::InitHisProt(ArgList& argIn, int debugIn) {
+  nd1name_ = argIn.GetStringKey("nd1", "ND1");
+  ne2name_ = argIn.GetStringKey("ne2", "NE2");
+  hisname_ = argIn.GetStringKey("hisname", "HIS");
+  hiename_ = argIn.GetStringKey("hiename", "HIE");
+  hidname_ = argIn.GetStringKey("hidname", "HID");
+  hipname_ = argIn.GetStringKey("hipname", "HIP");
+  default_ = argIn.GetStringKey("defaulthis");
+  warn_length(nd1name_);
+  warn_length(ne2name_);
+  warn_length(hisname_);
+  warn_length(hiename_);
+  warn_length(hidname_);
+  warn_length(hipname_);
+  if (!default_.empty())
+    warn_length(default_);
+  return 0;
+}
+
+/** Print info to stdout. */
+void HisProt::HisProtInfo() const {
+  mprintf("\tHistidine protonation detection:\n");
+  mprintf("\t\tND1 atom name                   : %s\n", nd1name_.c_str());
+  mprintf("\t\tNE2 atom name                   : %s\n", ne2name_.c_str());
+  mprintf("\t\tHistidine original residue name : %s\n", hisname_.c_str());
+  mprintf("\t\tEpsilon-protonated residue name : %s\n", hiename_.c_str());
+  mprintf("\t\tDelta-protonated residue name   : %s\n", hidname_.c_str());
+  mprintf("\t\tDoubly-protonated residue name  : %s\n", hipname_.c_str());
+  if (!default_.empty())
+     mprintf("\t\tDefault residue name            : %s\n", default_.c_str());
+}
+
+/** Determine histidine protonation from hydrogens. */
+int HisProt::DetermineHisProt(Topology& topIn) const {
+  return determineHisProt(topIn, nd1name_, ne2name_, hisname_,
+                          hiename_, hiename_, hipname_, default_);
+}
 
 /** Try to determine histidine protonation from existing hydrogens.
   * Change residue names as appropriate.
@@ -15,14 +69,16 @@ using namespace Cpptraj::Structure;
   * \param HieName Name for epsilon-protonated His.
   * \param HidName Name for delta-protonated His.
   * \param HipName Name for doubly-protonated His.
+  * \param defaultName optional residue name for default if nothing else detected
   */
-int Cpptraj::Structure::DetermineHisProt( Topology& topIn,
+int HisProt::determineHisProt( Topology& topIn,
                                            NameType const& ND1,
                                            NameType const& NE2,
                                            NameType const& HisName,
                                            NameType const& HieName,
                                            NameType const& HidName,
-                                           NameType const& HipName )
+                                           NameType const& HipName,
+                                           std::string const& defaultName )
 {
   typedef std::vector<int> Iarray;
   mprintf("\tAttempting to determine histidine form from any existing H atoms.\n");
@@ -98,12 +154,13 @@ int Cpptraj::Structure::DetermineHisProt( Topology& topIn,
       mprintf("\t\t%s => %s\n", topIn.TruncResNameOnumId(*rnum).c_str(), *HieName);
       ChangeResName( topIn.SetRes(*rnum), HieName );
       nchanged++;
+    } else if (!defaultName.empty()) {
+      // Default
+      NameType defName(defaultName);
+      mprintf("\tUsing default name '%s' for %s\n", *defName, topIn.TruncResNameOnumId(*rnum).c_str());
+      ChangeResName( topIn.SetRes(*rnum), defName );
+      nchanged++;
     }
-    //else {
-    //  // Default to epsilon
-    //  mprintf("\tUsing default name '%s' for %s\n", *HieName, topIn.TruncResNameOnumId(*rnum).c_str());
-    //  HisResNames.push_back( HieName );
-    //}
   }
   if (nchanged == 0) 
     mprintf("\tNo histidine names were changed.\n");

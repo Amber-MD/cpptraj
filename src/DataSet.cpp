@@ -33,6 +33,9 @@ const char* DataSet::Descriptions_[] = {
   "unsigned integer",           // UNSIGNED_INTEGER
   "frames",                     // FRAMES
   "zmatrix",                    // ZMATRIX
+  "name map",                   // NAMEMAP
+  "LEaP options",               // LEAPOPTS
+  "PDB residue map",            // PDBRESMAP
   "unknown"                     // UNKNOWN_DATA
 };
 
@@ -89,6 +92,13 @@ void DataSet::ClearAssociatedData() {
   for (AdataArray::iterator ad = associatedData_.begin(); ad != associatedData_.end(); ++ad)
     delete *ad;
   associatedData_.clear();
+}
+
+/** Copy all assocated data from the given data set. */
+void DataSet::CopyAssociatedDataFrom(DataSet const& dsIn) {
+  for (AdataArray::const_iterator ad = dsIn.associatedData_.begin();
+                                  ad != dsIn.associatedData_.end(); ++ad)
+    associatedData_.push_back( (*ad)->Copy() );
 }
 
 // DESTRUCTOR

@@ -12,16 +12,25 @@
  */
 namespace Constants {
   // Various incarnations of PI
-  const double PI           = 3.141592653589793; 
+# ifdef CPPTRAJ_USE_LEAP_PI
+  // NOTE: This lower-precision value of PI is ONLY for comparing results
+  //       directly to LEaP output. It is obtained from LEaP's DEGTORAD
+  //       constant 0.0174533 * 180.
+  const double PI           = 3.141594;
+  const double DEGRAD       = 0.0174533;
+  const double RADDEG       = 1 / DEGRAD;
+# else
+  const double PI           = 3.141592653589793;
+   /// Convert degrees to radians
+  const double DEGRAD       = 0.017453292519943295; // may have precision loss 
+  /// Convert radians to degrees
+  const double RADDEG       =   57.29577951308232;  // may have precision loss
+# endif
   const double TWOPI        = 6.283185307179586;  // may have precision loss
   const double FOURPI       = 12.566370614359172; // may have precision loss
   const double FOURTHIRDSPI = 4.1887902047863909; // may have precision loss 
   const double FOURFIFTHSPI = 2.5132741228718345; // may have precision loss
   const double PIOVER2      = 1.5707963267948966; // may have precision loss 
-  /// Convert degrees to radians
-  const double DEGRAD       = 0.017453292519943295; // may have precision loss 
-  /// Convert radians to degrees
-  const double RADDEG       =   57.29577951308232;  // may have precision loss
   /// For checking floating point zero
   const double SMALL        = 0.00000000000001;
   /// Gas constant in J/mol*K

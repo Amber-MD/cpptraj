@@ -23,7 +23,7 @@ class DataIO_AmberPrep : public DataIO {
     int readCHARGE(BufferedLine&) const;
     int readLOOP(BufferedLine&, AtPairArray&) const;
     int readIMPROPER(BufferedLine&) const;
-    int readAmberPrep(BufferedLine&, DataSetList&, std::string const&) const;
+    int readAmberPrep(BufferedLine&, DataSetList&, std::string const&);
 
     bool removeDummyAtoms_; ///< Remove dummy atoms if true
 };

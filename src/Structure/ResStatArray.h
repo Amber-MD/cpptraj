@@ -27,6 +27,12 @@ class ResStatArray {
     iterator begin() { return resStat_.begin(); }
     /// \return iterator to end
     iterator end()   { return resStat_.end(); }
+
+    typedef std::vector<Type>::const_iterator const_iterator;
+    /// \return const iterator to beginning
+    const_iterator begin() const { return resStat_.begin(); }
+    /// \return iterator to end
+    const_iterator end()   const { return resStat_.end(); }
   private:
     typedef std::vector<Type> Rarray;
     Rarray resStat_; ///< Status of each residue in a topology

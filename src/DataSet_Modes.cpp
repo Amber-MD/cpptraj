@@ -341,8 +341,7 @@ int DataSet_Modes::CalcEigen(DataSet_2D const& mIn, int n_to_calc) {
     // for matrices/vectors used by the Lanczos iteration.
     int ipntr[11];
     std::fill( ipntr, ipntr + 11, 0 );
-    // Create copy of matrix since it will be modified 
-    double* mat = mIn.MatrixArray();
+    // Copy of matrix mat was created above since it will be modified by dsaupd_
     // LOOP
     bool loop = false;
     do {

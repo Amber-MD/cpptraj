@@ -89,6 +89,8 @@ class ArgList {
     int NextDoubleToInt(int);
     /// \return the string following the given key
     std::string const& GetStringKey(const char *);
+    /// \return the string following the given key
+    std::string const& GetStringKey(std::string const& s) { return GetStringKey(s.c_str()); }
     /// \return ArgList containing N unmarked arguments following given key
     ArgList GetNstringKey(const char*, int);
     /// \return string following given key or default if not found.

@@ -18,13 +18,15 @@ size_t DataSet_Parameters::Size() const {
 void DataSet_Parameters::Info() const {
   if (Size() > 0) {
     mprintf(" (");
-    if (AT().size() > 0) mprintf(" types=%zu", AT().size());
-    if (NB().size() > 0) mprintf(" LJ pairs=%zu", NB().size());
-    if (BP().size() > 0) mprintf(" bnd=%zu", BP().size());
-    if (AP().size() > 0) mprintf(" ang=%zu", AP().size());
-    if (UB().size() > 0) mprintf(" UB=%zu", UB().size());
-    if (DP().size() > 0) mprintf(" dih=%zu", DP().size());
-    if (IP().size() > 0) mprintf(" imp=%zu", IP().size());
+    if (AT().size() > 0)   mprintf(" types=%zu", AT().size());
+    if (NB().size() > 0)   mprintf(" LJ pairs=%zu", NB().size());
+    if (NB14().size() > 0) mprintf(" LJ14 pairs=%zu", NB14().size());
+    if (HB().size() > 0)   mprintf(" HB pairs=%zu", HB().size());
+    if (BP().size() > 0)   mprintf(" bnd=%zu", BP().size());
+    if (AP().size() > 0)   mprintf(" ang=%zu", AP().size());
+    if (UB().size() > 0)   mprintf(" UB=%zu", UB().size());
+    if (DP().size() > 0)   mprintf(" dih=%zu", DP().size());
+    if (IP().size() > 0)   mprintf(" imp=%zu", IP().size());
     mprintf(" )");
   }
 }
