@@ -493,7 +493,7 @@ int Topology::addTopAtom(Atom const& atomIn, Residue const& resIn,
   AddTopAtom(atomIn, resIn);
   atoms_.back().SetMol( molnum );
   if (molnum > molecules_.size())
-    mprintf("Warning: AddTopAtom(): Molecule number %i is not consecutive.\n");
+    mprintf("Warning: AddTopAtom(): Molecule number %i is not consecutive.\n", molnum+1);
   if (molnum >= molecules_.size()) {
     molecules_.resize( molnum+1 );
     if (isSolvent)

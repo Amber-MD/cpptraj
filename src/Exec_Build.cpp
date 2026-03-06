@@ -923,7 +923,7 @@ int Exec_Build::createAssembly(Topology& topIn, Frame& frameIn,
 const
 {
   if (CRDIN.Size() < 2) {
-    mprintf("Warning: Only %zu frames in COORDS set '%s'; no assembly needed.\n");
+    mprintf("Warning: Only %zu frames in COORDS set '%s'; no assembly needed.\n", CRDIN.Size(), CRDIN.legend());
     frameIn = CRDIN.AllocateFrame();
     CRDIN.GetFrame(0, frameIn);
     topIn = CRDIN.Top();

@@ -799,7 +799,7 @@ const
   }
 
   if (crd.Size() > 1)
-    mprintf("Warning: '%s' has more than 1 frame. Only using first frame.\n");
+    mprintf("Warning: '%s' has more than 1 frame. Only using first frame.\n", crdName.c_str());
 
   Trajout_Single trajOut;
   ArgList tmpargs;

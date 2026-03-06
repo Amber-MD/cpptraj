@@ -1117,7 +1117,7 @@ int AmberParamFile::WriteParams(ParameterSet& prm, FileName const& fname) const
   {
     std::string asym = at->first[0].Truncated();
     if (asym.size() > 2)
-      mprintf("Warning: Atom symbol %s is larger than 2 characters, which breaks Amber FF format.\n");
+      mprintf("Warning: Atom symbol %s is larger than 2 characters, which breaks Amber FF format.\n", asym.c_str());
     outfile.Printf("%-2s", asym.c_str());
     if (at->second.Mass() < 10.0)
       outfile.Printf(" %-10.3f", at->second.Mass());

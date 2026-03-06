@@ -114,7 +114,7 @@ int DataIO_AmberLib::ReadData(FileName const& fname, DataSetList& dsl, std::stri
         dsl.RemoveSet( set );
         ds = (DataSet_Coords*)dsl.AddSet( DataSet::COORDS, meta );
       } else {
-        mprinterr("Error: Set %s already exists and 'allowoverwrite' not specified.\n");
+        mprinterr("Error: Set %s already exists and 'allowoverwrite' not specified.\n", dsname.c_str());
         return 1;
       }
       if (ds == 0) {

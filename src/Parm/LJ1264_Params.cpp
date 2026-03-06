@@ -595,7 +595,7 @@ int LJ1264_Params::AssignLJ1264(Topology& topOut)
   mprintf("\tAssigning LJ 12-6-4 parameters.\n");
   // Must already have nonbond info
   if (!topOut.Nonbond().HasNonbond()) {
-    mprinterr("Error: Topology %s does not have LJ A/B nonbond parameters; required before setting LJ 12-6-4 nonbond parameters.\n");
+    mprinterr("Error: Topology %s does not have LJ A/B nonbond parameters; required before setting LJ 12-6-4 nonbond parameters.\n", topOut.c_str());
     return 1;
   }
   if (topOut.SetupIntegerMask( mask_ )) {
