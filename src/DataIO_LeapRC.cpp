@@ -937,6 +937,18 @@ const
 {
   if (debug_ > 0)
     mprintf("DEBUG: %s = %s\n", lhs.c_str(), rhs.c_str());
+  // Check if lhs already exists.
+  DataSet* existing = dsl.CheckForSet( MetaData(dsname, lhs) );
+  if (existing != 0) {
+    // Set already exists. Is it the correct type?
+    if (existing->Type() == DataSet::COORDS) {
+      mprintf("Warning: Overwriting existing unit '%s' with '%s'\n", existing->legend(), rhs.c_str());
+      // Do not overwrite yet in case we can't find a set to copy.
+    } else {
+      mprinterr("Error: '%s' exists but is not COORDS, cannot overwrite with '%s'\n", existing->legend(), rhs.c_str());
+      return 1;
+    }
+  }
   // Find the unit to make a copy of
   DataSet* ds0 = dsl.CheckForSet( MetaData(dsname, rhs) );
   if (ds0 == 0) {
@@ -953,6 +965,11 @@ const
     // NOTE: Make only a warning to replicate LEAP behavior
     mprintf("Warning: Could not find unit '%s' to copy to '%s' - skipping.\n", rhs.c_str(), lhs.c_str());
     return 0;
+  }
+  // Remove set if it already exists
+  if (existing != 0) {
+    dsl.RemoveSet( existing );
+    existing = 0;
   }
   DataSet_Coords& crd0 = static_cast<DataSet_Coords&>( *ds0 );
   // Allocate copy
