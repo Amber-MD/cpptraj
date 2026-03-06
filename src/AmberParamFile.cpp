@@ -16,7 +16,9 @@ const int AmberParamFile::MAXSYMLEN = 16;
 
 /// CONSTRUCTOR
 AmberParamFile::AmberParamFile() :
-  debug_(0)
+  debug_(0),
+  default_scee_(1.2), // AMBER DEFAULT
+  default_scnb_(2.0)  // AMBER DEFAULT
 {}
 
 /** Set debug level */
@@ -265,8 +267,8 @@ const
     return 1;
   }
   if (PN < 0.0) PN = -PN;
-  double scee = 1.2; // AMBER DEFAULT
-  double scnb = 2.0; // AMBER DEFAULT
+  double scee = default_scee_; // AMBER DEFAULT
+  double scnb = default_scnb_; // AMBER DEFAULT
   if (nscan == 6) {
     // Check for SCEE/SCNB (GLYCAM)
     if (sSCEE[0] == 'S' && sSCEE[1] == 'C' && sSCEE[2] == 'E' && sSCEE[3] == 'E')

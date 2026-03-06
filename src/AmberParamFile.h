@@ -70,5 +70,7 @@ class AmberParamFile {
     //int ReadInput(std::string&, BufferedLine&) const;
 
     int debug_;
+    double default_scee_;
+    double default_scnb_;
 };
 #endif
