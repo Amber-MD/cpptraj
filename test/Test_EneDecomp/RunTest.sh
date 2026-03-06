@@ -73,7 +73,7 @@ EOF
 fi
 
 UNITNAME='LJ 12-6-4 decomposition'
-CheckFor maxthreads 1
+CheckFor libpme maxthreads 1
 if [ $? -eq 0 ] ; then
   cat > enedecomp.in <<EOF
 parm ../1d23.tip3p.lj1264.parm7

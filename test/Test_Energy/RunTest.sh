@@ -59,7 +59,7 @@ EOF
 fi
 
 UNITNAME='Test LJ 12-6-4 energy'
-CheckFor maxthreads 1
+CheckFor libpme maxthreads 1
 if [ $? -eq 0 ] ; then
   cat > ene.in <<EOF
 parm ../1d23.tip3p.lj1264.parm7
