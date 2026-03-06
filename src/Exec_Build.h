@@ -53,7 +53,7 @@ class Exec_Build : public Exec {
     /// Set up output COORDS (outCrdPtr_) and Topology
     int setupOutputCoords(DataSet*, std::string const&, std::string const&, DataSetList&);
     /// Build, parameterize, solvate, and check
-    RetType BuildAndParmStructure(DataSet*, std::string const&, DataSetList&, int, ArgList&, Cpptraj::Parm::GB_RadiiType);
+    RetType BuildAndParmStructure(DataSet*, std::string const&, DataSetList&, int, ArgList&, Cpptraj::Parm::GB_RadiiType, DataSet_LeapOpts*);
     /// Do input structure clean/prep and fill in missing atoms from templates
     int StructurePrepAndFillTemplates(ArgList&, Topology&, Frame&, Topology&, Frame&, std::string const&, Cpptraj::Structure::Creator const&); // NOTE not const bc of timers
 

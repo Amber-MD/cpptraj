@@ -924,14 +924,14 @@ Exec::RetType Exec_Build::Execute(CpptrajState& State, ArgList& argIn)
     mprinterr("Error: Must specify file to build or COORDS set with 'crdset'\n");
     return CpptrajState::ERR;
   }
-  DataSet* leapopts = State.DSL().FindSetOfType( "*", DataSet::LEAPOPTS );
+  DataSet_LeapOpts* leapopts = (DataSet_LeapOpts*)State.DSL().FindSetOfType( "*", DataSet::LEAPOPTS );
   if (leapopts != 0) {
     // Check for unhandled leap options
     DataSet_LeapOpts const& OPTS = static_cast<DataSet_LeapOpts const&>( *leapopts );
     if (checkUnhandledOptions( OPTS )) return CpptrajState::ERR;
   }
 
-  return BuildAndParmStructure(inCrdPtr, outset, State.DSL(), State.Debug(), argIn, Cpptraj::Parm::UNKNOWN_GB);
+  return BuildAndParmStructure(inCrdPtr, outset, State.DSL(), State.Debug(), argIn, Cpptraj::Parm::UNKNOWN_GB, leapopts);
 }
 
 /** Create an assembly from all the frames in the input coordinates. */
@@ -1070,8 +1070,13 @@ Exec::RetType Exec_Build::BuildStructure(DataSet* inCrdPtr, DataSetList& DSL, in
 /** Set up output COORDS (Topology) */
 int Exec_Build::setupOutputCoords(DataSet* inCrdPtr, std::string const& outset, std::string const& title, DataSetList& DSL)
 {
+  Topology const& topIn = ((DataSet_Coords*)inCrdPtr)->Top();
+  std::string default_title;
+  if (!topIn.ParmName().empty())
+    default_title = topIn.ParmName();
+  else
+    default_title.assign( topIn.c_str() );
   // Set up Output coords
-  std::string default_title( ((DataSet_Coords*)inCrdPtr)->Top().c_str() );
   if (!outset.empty()) {
     // Separate output COORDS set.
     outCrdPtr_ = DSL.AddSet( DataSet::COORDS, outset );
@@ -1106,7 +1111,8 @@ int Exec_Build::setupOutputCoords(DataSet* inCrdPtr, std::string const& outset, 
 /** Run the full build, parameterize, and check. */
 Exec::RetType Exec_Build::BuildAndParmStructure(DataSet* inCrdPtr, std::string const& outset,
                                                 DataSetList& DSL, int debugIn, ArgList& argIn,
-                                                Cpptraj::Parm::GB_RadiiType gbRadIn)
+                                                Cpptraj::Parm::GB_RadiiType gbRadIn,
+                                                DataSet_LeapOpts* leapopts)
 {
   t_total_.Start();
   debug_ = debugIn;
@@ -1178,6 +1184,12 @@ Exec::RetType Exec_Build::BuildAndParmStructure(DataSet* inCrdPtr, std::string c
   std::string solventResName = argIn.GetStringKey("solventresname", "HOH");
   mprintf("\tResidues named '%s' will be recognized as solvent.\n", solventResName.c_str());
   bool flexWater = argIn.hasKey("flexiblewater");
+  if (!flexWater && leapopts->FlexibleWater()) {
+    mprintf("Warning: Flexible water option was set to ON by previous leaprc file; turning on flexible water.\n");
+    flexWater = true;
+  } else if (flexWater && !(leapopts->FlexibleWater()))
+    mprintf("Warning: 'flexwater' specified but flexible water option not set by previous leaprc file;\n"
+            "Warning: Ensure that loaded water models are designed to be flexible.\n");
   if (flexWater)
     mprintf("\tFlexible water option is on.\n");
 
