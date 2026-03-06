@@ -20,9 +20,21 @@ class DataSet_LeapOpts : public DataSet {
 #   endif
     // -------------------------------------------
     int SetGbRadii(std::string const&);
+    int SetSCEE(double);
+    int SetSCNB(double);
+    int SetDipoleDampFactor(double);
+    int SetIpol(int);
 
     Cpptraj::Parm::GB_RadiiType PbRadii() const { return pbradii_; }
+    double SCEE() const { return scee_; }
+    double SCNB() const { return scnb_; }
+    double DipoleDampFactor() const { return dipoleDampFactor_; }
+    int IPOL() const { return ipol_; }
   private:
     Cpptraj::Parm::GB_RadiiType pbradii_;
+    double scee_;
+    double scnb_;
+    double dipoleDampFactor_;
+    int ipol_;
 };
 #endif
