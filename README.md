@@ -80,7 +80,7 @@ the following libraries:
 * Parallel NetCDF (-mpi build only, for NetCDF trajectory output in parallel)
 * CUDA (-cuda build only)
 * HIP (-hip build only)
-* FFTW (mostly optional; required for PME functionality and very large FFTs)
+* FFTW (mostly optional but recommended; required for PME functionality and very large FFTs)
 
 CPPTRAJ also makes use of the following libraries that are bundled with CPPTRAJ. External ones can be used in place of these if desired.
 
