@@ -846,7 +846,7 @@ void Exec_Build::Help() const
   Cpptraj::Structure::PdbCleaner::Help();
   mprintf("\t[title <title>] [verbose <#>] [keepmissingatoms] [nofixorder]\n"
           "\t[parmout <topology file>] [crdout <coord file>] [simplecheck]\n"
-          "\t[reportfile <check file>]\n");
+          "\t[reportfile <check file>] [flexiblewater]\n");
   mprintf("\t[%s]\n", Cpptraj::Parm::GB_Params::HelpText().c_str());
   mprintf("    LJ 12-6-4 options:\n");
   mprintf("\t[lj1264 %s]\n", Cpptraj::Parm::LJ1264_Params::HelpText().c_str());

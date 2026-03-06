@@ -6965,7 +6965,7 @@ build [name <output COORDS>] {crdset <COORDS set>|<file>} [{frame <#>|doassembly
 \end_layout
 
 \begin_layout LyX-Code
-    [reportfile <check file>]
+    [reportfile <check file>] [flexiblewater]
 \end_layout
 
 \begin_layout LyX-Code
@@ -7291,6 +7291,13 @@ file>] Name of the output coordinates file.
 
 file>] File to write details on problems with the final structure;
  if not specified write to STDOUT.
+\end_layout
+
+\begin_layout Description
+[flexiblewater] Option to turn on flexible water,
+ i.e.
+ water models with angle terms.
+ Note that the loaded force field must have water angle (H-O-O) parameters.
 \end_layout
 
 \begin_layout Description
