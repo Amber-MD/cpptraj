@@ -5,7 +5,6 @@
 #ifdef TIMER
 # include "../Timer.h"
 #endif
-#include "../DataSet_LeapOpts.h"
 class AngleArray;
 class AngleParmArray;
 class AngleParmType;
@@ -106,9 +105,8 @@ class AssignParams {
 
     int debug_;
     int verbose_;
-    DataSet_LeapOpts OPTS_;       ///< Hold parameter-related options
-    //bool deleteExtraPointAngles_; ///< If true, remove angles/torsions containing extra points.
-    //bool flexibleWater_;          ///< If true, allow H-O-H angle for water
+    bool deleteExtraPointAngles_; ///< If true, remove angles/torsions containing extra points.
+    bool flexibleWater_;          ///< If true, allow H-O-H angle for water
 #   ifdef TIMER
     Timer t_total_;
     Timer t_bonds_;

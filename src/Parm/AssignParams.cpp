@@ -21,9 +21,9 @@ using namespace Cpptraj::Parm;
 /** CONSTRUCTOR */
 AssignParams::AssignParams() :
   debug_(0),
-  verbose_(0)//,
-//  deleteExtraPointAngles_(true),
-//  flexibleWater_(false)
+  verbose_(0),
+  deleteExtraPointAngles_(true),
+  flexibleWater_(false)
 {}
 
 /** Set debug level */
@@ -143,7 +143,7 @@ const
     types.AddName( topOut[ang->A2()].Type() );
     types.AddName( topOut[ang->A3()].Type() );
     // Skip extra points
-    if (OPTS_.DeleteExtraPointAngles()) {
+    if (deleteExtraPointAngles_) {
       if ( topOut[ang->A1()].Element() == Atom::EXTRAPT ||
            topOut[ang->A3()].Element() == Atom::EXTRAPT)
       {
@@ -167,7 +167,7 @@ const
       continue;
     }
     // Skip water angles
-    if (!OPTS_.FlexibleWater()) {
+    if (!flexibleWater_) {
       if (topOut[ang->A1()].Element() == Atom::HYDROGEN &&
           topOut[ang->A2()].Element() == Atom::OXYGEN &&
           topOut[ang->A3()].Element() == Atom::HYDROGEN)
@@ -341,7 +341,7 @@ const
     types.AddName( topOut[dih->A3()].Type() );
     types.AddName( topOut[dih->A4()].Type() );
     // Skip extra points
-    if (OPTS_.DeleteExtraPointAngles()) {
+    if (deleteExtraPointAngles_) {
       if ( topOut[dih->A1()].Element() == Atom::EXTRAPT ||
            topOut[dih->A4()].Element() == Atom::EXTRAPT)
       {
