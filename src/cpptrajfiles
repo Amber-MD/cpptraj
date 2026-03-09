@@ -529,6 +529,7 @@ LIBCPPTRAJ_CORE_OBJECTS= \
   Matrix_3x3.o \
   NameType.o \
   Parallel.o \
+  Parm/Merge.o \
   Range.o \
   Residue.o \
   Units.o \
@@ -546,6 +547,7 @@ LIBCPPTRAJ_FILE_OBJECTS= \
   FileIO_Std.o \
   FileTypes.o \
   CIFfile.o \
+  ModXNA_Info.o \
   Mol2File.o \
   PDBfile.o \
   SDFfile.o \
@@ -625,9 +627,14 @@ LIBCPPTRAJ_TRAJ_OBJECTS= \
 # These objects contain parameter file functionality. Requires core and file libraries.
 LIBCPPTRAJ_PARM_OBJECTS= \
   BondSearch.o \
+  CmapParmHolder.o \
   CharmmParamFile.o \
   ExclusionArray.o \
+  GuessAtomHybridization.o \
   Mol.o \
+  Parm/AssignParams.o \
+  Parm/DihedralParmSet.o \
+  Parm/GetParams.o \
   Parm/ParameterSet.o \
   ParmFile.o \
   Parm_Amber.o \
@@ -637,5 +644,6 @@ LIBCPPTRAJ_PARM_OBJECTS= \
   Parm_Mol2.o \
   Parm_PDB.o \
   Parm_SDF.o \
-  Parm_Tinker.o
+  Parm_Tinker.o \
+  Structure/GenerateConnectivityArrays.o
 
