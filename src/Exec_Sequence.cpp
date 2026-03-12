@@ -49,37 +49,20 @@ const
 }
 
 /** Old routine for building the specified sequence. TODO needed for modXNA */
-int Exec_Sequence::old_generate_sequence(DataSet_Coords* OUT,
-                                     Sarray const& main_sequence,
-                                     Cpptraj::Structure::Creator const& creator)
+int Exec_Sequence::old_generate_sequence(DataSet_Coords* OUT, Uarray const& Units)
 const
 {
   mprintf("\tUsing the old 'sequence' routine compatible with modXNA.\n");
   // First, get all units in order.
-  typedef std::vector<DataSet_Coords*> Uarray;
-  Uarray Units;
-  Units.reserve( main_sequence.size() );
   typedef std::vector<int> Iarray;
   Iarray connectAt0, connectAt1;
   connectAt0.reserve( Units.size() );
   connectAt1.reserve( Units.size() );
   int total_natom = 0;
 
-  for (Sarray::const_iterator it = main_sequence.begin(); it != main_sequence.end(); ++it)
+  for (Uarray::const_iterator it = Units.begin(); it != Units.end(); ++it)
   {
-    DataSet_Coords* unit = creator.IdTemplateFromName( *it );
-
-    if (unit == 0) {
-      mprinterr("Error: Unit '%s' not found.\n", it->c_str());
-      return 1;
-    }
-    if (unit->Size() < 1) {
-      mprinterr("Error: Unit '%s' is empty.\n", unit->legend());
-      return 1;
-    }
-    if (unit->Size() > 1) {
-      mprintf("Warning: Unit '%s' has more than 1 frame. Only using first frame.\n", unit->legend());
-    }
+    DataSet_Coords* unit = *it;
 
     // Needs to have connect associated data
     AssociatedData* ad = unit->GetAssociatedData(AssociatedData::CONNECT);
@@ -96,7 +79,6 @@ const
     // Do not update connect atom 0 indices since they will not yet be connected.
     connectAt0.push_back( C.Connect()[0] );
     connectAt1.push_back( C.Connect()[1] + total_natom );
-    Units.push_back( unit );
     total_natom += unit->Top().Natom();
   } // END loop over sequence
   mprintf("\tFound %zu units.\n", Units.size());
@@ -152,37 +134,16 @@ const
 
 /** Generate and build the specified sequence. */
 int Exec_Sequence::generate_sequence(DataSet_Coords* OUT,
-                                     Sarray const& main_sequence,
+                                     std::string const& title,
+                                     Uarray const& Units,
                                      Cpptraj::Structure::Creator const& creator)
 const
 {
-  std::string title;
-  // First, get all units in order.
-  typedef std::vector<DataSet_Coords*> Uarray;
-  Uarray Units;
-  Units.reserve( main_sequence.size() );
-
+  // First, get total atom count. 
   int total_natom = 0;
-
-  for (Sarray::const_iterator it = main_sequence.begin(); it != main_sequence.end(); ++it)
+  for (Uarray::const_iterator it = Units.begin(); it != Units.end(); ++it)
   {
-    DataSet_Coords* unit = creator.IdTemplateFromName( *it );
-
-    if (unit == 0) {
-      mprinterr("Error: Unit '%s' not found.\n", it->c_str());
-      return 1;
-    }
-    if (unit->Size() < 1) {
-      mprinterr("Error: Unit '%s' is empty.\n", unit->legend());
-      return 1;
-    }
-    if (unit->Size() > 1) {
-      mprintf("Warning: Unit '%s' has more than 1 frame. Only using first frame.\n", unit->legend());
-    }
-    Units.push_back( unit );
-    // Use the first unit name as title to match leap behavior
-    if (title.empty())
-      title = *it;
+    DataSet_Coords* unit = *it;
     total_natom += unit->Top().Natom();
   } // END loop over sequence
   mprintf("\tFound %zu units.\n", Units.size());
@@ -401,6 +362,7 @@ Exec::RetType Exec_Sequence::Execute(CpptrajState& State, ArgList& argIn)
       return CpptrajState::ERR;
     }
   }
+  std::string title = argIn.GetStringKey("title");
   // GB radii set. Default to mbondi
   Cpptraj::Parm::GB_Params gbradii;
   if (gbradii.Init_GB_Radii(argIn, Cpptraj::Parm::UNKNOWN_GB)) return CpptrajState::ERR;
@@ -440,6 +402,9 @@ Exec::RetType Exec_Sequence::Execute(CpptrajState& State, ArgList& argIn)
     mprintf(" %s", it->c_str());
   mprintf("\n");
   mprintf("\tOutput set name : %s\n", OUT->legend());
+  // If no title, use first unit name to be consistent with leap
+  if (title.empty())
+    title.assign( main_sequence.front() );
 
   // Get units
   Uarray Units;
@@ -453,10 +418,10 @@ Exec::RetType Exec_Sequence::Execute(CpptrajState& State, ArgList& argIn)
   switch (mode_) {
     case UNSPECIFIED :
     case NEW:
-      err = generate_sequence(OUT, main_sequence, creator);
+      err = generate_sequence(OUT, title, Units, creator);
       break;
     case OLD:
-      err = old_generate_sequence(OUT, main_sequence, creator);
+      err = old_generate_sequence(OUT, Units);
       break;
   }
   if (err != 0) {

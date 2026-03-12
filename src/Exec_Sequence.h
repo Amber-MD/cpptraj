@@ -15,14 +15,14 @@ class Exec_Sequence : public Exec {
     RetType Execute(CpptrajState&, ArgList&);
   private:
     typedef std::vector<std::string> Sarray;
-    typedef std::vector<DataSet*> Uarray;
+    typedef std::vector<DataSet_Coords*> Uarray;
     enum ModeType { UNSPECIFIED = 0, NEW, OLD };
 
     int get_units(Uarray&, Sarray const&, Cpptraj::Structure::Creator const&) const;
 
-    int old_generate_sequence(DataSet_Coords*, Sarray const&, Cpptraj::Structure::Creator const&) const;
+    int old_generate_sequence(DataSet_Coords*, Uarray const&) const;
 
-    int generate_sequence(DataSet_Coords*, Sarray const&, Cpptraj::Structure::Creator const&) const;
+    int generate_sequence(DataSet_Coords*, std::string const& title, Uarray const&, Cpptraj::Structure::Creator const&) const;
 
     int debug_;
     ModeType mode_;
