@@ -1,6 +1,7 @@
 #ifndef INC_STRUCTURE_OLDBUILDER_H
 #define INC_STRUCTURE_OLDBUILDER_H
 #include <vector>
+#include "StructureEnum.h"
 class Topology;
 class Frame;
 namespace Cpptraj {
