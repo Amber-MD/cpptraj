@@ -8,6 +8,9 @@
 #include "Structure/OldBuilder.h" // TODO needed for modXNA
 #include "Structure/Creator.h"
 
+/** CONSTRUCTOR */
+Exec_Sequence::Exec_Sequence() : Exec(COORDS), debug_(0), mode_(UNSPECIFIED) {}
+
 /** Get units in the sequence. */
 int Exec_Sequence::get_units(Uarray& Units,
                              std::string& title,
@@ -154,7 +157,6 @@ const
 
 /** Generate and build the specified sequence. */
 int Exec_Sequence::generate_sequence(DataSet_Coords* OUT,
-                                     DataSetList const& DSL,
                                      Sarray const& main_sequence,
                                      Cpptraj::Structure::Creator const& creator)
 const
@@ -392,6 +394,16 @@ Exec::RetType Exec_Sequence::Execute(CpptrajState& State, ArgList& argIn)
 
   // Args
   int verbose = argIn.getKeyInt("verbose", 0);
+  mode_ = UNSPECIFIED;
+  std::string modeArg = argIn.GetStringKey("mode");
+  if (modeArg == "old")
+    mode_ = OLD;
+  else if (modeArg == "new")
+    mode_ = NEW;
+  else {
+    mprinterr("Error: Unrecognized 'mode' argument: %s\n", modeArg.c_str());
+    return CpptrajState::ERR;
+  }
   // GB radii set. Default to mbondi
   Cpptraj::Parm::GB_Params gbradii;
   if (gbradii.Init_GB_Radii(argIn, Cpptraj::Parm::UNKNOWN_GB)) return CpptrajState::ERR;
@@ -433,7 +445,17 @@ Exec::RetType Exec_Sequence::Execute(CpptrajState& State, ArgList& argIn)
   mprintf("\tOutput set name : %s\n", OUT->legend());
 
   // Execute
-  if (generate_sequence(OUT, State.DSL(), main_sequence, creator)) {
+  int err = 0;
+  switch (mode_) {
+    case UNSPECIFIED :
+    case NEW:
+      err = generate_sequence(OUT, main_sequence, creator);
+      break;
+    case OLD:
+      err = old_generate_sequence(OUT, main_sequence, creator);
+      break;
+  }
+  if (err != 0) {
     mprinterr("Error: Could not generate sequence.\n");
     return CpptrajState::ERR;
   }
