@@ -1,4 +1,5 @@
 #include "OldBuilder.h"
+#include "BuildAtom.h"
 #include "Chirality.h"
 #include "Zmatrix.h"
 #include "../CpptrajStdio.h"
