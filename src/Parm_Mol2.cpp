@@ -3,6 +3,7 @@
 #include "BondSearch.h"
 #include "CpptrajStdio.h"
 #include "ModXNA_Info.h"
+#include "Parm/Bond_Params.h"
 
 // Parm_Mol2::ID_ParmFormat() 
 bool Parm_Mol2::ID_ParmFormat(CpptrajFile& fileIn) {
@@ -50,6 +51,9 @@ int Parm_Mol2::ReadParm(FileName const& fname, Topology &parmOut) {
     BondSearch bondSearch;
     bondSearch.FindBonds( parmOut, searchType_, Coords, Offset_, debug_ );
   }
+
+  // For modXNA backwards-compatibility, generate bond parameters TODO remove
+  Cpptraj::Parm::GenerateBondParameters(parmOut);
 
   // No box
   parmOut.SetParmBox( Box() );
