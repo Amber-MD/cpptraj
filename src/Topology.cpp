@@ -1932,6 +1932,9 @@ Topology* Topology::ModifyByMap(std::vector<int> const& MapIn, bool setupFullPar
   // Determine number of extra points
   newParm->DetermineNumExtraPoints();
 
+  // modXNA
+  newParm->modxna_ = modxna_;
+
   return newParm;
 }
 
