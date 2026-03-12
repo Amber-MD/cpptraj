@@ -15,6 +15,11 @@ class Exec_Sequence : public Exec {
     RetType Execute(CpptrajState&, ArgList&);
   private:
     typedef std::vector<std::string> Sarray;
+    typedef std::vector<DataSet*> Uarray;
+
+    int get_units(Uarray&, std::string&, int&, Sarray const&, Cpptraj::Structure::Creator const&) const;
+
+    int old_generate_sequence(DataSet_Coords*, Sarray const&, Cpptraj::Structure::Creator const&) const;
 
     int generate_sequence(DataSet_Coords*, DataSetList const&,
                           Sarray const&, Cpptraj::Structure::Creator const&) const;
