@@ -7,6 +7,7 @@ class Topology;
 class Molecule;
 namespace Cpptraj {
 namespace Structure {
+class BuildAtom; // TODO needed for modXNA
 /// Hold internal coordinates for a system.
 class Zmatrix {
     typedef std::vector<InternalCoords> ICarray;
@@ -84,6 +85,10 @@ class Zmatrix {
     static Vec3 AtomIposition(Vec3 const&, Vec3 const&, Vec3 const&, double, double, double);
     /// \return XYZ position of atom I for given internal coordinate
     static Vec3 AtomIposition(InternalCoords const&, Frame const&);
+
+    /// Get internal coordinates around bond in one direction. TODO for modXNA
+    int SetupICsAroundBond(int, int, Frame const&, Topology const&,
+                           std::vector<bool> const&, BuildAtom const&, BuildAtom const&);
   private:
     typedef std::vector<int> Iarray;
     /// Set seeds as 3 consecutive atoms with known positions

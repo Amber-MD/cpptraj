@@ -12,6 +12,8 @@ STRUCTURE_SOURCES= \
   InternalCoords.cpp \
   LeastSquaresPlane.cpp \
   MetalCenterFinder.cpp \
+  Model.cpp \
+  OldBuilder.cpp \
   PdbCleaner.cpp \
   RingFinder.cpp \
   Solvate.cpp \

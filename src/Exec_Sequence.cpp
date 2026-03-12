@@ -5,22 +5,20 @@
 #include "Parm/AssignParams.h"
 #include "Parm/GB_Params.h"
 #include "Structure/Builder.h"
+#include "Structure/OldBuilder.h" // TODO needed for modXNA
 #include "Structure/Creator.h"
 
-/** Generate and build the specified sequence. */
-int Exec_Sequence::generate_sequence(DataSet_Coords* OUT,
-                                     DataSetList const& DSL,
-                                     Sarray const& main_sequence,
-                                     Cpptraj::Structure::Creator const& creator)
-const
-{
-  std::string title;
-  // First, get all units in order.
-  typedef std::vector<DataSet_Coords*> Uarray;
-  Uarray Units;
-  Units.reserve( main_sequence.size() );
+/** CONSTRUCTOR */
+Exec_Sequence::Exec_Sequence() : Exec(COORDS), debug_(0), mode_(UNSPECIFIED) {}
 
-  int total_natom = 0;
+/** Get units in the sequence. */
+int Exec_Sequence::get_units(Uarray& Units,
+                             Sarray const& main_sequence,
+                             Cpptraj::Structure::Creator const& creator)
+{
+  // First, get all units in order.
+  Units.clear();
+  Units.reserve( main_sequence.size() );
 
   for (Sarray::const_iterator it = main_sequence.begin(); it != main_sequence.end(); ++it)
   {
@@ -37,10 +35,119 @@ const
     if (unit->Size() > 1) {
       mprintf("Warning: Unit '%s' has more than 1 frame. Only using first frame.\n", unit->legend());
     }
+    if (unit->Top().Modxna().HasModxna()) {
+      mprintf("\tUnit '%s' has ModXNA info.\n", unit->legend());
+      if (mode_ == UNSPECIFIED) {
+        mprintf("Warning: No sequence mode specified and ModXNA info detected; using old sequence mode.\n");
+        mode_ = OLD;
+      }
+    }
     Units.push_back( unit );
-    // Use the first unit name as title to match leap behavior
-    if (title.empty())
-      title = *it;
+  } // END loop over sequence
+  mprintf("\tFound %zu units.\n", Units.size());
+  if (Units.empty()) {
+    mprinterr("Error: No units.\n");
+    return 1;
+  }
+  return 0;
+}
+
+/** Old routine for building the specified sequence. TODO needed for modXNA */
+int Exec_Sequence::old_generate_sequence(DataSet_Coords* OUT, Uarray const& Units)
+const
+{
+  mprintf("\tUsing the old 'sequence' routine compatible with modXNA.\n");
+  // First, get all units in order.
+  typedef std::vector<int> Iarray;
+  Iarray connectAt0, connectAt1;
+  connectAt0.reserve( Units.size() );
+  connectAt1.reserve( Units.size() );
+  int total_natom = 0;
+
+  for (Uarray::const_iterator it = Units.begin(); it != Units.end(); ++it)
+  {
+    DataSet_Coords* unit = *it;
+
+    // Needs to have connect associated data
+    AssociatedData* ad = unit->GetAssociatedData(AssociatedData::CONNECT);
+    if (ad == 0) {
+      mprinterr("Error: Unit '%s' does not have CONNECT data.\n", unit->legend());
+      return 1;
+    }
+    AssociatedData_Connect const& C = static_cast<AssociatedData_Connect const&>( *ad );
+    if (C.NconnectAtoms() < 2) {
+      mprinterr("Error: Not enough connect atoms in unit '%s'\n", unit->legend());
+      return 1;
+    }
+    // Update connect atom 1 indices based on their position in the sequence.
+    // Do not update connect atom 0 indices since they will not yet be connected.
+    connectAt0.push_back( C.Connect()[0] );
+    connectAt1.push_back( C.Connect()[1] + total_natom );
+    total_natom += unit->Top().Natom();
+  } // END loop over sequence
+  mprintf("\tFound %zu units.\n", Units.size());
+  if (Units.empty()) {
+    mprinterr("Error: No units.\n");
+    return 1;
+  }
+  for (unsigned int idx = 0; idx < Units.size(); idx++)
+    mprintf("\tUnit %s HEAD %i TAIL %i\n", Units[idx]->legend(), connectAt0[idx]+1, connectAt1[idx]+1);
+
+  Topology combinedTop;
+  combinedTop.SetDebug( debug_ );
+  combinedTop.SetParmName( OUT->Meta().Name(), FileName() );
+  combinedTop.AppendTop( Units.front()->Top() );
+  //combinedTop.SetParmBox( Units // TODO
+  combinedTop.Brief("Sequence topology:");
+
+  Frame CombinedFrame = Units.front()->AllocateFrame();
+  Units.front()->GetFrame(0, CombinedFrame);
+
+
+  using namespace Cpptraj::Structure;
+  OldBuilder builder;
+  for (unsigned int idx = 1; idx < Units.size(); idx++) {
+    mprintf("\tConnect %s atom %i to %s atom %i\n",
+            Units[idx-1]->legend(), connectAt1[idx-1]+1,
+            Units[idx]->legend(),   connectAt0[idx]  +1);
+    Frame mol1frm = Units[idx]->AllocateFrame();
+    Units[idx]->GetFrame(0, mol1frm);
+    int bondat0 = connectAt1[idx-1];
+    int bondat1 = connectAt0[idx];
+    if (bondat0 < 0 || bondat1 < 0) {
+      mprinterr("Error: Invalid connect atom(s) between %s atom %i to %s atom %i\n",
+                Units[idx-1]->legend(), bondat0+1, Units[idx]->legend(), bondat1+1);
+      return 1;
+    }
+    if (builder.Combine( combinedTop, CombinedFrame, Units[idx]->Top(), mol1frm,
+                         connectAt1[idx-1], connectAt0[idx] )) {
+      mprinterr("Error: Sequence combine between units %u %s and %u %s failed.\n",
+                idx, Units[idx-1]->legend(), idx+1, Units[idx]->legend());
+      return 1;
+    }
+  }
+
+  // FIXME TODO common setup?
+
+  OUT->CoordsSetup(combinedTop, CombinedFrame.CoordsInfo());
+  OUT->AddFrame( CombinedFrame );
+
+  return 0;
+}
+
+
+/** Generate and build the specified sequence. */
+int Exec_Sequence::generate_sequence(DataSet_Coords* OUT,
+                                     std::string const& title,
+                                     Uarray const& Units,
+                                     Cpptraj::Structure::Creator const& creator)
+const
+{
+  // First, get total atom count. 
+  int total_natom = 0;
+  for (Uarray::const_iterator it = Units.begin(); it != Units.end(); ++it)
+  {
+    DataSet_Coords* unit = *it;
     total_natom += unit->Top().Natom();
   } // END loop over sequence
   mprintf("\tFound %zu units.\n", Units.size());
@@ -247,6 +354,19 @@ Exec::RetType Exec_Sequence::Execute(CpptrajState& State, ArgList& argIn)
 
   // Args
   int verbose = argIn.getKeyInt("verbose", 0);
+  mode_ = UNSPECIFIED;
+  std::string modeArg = argIn.GetStringKey("mode");
+  if (!modeArg.empty()) {
+    if (modeArg == "old")
+      mode_ = OLD;
+    else if (modeArg == "new")
+      mode_ = NEW;
+    else {
+      mprinterr("Error: Unrecognized 'mode' argument: %s\n", modeArg.c_str());
+      return CpptrajState::ERR;
+    }
+  }
+  std::string title = argIn.GetStringKey("title");
   // GB radii set. Default to mbondi
   Cpptraj::Parm::GB_Params gbradii;
   if (gbradii.Init_GB_Radii(argIn, Cpptraj::Parm::UNKNOWN_GB)) return CpptrajState::ERR;
@@ -286,9 +406,29 @@ Exec::RetType Exec_Sequence::Execute(CpptrajState& State, ArgList& argIn)
     mprintf(" %s", it->c_str());
   mprintf("\n");
   mprintf("\tOutput set name : %s\n", OUT->legend());
+  // If no title, use first unit name to be consistent with leap
+  if (title.empty())
+    title.assign( main_sequence.front() );
+
+  // Get units
+  Uarray Units;
+  if ( get_units(Units, main_sequence, creator) ) {
+    mprinterr("Error: Could not get units.\n");
+    return CpptrajState::ERR;
+  }
 
   // Execute
-  if (generate_sequence(OUT, State.DSL(), main_sequence, creator)) {
+  int err = 0;
+  switch (mode_) {
+    case UNSPECIFIED :
+    case NEW:
+      err = generate_sequence(OUT, title, Units, creator);
+      break;
+    case OLD:
+      err = old_generate_sequence(OUT, Units);
+      break;
+  }
+  if (err != 0) {
     mprinterr("Error: Could not generate sequence.\n");
     return CpptrajState::ERR;
   }

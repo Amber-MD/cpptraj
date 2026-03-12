@@ -10,6 +10,8 @@
 #include "../DistRoutines.h"
 #include "../Topology.h"
 #include "../TorsionRoutines.h"
+#include "BuildAtom.h" // TODO needed for modXNA
+#include "Model.h" // TODO needed for modXNA
 
 using namespace Cpptraj::Structure;
 
@@ -1411,3 +1413,208 @@ int Zmatrix::SetToFrame(Frame& frameOut, Barray& hasPosition) const {
 */
   return 0;
 }
+
+// =============================================================================
+/** Given two bonded atoms A and B, where B has a depth of at least 2
+  * (i.e., it is possible to have B be atom J where we can form J-K-L),
+  * set up a complete set of internal coordinates involving A and B in the
+  * direction of atom A. This means all internal coordinates with A and B
+  * as I and J (should be only 1), as J and K, and as K and L.
+  * TODO This routine is included for backwards compatibility with modXNA.
+  */
+int Zmatrix::SetupICsAroundBond(int atA, int atB, Frame const& frameIn, Topology const& topIn,
+                                std::vector<bool> const& atomPositionKnown,
+                                BuildAtom const& AtomA, BuildAtom const& AtomB)
+{
+  if (debug_ > 0)
+    mprintf("DEBUG: SetupICsAroundBond: atA= %s (%i)  atB= %s (%i)\n",
+            topIn.AtomMaskName(atA).c_str(), atA+1,
+            topIn.AtomMaskName(atB).c_str(), atB+1);
+  IC_.clear();
+
+  Barray hasIC( topIn.Natom(), false );
+  unsigned int nHasIC = 0;
+  // Mark known atoms as already having IC
+  for (std::vector<bool>::const_iterator it = atomPositionKnown.begin();
+                                         it != atomPositionKnown.end(); ++it)
+  {
+    if (*it) MARK( it - atomPositionKnown.begin(), hasIC, nHasIC );
+  }
+
+  // First, make sure atom B as a bond depth of at least 2.
+  // Choose K and L atoms given atA is I and atB is J.
+  Atom const& AJ = topIn[atB];
+  typedef std::pair<int,int> Apair;
+  std::vector<Apair> KLpairs;
+  for (Atom::bond_iterator kat = AJ.bondbegin(); kat != AJ.bondend(); ++kat)
+  {
+    if (*kat != atA) {
+      //mprintf("DEBUG: kat= %s\n", topIn.AtomMaskName(*kat).c_str());
+      Atom const& AK = topIn[*kat];
+      for (Atom::bond_iterator lat = AK.bondbegin(); lat != AK.bondend(); ++lat)
+      {
+        if (*lat != atB && *lat != atA) {
+          //mprintf("DEBUG: lat= %s\n", topIn.AtomMaskName(*lat).c_str());
+          KLpairs.push_back( Apair(*kat, *lat) );
+        }
+      }
+    }
+  }
+  if (debug_ > 0) {
+    for (std::vector<Apair>::const_iterator it = KLpairs.begin();
+                                            it != KLpairs.end(); ++it)
+      mprintf("DEBUG:\t\tKL pair %s - %s\n", topIn.AtomMaskName(it->first).c_str(),
+              topIn.AtomMaskName(it->second).c_str());
+  }
+  if (KLpairs.empty()) {
+    mprinterr("Error: SetFromFrameAroundBond(): Could not find an atom pair bonded to atom %s\n",
+              topIn.AtomMaskName(atB).c_str());
+    return 1;
+  }
+  // TODO be smarter about how K and L are selected?
+  double maxMass = topIn[KLpairs[0].first].Mass() + topIn[KLpairs[0].second].Mass();
+  unsigned int maxIdx = 0;
+  for (unsigned int idx = 1; idx < KLpairs.size(); idx++) {
+    double sumMass = topIn[KLpairs[idx].first].Mass() + topIn[KLpairs[idx].second].Mass();
+    if (sumMass > maxMass) {
+      maxMass = sumMass;
+      maxIdx = idx;
+    }
+  }
+  int atk0 = KLpairs[maxIdx].first;
+  int atl0 = KLpairs[maxIdx].second;
+  int modelDebug = 0;
+  if (debug_ > 0) {
+    mprintf("DEBUG: Chosen KL pair: %s - %s\n",topIn.AtomMaskName(atk0).c_str(),
+              topIn.AtomMaskName(atl0).c_str());
+    modelDebug = debug_ - 1;
+  }
+  // ---- I J: Set dist, theta, phi for atA atB K L internal coord ---
+  if (debug_ > 0)
+    mprintf("DEBUG: IC (i j) %i - %i - %i - %i\n", atA+1, atB+1, atk0+1, atl0+1);
+  double newDist = Atom::GetBondLength( topIn[atA].Element(), topIn[atB].Element() );
+  if (debug_ > 0) mprintf("DEBUG:\t\tnewDist= %g\n", newDist);
+  double newTheta = 0;
+  if (Cpptraj::Structure::Model::AssignTheta(newTheta, atA, atB, atk0, topIn, frameIn, atomPositionKnown, modelDebug)) {
+    mprinterr("Error: theta (i j) assignment failed.\n");
+    return 1;
+  }
+  if (debug_ > 0) mprintf("DEBUG:\t\tnewTheta = %g\n", newTheta*Constants::RADDEG);
+  double newPhi = 0;
+  if (Cpptraj::Structure::Model::AssignPhi(newPhi, atA, atB, atk0, atl0, topIn, frameIn,
+                                           atomPositionKnown, AtomB, modelDebug))
+  {
+    mprinterr("Error: phi (i j) assignment failed.\n");
+    return 1;
+  }
+  if (debug_ > 0) mprintf("DEBUG:\t\tnewPhi = %g\n", newPhi*Constants::RADDEG);
+  IC_.push_back(InternalCoords( atA, atB, atk0, atl0, newDist, newTheta*Constants::RADDEG, newPhi*Constants::RADDEG ));
+  if (debug_ > 0) {
+    mprintf("DEBUG: MODEL I J IC: ");
+    IC_.back().printIC(topIn);
+  }
+  MARK( atA, hasIC, nHasIC );
+  // ----- J K: Set up ICs for X atA atB K ---------------------------
+  Atom const& AJ1 = topIn[atA];
+  int ati = -1;
+  //Atom const& AK1 = topIn[atB];
+  //Atom const& AL1 = topIn[atk0];
+  for (Atom::bond_iterator iat = AJ1.bondbegin(); iat != AJ1.bondend(); ++iat)
+  {
+    if (*iat != atB) {
+      if (ati == -1) ati = *iat;
+      // Use existing dist
+      newDist = sqrt( DIST2_NoImage(frameIn.XYZ(*iat), frameIn.XYZ(atA)) );
+      // Set theta for I atA atB
+      newTheta = 0;
+      if (Cpptraj::Structure::Model::AssignTheta(newTheta, *iat, atA, atB, topIn, frameIn, atomPositionKnown, modelDebug)) {
+        mprinterr("Error: theta (j k) assignment failed.\n");
+        return 1;
+      }
+      if (debug_ > 0)
+        mprintf("DEBUG:\t\tnewTheta = %g\n", newTheta*Constants::RADDEG);
+      // Set phi for I atA atB K
+      newPhi = 0;
+      if (Cpptraj::Structure::Model::AssignPhi(newPhi, *iat, atA, atB, atk0, topIn, frameIn,
+                                               atomPositionKnown, AtomA, modelDebug))
+      {
+        mprinterr("Error: phi (j k) assignment failed.\n");
+        return 1;
+      }
+      if (debug_ > 0)
+        mprintf("DEBUG:\t\tnewPhi = %g\n", newPhi*Constants::RADDEG);
+      IC_.push_back(InternalCoords( *iat, atA, atB, atk0, newDist, newTheta*Constants::RADDEG, newPhi*Constants::RADDEG ));
+      if (debug_ > 0) {
+        mprintf("DEBUG: MODEL J K IC: ");
+        IC_.back().printIC(topIn);
+      }
+      MARK( *iat, hasIC, nHasIC );
+      // ----- K L: Set up ICs for X iat atA atB ---------------------
+      /*Atom const& AJ2 = topIn[*iat];
+      for (Atom::bond_iterator i2at = AJ2.bondbegin(); i2at != AJ2.bondend(); ++i2at)
+      {
+        if (*i2at != atA && *i2at != atB && !hasIC[*i2at]) {
+          // Use existing dist and theta
+          newDist = sqrt( DIST2_NoImage(frameIn.XYZ(*i2at), frameIn.XYZ(*iat)) );
+          newTheta = CalcAngle( frameIn.XYZ(*i2at), frameIn.XYZ(*iat), frameIn.XYZ(atA) );
+          // Set phi for X iat atA atB
+          newPhi = 0;
+          if (Cpptraj::Structure::Model::AssignPhi(newPhi, *i2at, *iat, atA, atB, topIn, frameIn, atomPositionKnown, atomChirality)) {
+            mprinterr("Error: phi (k l) assignment failed.\n");
+            return 1;
+          }
+          mprintf("DEBUG:\t\tnewPhi = %g\n", newPhi*Constants::RADDEG);
+          IC_.push_back(InternalCoords( *i2at, *iat, atA, atB, newDist, newTheta*Constants::RADDEG, newPhi*Constants::RADDEG ));
+          mprintf("DEBUG: MODEL K L IC: ");
+          IC_.back().printIC(topIn);
+          MARK( *i2at, hasIC, nHasIC );
+          // Trace from atA *iat *i2at outwards
+          ToTrace.push_back(atA);
+          ToTrace.push_back(*iat);
+          ToTrace.push_back(*i2at);
+          //if (traceMol(atA, *iat, *i2at, frameIn, topIn, topIn.Natom(), nHasIC, hasIC)) return 1;
+        }
+      } */
+    }
+  }
+  // Handle remaining atoms.
+  if (AJ1.Nbonds() > 1) {
+    if (AJ1.Nbonds() == 2) {
+      if (debug_ > 0) mprintf("DEBUG: 2 bonds to %s.\n", topIn.AtomMaskName(atA).c_str());
+      if (traceMol(atB, atA, ati, frameIn, topIn, topIn.Natom(), nHasIC, hasIC))
+        return 1;
+    } else {
+      // 3 or more bonds
+      std::vector<int> const& priority = AtomA.Priority();
+      int at0 = -1;
+      int at1 = -1;
+      std::vector<int> remainingAtoms;
+      if (debug_ > 0) mprintf("DEBUG: %i bonds to %s\n", AJ1.Nbonds(), topIn.AtomMaskName(atA).c_str());
+      for (std::vector<int>::const_iterator it = priority.begin(); it != priority.end(); ++it) {
+        if (*it != atB) {
+          if (debug_ > 0) mprintf("DEBUG:\t\t%s\n", topIn.AtomMaskName(*it).c_str());
+          if (at0 == -1)
+            at0 = *it;
+          else if (at1 == -1)
+            at1 = *it;
+          else
+            remainingAtoms.push_back( *it );
+        }
+      }
+      // at0 atA at1
+      if (traceMol(at1, atA, at0, frameIn, topIn, topIn.Natom(), nHasIC, hasIC))
+        return 1;
+      // at1 atA, at0
+      if (traceMol(at0, atA, at1, frameIn, topIn, topIn.Natom(), nHasIC, hasIC))
+        return 1;
+      // Remaining atoms.
+      for (std::vector<int>::const_iterator it = remainingAtoms.begin(); it != remainingAtoms.end(); ++it) {
+        if (traceMol(at0, atA, *it, frameIn, topIn, topIn.Natom(), nHasIC, hasIC))
+          return 1;
+      }
+    }
+  }
+
+  return 0;
+}
+

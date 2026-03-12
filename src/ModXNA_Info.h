@@ -17,6 +17,8 @@ class ModXNA_Info {
     bool HasModxna() const { return (!fragmentName_.empty()); }
     /// Print to stdout
     void PrintModxna() const;
+    /// Generate ModXNA metadata string for e.g. writing ModXNA mol2 files
+    std::string GenMetadataString() const;
 
     std::string const& FragmentName() const { return fragmentName_; }
     std::string const& Head()         const { return head_; }

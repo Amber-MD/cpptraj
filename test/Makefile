@@ -567,6 +567,9 @@ test.mutate:
 test.build:
 	@-cd Test_Build && ./RunTest.sh $(OPT)
 
+test.modxna:
+	@-cd Test_ModXNA && ./RunTest.sh $(OPT)
+
 # Only GPU-specific tests should go here
 GPUTESTS=test.closest \
          test.solvent \
@@ -753,7 +756,8 @@ COMPLETETESTS=test.general \
               test.minmaxdist \
               test.watershellclosest \
               test.mutate \
-              test.build
+              test.build \
+              test.modxna
 
 test.all:
 	$(MAKE) test.complete summary

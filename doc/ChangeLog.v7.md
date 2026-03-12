@@ -85,3 +85,17 @@ Not Yet Ready
 - Introduce the `byatom` keyword to `checkchirality` action to check the chirality of any atoms in specified mask that are chiral centers.
 
 - Cannot yet build topology files for polarizable force fields (IPOL > 0).
+
+ModXNA Compatibility
+====================
+The old `sequence` command functionality and some new features have been added to ensure backwards compatibility with ModXNA (V1.9.2 as of right now).
+
+The following files/classes/functions have been retained from CPPTRAJ V6.31.0 with very few changes: `Structure/BuildAtom.h`, `Structure/Model.h`, `Structure/Model.cpp`
+
+The `OldBuilder` class in `Structure/OldBuilder.cpp` and `Structure/OldBuilder.h` is the `Builder` class from CPPTRAJ V6.31.0.
+
+The `Zmatrix::SetupICsAroundBond()` function has been retained from CPPTRAJ V6.31.0 `Zmatrix` class so that `sequence` can be made to work the way it used to.
+
+Default bond Req parameters are set when reading in mol2 files. This is needed so that the RK/REQ columns are printed for the `bonds` command, which is expected/needed for modxna.sh to determine the name of the H atom bonded to O3' (`--3cap` flag).
+
+ModXNA metadata (head/tail/anchor atom information) will be read from the title of Mol2 files if present and retained in the Topology. This metadata will be written back out to Mol2 files if another title has not been specified. This allows the `sequence` command to automatically recognized when units have ModXNA information and switch back to the old `sequence` mode automatically. 

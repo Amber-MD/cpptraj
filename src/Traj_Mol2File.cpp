@@ -203,8 +203,13 @@ int Traj_Mol2File::setupTrajout(FileName const& fname, Topology* trajParm,
     }
   }
   // Set Title
-  if (Title().empty())
-    SetTitle("Cpptraj Generated mol2 file.");
+  if (Title().empty()) {
+    if (mol2Top_->Modxna().HasModxna()) {
+      mprintf("\tModXNA data present and no title set; writing ModXNA metadata in title.\n");
+      SetTitle(mol2Top_->Modxna().GenMetadataString());
+    } else
+      SetTitle("Cpptraj Generated mol2 file.");
+  }
   file_.SetMol2Title( Title() );
   // Set up number of bonds
   file_.SetMol2Nbonds( mol2Top_->Bonds().size() + mol2Top_->BondsH().size() );

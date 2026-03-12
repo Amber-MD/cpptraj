@@ -44,3 +44,24 @@ void ModXNA_Info::PrintModxna() const {
   printmxna("\tAnchor      ", anchor_);
   printmxna("\tAnchorStrip ", anchorStrip_);
 }
+
+/** Generate ModXNA metadata string */
+std::string ModXNA_Info::GenMetadataString() const {
+  if (fragmentName_.empty()) return std::string("");
+  std::string out("modXNA-fragment:" + fragmentName_);
+  // Base
+  out.append(":HEAD01:" + head_);
+  out.append(":HEAD01STRIP:" + headStrip_);
+  if (!tail_.empty()) {
+    // BB
+    out.append(":TAIL01:" + tail_);
+    out.append(":TAIL01STRIP:" + tailStrip_);
+    if (!anchor_.empty()) {
+      // Sugar
+      out.append(":HEAD03:" + anchor_);
+      out.append(":HEAD03STRIP:" + anchorStrip_);
+    }
+  }
+  return out;
+}
+    
