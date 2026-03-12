@@ -7,7 +7,7 @@ class Frame;
 namespace Cpptraj {
 namespace Structure {
 class BuildAtom;
-/// Routines to generate model parameters
+/// Routines to generate model parameters TODO needed for modXNA
 namespace Model {
 /// Given atoms J K and L, attempt to assign a reasonable value for phi for atom I
 int AssignPhi(double&, int, int, int, int, Topology const&, Frame const&, std::vector<bool> const&, BuildAtom const&, int);
