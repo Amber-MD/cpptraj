@@ -60,6 +60,7 @@ int Exec_Sequence::old_generate_sequence(DataSet_Coords* OUT,
                                      Cpptraj::Structure::Creator const& creator)
 const
 {
+  mprintf("\tUsing the old 'sequence' routine compatible with modXNA.\n");
   // First, get all units in order.
   typedef std::vector<DataSet_Coords*> Uarray;
   Uarray Units;
@@ -396,13 +397,15 @@ Exec::RetType Exec_Sequence::Execute(CpptrajState& State, ArgList& argIn)
   int verbose = argIn.getKeyInt("verbose", 0);
   mode_ = UNSPECIFIED;
   std::string modeArg = argIn.GetStringKey("mode");
-  if (modeArg == "old")
-    mode_ = OLD;
-  else if (modeArg == "new")
-    mode_ = NEW;
-  else {
-    mprinterr("Error: Unrecognized 'mode' argument: %s\n", modeArg.c_str());
-    return CpptrajState::ERR;
+  if (!modeArg.empty()) {
+    if (modeArg == "old")
+      mode_ = OLD;
+    else if (modeArg == "new")
+      mode_ = NEW;
+    else {
+      mprinterr("Error: Unrecognized 'mode' argument: %s\n", modeArg.c_str());
+      return CpptrajState::ERR;
+    }
   }
   // GB radii set. Default to mbondi
   Cpptraj::Parm::GB_Params gbradii;
