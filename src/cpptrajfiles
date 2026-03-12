@@ -633,6 +633,7 @@ LIBCPPTRAJ_PARM_OBJECTS= \
   GuessAtomHybridization.o \
   Mol.o \
   Parm/AssignParams.o \
+  Parm/Bond_Params.o \
   Parm/DihedralParmSet.o \
   Parm/GetParams.o \
   Parm/ParameterSet.o \
