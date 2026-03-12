@@ -18,7 +18,7 @@ class Exec_Sequence : public Exec {
     typedef std::vector<DataSet_Coords*> Uarray;
     enum ModeType { UNSPECIFIED = 0, NEW, OLD };
 
-    int get_units(Uarray&, Sarray const&, Cpptraj::Structure::Creator const&) const;
+    int get_units(Uarray&, Sarray const&, Cpptraj::Structure::Creator const&);
 
     int old_generate_sequence(DataSet_Coords*, Uarray const&) const;
 

@@ -15,7 +15,6 @@ Exec_Sequence::Exec_Sequence() : Exec(COORDS), debug_(0), mode_(UNSPECIFIED) {}
 int Exec_Sequence::get_units(Uarray& Units,
                              Sarray const& main_sequence,
                              Cpptraj::Structure::Creator const& creator)
-const
 {
   // First, get all units in order.
   Units.clear();
@@ -36,8 +35,13 @@ const
     if (unit->Size() > 1) {
       mprintf("Warning: Unit '%s' has more than 1 frame. Only using first frame.\n", unit->legend());
     }
-    if (unit->Top().Modxna().HasModxna())
+    if (unit->Top().Modxna().HasModxna()) {
       mprintf("\tUnit '%s' has ModXNA info.\n", unit->legend());
+      if (mode_ == UNSPECIFIED) {
+        mprintf("Warning: No sequence mode specified and ModXNA info detected; using old sequence mode.\n");
+        mode_ = OLD;
+      }
+    }
     Units.push_back( unit );
   } // END loop over sequence
   mprintf("\tFound %zu units.\n", Units.size());
