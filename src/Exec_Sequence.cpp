@@ -13,8 +13,6 @@ Exec_Sequence::Exec_Sequence() : Exec(COORDS), debug_(0), mode_(UNSPECIFIED) {}
 
 /** Get units in the sequence. */
 int Exec_Sequence::get_units(Uarray& Units,
-                             std::string& title,
-                             int& total_natom,
                              Sarray const& main_sequence,
                              Cpptraj::Structure::Creator const& creator)
 const
@@ -22,8 +20,6 @@ const
   // First, get all units in order.
   Units.clear();
   Units.reserve( main_sequence.size() );
-
-  total_natom = 0;
 
   for (Sarray::const_iterator it = main_sequence.begin(); it != main_sequence.end(); ++it)
   {
@@ -40,11 +36,9 @@ const
     if (unit->Size() > 1) {
       mprintf("Warning: Unit '%s' has more than 1 frame. Only using first frame.\n", unit->legend());
     }
+    if (unit->Top().Modxna().HasModxna())
+      mprintf("\tUnit '%s' has ModXNA info.\n", unit->legend());
     Units.push_back( unit );
-    // Use the first unit name as title to match leap behavior
-    if (title.empty())
-      title = *it;
-    total_natom += unit->Top().Natom();
   } // END loop over sequence
   mprintf("\tFound %zu units.\n", Units.size());
   if (Units.empty()) {
@@ -446,6 +440,13 @@ Exec::RetType Exec_Sequence::Execute(CpptrajState& State, ArgList& argIn)
     mprintf(" %s", it->c_str());
   mprintf("\n");
   mprintf("\tOutput set name : %s\n", OUT->legend());
+
+  // Get units
+  Uarray Units;
+  if ( get_units(Units, main_sequence, creator) ) {
+    mprinterr("Error: Could not get units.\n");
+    return CpptrajState::ERR;
+  }
 
   // Execute
   int err = 0;
