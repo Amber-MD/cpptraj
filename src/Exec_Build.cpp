@@ -101,6 +101,10 @@ int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
       resTermType = Cpptraj::Structure::BEG_TERMINAL;
       if (debug_ > 0)
         mprintf("DEBUG: %s Begin terminal due to previous residue TERMINAL status.\n", topIn.TruncResNameNum(ires).c_str());
+    } else if (ires > 0 && ResTermTypes.back() == Cpptraj::Structure::END_TERMINAL) {
+      resTermType = Cpptraj::Structure::BEG_TERMINAL;
+      if (debug_ > 0)
+        mprintf("DEBUG: %s Begin terminal due to previous residue BEGIN status.\n", topIn.TruncResNameNum(ires).c_str());
     } else if (nres < topIn.Nres() && (topIn.Res(nres).ChainID() != currentRes.ChainID())// ||
 //                                        (topIn.Res(nres).OriginalResNum() == currentRes.OriginalResNum() &&
 //                                         topIn.Res(nres).Icode()          != currentRes.Icode()
