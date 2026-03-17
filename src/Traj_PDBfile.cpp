@@ -380,9 +380,9 @@ int Traj_PDBfile::processWriteArgs(ArgList& argIn, DataSetList const& DSLin) {
   }
   // Out of range residue/atom number wrapping
   if (argIn.hasKey("hybrid36"))
-    file_.SetWrapType(PDBfile::HYBRID36);
-  else
-    file_.SetWrapType(PDBfile::RESET); // Default
+    file_.SetWrapType(PDBfile::HYBRID36); // default
+  else if (argIn.hasKey("wrapnumbers"))
+    file_.SetWrapType(PDBfile::RESET);
 
   return 0;
 }

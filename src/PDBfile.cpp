@@ -183,7 +183,7 @@ const unsigned int PDBfile::MAX_DIGIT_ = 12;
 PDBfile::PDBfile() :
   anum_(1),
   recType_(UNKNOWN),
-  wrapType_(RESET),
+  wrapType_(HYBRID36),
   lineLengthWarning_(false),
   coordOverflow_(false),
   useCol21_(false)
