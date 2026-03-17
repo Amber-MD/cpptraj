@@ -52,6 +52,8 @@ class PDBfile : public CpptrajFile {
     Link pdb_Link();
     /// \return current record type.
     PDB_RECTYPE RecType()         const { return recType_; }
+    /// \return true if hybrid36 detected
+    bool HasHybrid36() const { return wrapType_ == HYBRID36; }
     // -------------------------------------------
     /// Set whether column 21 can be used for 4-letter residue names.
     void SetUseCol21(bool b) { useCol21_ = b; }
