@@ -357,6 +357,7 @@ COMMON_SOURCES= \
         GuessAtomHybridization.cpp \
         HistBin.cpp \
         Hungarian.cpp \
+        Hybrid36.cpp \
         ImageRoutines.cpp \
         Image_List_Mask.cpp \
         Image_List_Pair.cpp \
