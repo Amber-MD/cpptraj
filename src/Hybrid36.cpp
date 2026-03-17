@@ -20,6 +20,7 @@
  */
 //# incl ude <iotbx/pdb/hybrid_36_c.h>
 #include "Hybrid36.h"
+#include "CpptrajStdio.h"
 /* All static functions below are implementation details
    (and not accessible from other translation units).
  */
@@ -298,4 +299,27 @@ Cpptraj::Hybrid36::hy36decode(unsigned width, const char* s, unsigned s_size, in
   }
   *result = 0;
   return invalid_number_literal();
+}
+
+/** Encode value in hybrid36, print any error messages. */
+int Cpptraj::Hybrid36::Encode(unsigned width, int ival, char* result)
+{
+  const char* errmsg = hy36encode(width, ival, result);
+  if (errmsg != 0) {
+    mprinterr("Error: Hybrid36 encode: %s\n", errmsg);
+    return 1;
+  }
+  return 0;
+}
+
+/** Decode hybrid36 value, print any error messages. */
+int Cpptraj::Hybrid36::Decode(unsigned width, const char* sval, int& ival)
+{
+  // TODO check length of sval?
+  const char* errmsg = hy36decode(width, sval, width, &ival);
+  if (errmsg != 0) {
+    mprinterr("Error: Hybrid36 decode: %s\n", errmsg);
+    return 1;
+  }
+  return 0;
 }

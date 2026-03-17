@@ -662,8 +662,8 @@ void PDBfile::WriteRecordHeader(PDB_RECTYPE Record, int anum, NameType const& na
     snprintf(atomNum, 6, "%5i", anum);
   } else {
     // Hybrid36 numbering
-    Cpptraj::Hybrid36::hy36encode(4, resnum, resNum);
-    Cpptraj::Hybrid36::hy36encode(5, anum, atomNum);
+    Cpptraj::Hybrid36::Encode(4, resnum, resNum);
+    Cpptraj::Hybrid36::Encode(5, anum, atomNum);
   }
   // Residue names in PDB format are 3 chars long, right-justified, starting
   // at column 18, while the alternate location indicator is column 17.

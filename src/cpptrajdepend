@@ -405,7 +405,7 @@ GridMover.o : GridMover.cpp AssociatedData.h Atom.h AtomMask.h Box.h Constants.h
 GuessAtomHybridization.o : GuessAtomHybridization.cpp Atom.h AtomType.h Constants.h GuessAtomHybridization.h NameType.h ParameterTypes.h SymbolExporting.h
 HistBin.o : HistBin.cpp Constants.h CpptrajStdio.h Dimension.h HistBin.h
 Hungarian.o : Hungarian.cpp ArrayIterator.h Constants.h CpptrajStdio.h Hungarian.h Matrix.h
-Hybrid36.o : Hybrid36.cpp Hybrid36.h
+Hybrid36.o : Hybrid36.cpp CpptrajStdio.h Hybrid36.h
 ImageRoutines.o : ImageRoutines.cpp Atom.h AtomMask.h Box.h CoordinateInfo.h CpptrajStdio.h DistRoutines.h Frame.h ImageOption.h ImageRoutines.h ImageTypes.h Image_List.h Image_List_Mask.h Image_List_Pair.h Image_List_Pair_CoM.h Image_List_Pair_First.h Image_List_Pair_Geom.h Image_List_Unit.h Image_List_Unit_CoM.h Image_List_Unit_First.h Image_List_Unit_Geom.h MaskToken.h Matrix_3x3.h Molecule.h NameType.h Parallel.h ReplicaDimArray.h Residue.h Segment.h SymbolExporting.h Unit.h Vec3.h
 Image_List_Mask.o : Image_List_Mask.cpp Atom.h AtomMask.h Box.h Constants.h CoordinateInfo.h CpptrajStdio.h FileName.h Frame.h Image_List.h Image_List_Mask.h MaskToken.h Matrix_3x3.h ModXNA_Info.h Molecule.h NameType.h Parallel.h ParameterTypes.h Range.h ReplicaDimArray.h Residue.h Segment.h StringRoutines.h SymbolExporting.h Topology.h Unit.h Vec3.h
 Image_List_Pair.o : Image_List_Pair.cpp Atom.h AtomMask.h Box.h Constants.h CoordinateInfo.h CpptrajStdio.h FileName.h Frame.h Image_List.h Image_List_Pair.h MaskToken.h Matrix_3x3.h ModXNA_Info.h Molecule.h NameType.h Parallel.h ParameterTypes.h Range.h ReplicaDimArray.h Residue.h Segment.h SymbolExporting.h Topology.h Unit.h Vec3.h
