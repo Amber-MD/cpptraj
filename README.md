@@ -251,4 +251,4 @@ External code/libraries bundled with CPPTRAJ
 
 * The code for reading numpy arrays in `src/libnpy` is from [libnpy](https://github.com/llohse/libnpy) written by Leon Merten Lohse et al. (Universität Göttingen).
 
-* The code for reading/writing atom/residue number fields in large PDB files (in `Hybrid36.cpp`) is adapted from the Computational Crystallography Toolbox, https://doi.org/10.1107/S0021889801017824, https://raw.githubusercontent.com/cctbx/cctbx_project/master/iotbx/pdb/hybrid_36_c.c
+* The code for reading/writing atom/residue number fields in large PDB files (in `Hybrid36.cpp`) is adapted from code written by Ralf W. Grosse-Kunstleve in the Computational Crystallography Toolbox, https://doi.org/10.1107/S0021889801017824, https://raw.githubusercontent.com/cctbx/cctbx_project/master/iotbx/pdb/hybrid_36_c.c
