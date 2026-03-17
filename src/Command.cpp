@@ -41,6 +41,7 @@
 #include "Exec_Random.h"
 #include "Exec_CompareClusters.h"
 #include "Exec_ParseTiming.h"
+#include "Exec_Flush.h"
 // ----- SYSTEM ----------------------------------------------------------------
 #include "Exec_System.h"
 // ----- COORDS ----------------------------------------------------------------
@@ -245,6 +246,7 @@ void Command::Init() {
   Command::AddCmd( new Exec_DataSetCmd(),      Cmd::EXE, 1, "dataset" );
   Command::AddCmd( new Exec_EnsFileExt(),      Cmd::EXE, 1, "ensextension" );
   Command::AddCmd( new Exec_Flatten(),         Cmd::EXE, 1, "flatten" );
+  Command::AddCmd( new Exec_Flush(),           Cmd::EXE, 1, "flush" );
   Command::AddCmd( new Exec_GenerateAmberRst(),Cmd::EXE, 1, "rst" );
   Command::AddCmd( new Exec_Help(),            Cmd::EXE, 1, "help" );
   Command::AddCmd( new Exec_ListAll(),         Cmd::EXE, 1, "list" );

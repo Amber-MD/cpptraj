@@ -178,6 +178,8 @@ int Parm_PDB::ReadParm(FileName const& fname, Topology &TopIn) {
         mprintf("Warning: Could not read MISSING HETEROATOM section.\n");
     }
   } // END loop over PDB records
+  if (infile.HasHybrid36())
+    mprintf("\tPDB appears to have hybrid36 encoding in atom/residue number fields.\n");
 
   if (hasMissingResidues) {
     mprintf("\t%zu missing residues.\n", missingResidues.size());

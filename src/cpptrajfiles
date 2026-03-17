@@ -293,6 +293,7 @@ COMMON_SOURCES= \
         Exec_Emin.cpp \
         Exec_ExtendedComparison.cpp \
         Exec_Flatten.cpp \
+        Exec_Flush.cpp \
         Exec_GenerateAmberRst.cpp \
         Exec_Graft.cpp \
         Exec_Help.cpp \
@@ -357,6 +358,7 @@ COMMON_SOURCES= \
         GuessAtomHybridization.cpp \
         HistBin.cpp \
         Hungarian.cpp \
+        Hybrid36.cpp \
         ImageRoutines.cpp \
         Image_List_Mask.cpp \
         Image_List_Pair.cpp \

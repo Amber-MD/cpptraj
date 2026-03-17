@@ -12,8 +12,14 @@ class PDBfile : public CpptrajFile {
     // NOTE: PDB_RECNAME_ must correspond with this.
     enum PDB_RECTYPE {ATOM=0, HETATM, CRYST1, TER, END, ANISOU, END_OF_FILE, 
                       CONECT, LINK, MISSING_RES, MISSING_ATOM, MISSING_HET, UNKNOWN};
+    /// Determine how to handle out of range residue/atom numbers. Correspond to NumWrapTypeStr_
+    enum NumWrapType { RESET = 0, HYBRID36 };
     /// CONSTRUCTOR
     PDBfile();
+
+    /// Set out of range atom/residue number wrap type
+    void SetWrapType(NumWrapType);
+
     /// Check if either of the first two lines contain valid PDB records.
     static bool ID_PDB(CpptrajFile&);
     /// \return the type of the next PDB record read.
@@ -46,6 +52,8 @@ class PDBfile : public CpptrajFile {
     Link pdb_Link();
     /// \return current record type.
     PDB_RECTYPE RecType()         const { return recType_; }
+    /// \return true if hybrid36 detected
+    bool HasHybrid36() const { return wrapType_ == HYBRID36; }
     // -------------------------------------------
     /// Set whether column 21 can be used for 4-letter residue names.
     void SetUseCol21(bool b) { useCol21_ = b; }
@@ -97,14 +105,26 @@ class PDBfile : public CpptrajFile {
     void readCRYST1(double*);
     /// Parse a MISSING residue line
     Residue missing_res() const;
+    /// Decode atom number field
+    inline int decodeAtomNum(const char*);
+    /// Decode residue number field
+    inline int decodeResNum(const char*);
+    /// Wrap atom number
+    inline void atomNumber(int, char*) const;
+    /// Wrap residue number
+    inline void resNumber(int, char*) const;
 
     int anum_;               ///< Atom number for writing.
     PDB_RECTYPE recType_;    ///< Current record type.
+    NumWrapType wrapType_;   ///< How to handle out of range numbers
     bool lineLengthWarning_; ///< True if any read line is shorter than 80 char
     bool coordOverflow_;     ///< True if coords on write exceed field width
     bool useCol21_;          ///< If true, use column 21 for 4-char res name
     /// Recognized PDB record types; corresponds to PDB_RECTYPE
     static const char* PDB_RECNAME_[];
+    /// Correspond to NumWrapType
+    static const char* NumWrapTypeStr_[];
+    static const unsigned int MAX_DIGIT_;
 };
 /// Hold information for an SSBOND record.
 class PDBfile::SSBOND {

@@ -70,6 +70,8 @@ class DataFileList {
     void List() const;
     /// Write all DataFiles in list that have not yet been written.
     void WriteAllDF();
+    /// Write all DataFiles and close out all CpptrajFiles
+    void Flush();
     /// \return true if DataFiles have not yet been written.
     bool UnwrittenData() const;
     /// Reset the write status of all DataFiles so they will be written
