@@ -103,6 +103,10 @@ class PDBfile : public CpptrajFile {
     void readCRYST1(double*);
     /// Parse a MISSING residue line
     Residue missing_res() const;
+    /// Decode atom number field
+    inline int decodeAtomNum(const char*);
+    /// Decode residue number field
+    inline int decodeResNum(const char*);
     /// Wrap atom number
     inline void atomNumber(int, char*) const;
     /// Wrap residue number

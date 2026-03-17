@@ -1,6 +1,7 @@
 #include <cstdio>  // sscanf
 #include <cstdlib> // atoi, atof
 #include <cstring> // strncmp
+#include <cctype>  // isalpha
 #include <algorithm> // std::copy
 #include "PDBfile.h"
 #include "CpptrajStdio.h"
@@ -384,6 +385,29 @@ char PDBfile::pdb_AltLoc() const {
   return linebuffer_[16];
 }
 
+/** Decode atom number field. Automatically detect if hybrid36 encoding is present. */
+int PDBfile::decodeAtomNum(const char* ptrIn)
+{
+  int ival = 0;
+  bool isHy36 = false;
+  const char* ptr = ptrIn;
+  while (*ptr != '\0') {
+    if (isalpha(*ptr)) {
+      isHy36 = true;
+      break;
+    }
+    ++ptr;
+  }
+  //mprintf("DEBUG: decodeAtomNum '%s' isHy36=%i", ptrIn, (int)isHy36);
+  if (isHy36) {
+    wrapType_ = HYBRID36;
+    Cpptraj::Hybrid36::Decode(5, ptrIn, ival);
+  } else
+    ival = atoi(ptrIn);
+  //mprintf("  ival=%i\n", ival); // DEBUG
+  return ival;
+}
+
 /** \return Atom containing information from PDB ATOM/HETATM line. */
 Atom PDBfile::pdb_Atom(char& altLoc, int& atnum) {
   // ATOM or HETATM keyword.
@@ -392,7 +416,8 @@ Atom PDBfile::pdb_Atom(char& altLoc, int& atnum) {
   // Atom number (6-11)
   altLoc = linebuffer_[11];
   linebuffer_[11] = '\0';
-  atnum = atoi(linebuffer_+6);
+  //atnum = atoi(linebuffer_+6);
+  atnum = decodeAtomNum(linebuffer_+6);
   linebuffer_[11] = altLoc;
   // Atom name (12-16), alt location indicator (16)
   // Replace asterisks in name with single quotes.
@@ -415,6 +440,28 @@ Atom PDBfile::pdb_Atom(char& altLoc, int& atnum) {
   return Atom(aname, eltString);
 }
 
+/** Decode residue number field. Automatically detect if hybrid36 encoding is present. */
+int PDBfile::decodeResNum(const char* ptrIn)
+{
+  int ival = 0;
+  bool isHy36 = false;
+  const char* ptr = ptrIn;
+  while (*ptr != '\0') {
+    if (isalpha(*ptr)) {
+      isHy36 = true;
+      break;
+    }
+    ++ptr;
+  }
+  if (isHy36) {
+    wrapType_ = HYBRID36;
+    Cpptraj::Hybrid36::Decode(4, ptrIn, ival);
+  } else
+    ival = atoi(ptrIn);
+  return ival;
+}
+
+/** \return Residue containing residue info from ATOM/HETATM record. */
 Residue PDBfile::pdb_Residue() {
   // Res name (17-20), Replace asterisks with single quotes.
   char savechar = linebuffer_[20];
@@ -425,7 +472,8 @@ Residue PDBfile::pdb_Residue() {
   // Res num (22-26), insertion code (26)
   char icode = linebuffer_[26];
   linebuffer_[26] = '\0';
-  int resnum = atoi( linebuffer_+22 );
+  //int resnum = atoi( linebuffer_+22 );
+  int resnum = decodeResNum( linebuffer_+22 );
   linebuffer_[26] = icode;
   return Residue( resName, resnum, icode, std::string(1, linebuffer_[21]) );
 }
@@ -543,7 +591,8 @@ int PDBfile::pdb_Bonds(int* bnd) {
     unsigned int end = lb + 5;
     char savechar = linebuffer_[end];
     linebuffer_[end] = '\0';
-    bnd[Nscan++] = atoi( linebuffer_ + lb );
+    //bnd[Nscan++] = atoi( linebuffer_ + lb );
+    bnd[Nscan++] = decodeAtomNum( linebuffer_ + lb );
     linebuffer_[end] = savechar;
   }
   if (Nscan < 2)
@@ -609,9 +658,11 @@ PDBfile::Link PDBfile::pdb_Link() {
     code2 = ' ';
   // Residue numbers TODO restore nulled chars?
   linebuffer_[26] = '\0';
-  rnum1 = atoi(linebuffer_+22);
+  //rnum1 = atoi(linebuffer_+22);
+  rnum1 = decodeResNum(linebuffer_+22);
   linebuffer_[56] = '\0';
-  rnum2 = atoi(linebuffer_+52);
+  //rnum2 = atoi(linebuffer_+52);
+  rnum2 = decodeResNum(linebuffer_+52);
 /*
   NOTE: sscanf may not reliable when width absolutely matters.
   int nscan = sscanf(linebuffer_+12, "%4s%c%3s%c%4i%c%4s%c%3s%c%4i%c",
@@ -863,7 +914,7 @@ void PDBfile::WriteTITLE(std::string const& titleIn) {
 /** Expect x, y, z, alpha, beta, gamma */
 void PDBfile::WriteCRYST1(const double* box, const char* space_group) {
   if (box==0) return;
-  // RECROD A B C ALPHA BETA GAMMA SGROUP Z
+  // RECORD A B C ALPHA BETA GAMMA SGROUP Z
   Printf("CRYST1%9.3f%9.3f%9.3f%7.2f%7.2f%7.2f %-11s%4i\n",
          box[0], box[1], box[2], box[3], box[4], box[5], space_group, 1);
 }
