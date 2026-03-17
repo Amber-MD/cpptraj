@@ -12,8 +12,14 @@ class PDBfile : public CpptrajFile {
     // NOTE: PDB_RECNAME_ must correspond with this.
     enum PDB_RECTYPE {ATOM=0, HETATM, CRYST1, TER, END, ANISOU, END_OF_FILE, 
                       CONECT, LINK, MISSING_RES, MISSING_ATOM, MISSING_HET, UNKNOWN};
+    /// Determine how to handle out of range residue/atom numbers. Correspond to NumWrapTypeStr_
+    enum NumWrapType { RESET = 0, HYBRID36, UNKNOWN_WRAPTYPE };
     /// CONSTRUCTOR
     PDBfile();
+
+    /// Set out of range atom/residue number wrap type
+    void SetWrapType(NumWrapType);
+
     /// Check if either of the first two lines contain valid PDB records.
     static bool ID_PDB(CpptrajFile&);
     /// \return the type of the next PDB record read.
@@ -100,11 +106,14 @@ class PDBfile : public CpptrajFile {
 
     int anum_;               ///< Atom number for writing.
     PDB_RECTYPE recType_;    ///< Current record type.
+    NumWrapType wrapType_;   ///< How to handle out of range numbers
     bool lineLengthWarning_; ///< True if any read line is shorter than 80 char
     bool coordOverflow_;     ///< True if coords on write exceed field width
     bool useCol21_;          ///< If true, use column 21 for 4-char res name
     /// Recognized PDB record types; corresponds to PDB_RECTYPE
     static const char* PDB_RECNAME_[];
+    /// Correspond to NumWrapType
+    static const char* NumWrapTypeStr_[];
 };
 /// Hold information for an SSBOND record.
 class PDBfile::SSBOND {

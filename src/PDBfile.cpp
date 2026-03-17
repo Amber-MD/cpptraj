@@ -4,6 +4,7 @@
 #include <algorithm> // std::copy
 #include "PDBfile.h"
 #include "CpptrajStdio.h"
+#include "Hybrid36.h"
 #include "StringRoutines.h" // integerToString
 
 // ----- SSBOND Class ---------------------------------------------------------- 
@@ -163,20 +164,34 @@ PDBfile::Link& PDBfile::Link::operator=(Link const& rhs) {
 }
 
 // ===== PDBfile class =========================================================
-/// PDB record types
-// NOTE: Must correspond with PDB_RECTYPE
+/** PDB record types. NOTE: Must correspond with PDB_RECTYPE */
 const char* PDBfile::PDB_RECNAME_[] = { 
   "ATOM  ", "HETATM", "CRYST1", "TER   ", "END   ", "ANISOU", "EndRec",
   "CONECT", "LINK  ", "REMARK", "REMARK", "REMARK", 0 };
 
-/// CONSTRUCTOR
+/** Must correspond to NumWrapType */
+const char* PDBfile::NumWrapTypeStr_[] = {
+  "Reset to zero", ///< RESET
+  "Hybrid36",      ///< HYBRID36
+  "Unspecified wrap mode" ///< UNKNOWN_WRAPTYPE
+};
+
+/** CONSTRUCTOR */
 PDBfile::PDBfile() :
   anum_(1),
   recType_(UNKNOWN),
+  wrapType_(UNKNOWN_WRAPTYPE),
   lineLengthWarning_(false),
   coordOverflow_(false),
   useCol21_(false)
 {}
+
+/** Set atom/residue number wrap type */
+void PDBfile::SetWrapType(NumWrapType typeIn)
+{
+  wrapType_ = typeIn;
+  mprintf("\tPDB atom/residue number out of range mode: %s\n", NumWrapTypeStr_[wrapType_]);
+}
 
 // PDBfile::IsPDBkeyword()
 /** \return true if given string is a recognized PDB record keyword.
@@ -622,13 +637,34 @@ void PDBfile::WriteRecordHeader(PDB_RECTYPE Record, int anum, NameType const& na
                                 int resnum, char icode, const char* Elt)
 {
   char resName[6], atomName[5];
+  char resNum[5], atomNum[6];
 
   resName[5]='\0';
   atomName[4]='\0';
   // Residue number in PDB format can only be 4 digits wide
-  if (resnum > 9999) resnum = resnum % 10000;
   // Atom number in PDB format can only be 5 digits wide
-  if (anum > 99999) anum = anum % 100000;
+  resNum[4]='\0';
+  atomNum[5]='\0';
+  if (wrapType_ == UNKNOWN_WRAPTYPE) {
+    wrapType_ = RESET;
+  }
+  if (wrapType_ == RESET) {
+    // Reset the residue/atom numbering if out of range
+    if (resnum > 9999)
+      resnum = resnum % 10000;
+    else if (resnum < -999)
+      resnum = resnum % -1000;
+    snprintf(resNum, 5, "%4i", resnum);
+    if (anum > 99999)
+      anum = anum % 100000;
+    else if (anum < -9999)
+      anum = anum % -10000;
+    snprintf(atomNum, 6, "%5i", anum);
+  } else {
+    // Hybrid36 numbering
+    Cpptraj::Hybrid36::hy36encode(4, resnum, resNum);
+    Cpptraj::Hybrid36::hy36encode(5, anum, atomNum);
+  }
   // Residue names in PDB format are 3 chars long, right-justified, starting
   // at column 18, while the alternate location indicator is column 17.
   // In theory, 4 character residue names are not supported. In practice, there
@@ -680,8 +716,8 @@ void PDBfile::WriteRecordHeader(PDB_RECTYPE Record, int anum, NameType const& na
       atomName[i+1] = name[i];
   }
   // TODO if REMARK, which #?
-  Printf("%-6s%5i %-4s%5s%c%4i%c",PDB_RECNAME_[Record], anum, atomName,
-               resName, chain, resnum, icode);
+  Printf("%-6s%5s %-4s%5s%c%4s%c",PDB_RECNAME_[Record], atomNum, atomName,
+               resName, chain, resNum, icode);
   if (Record == TER) Printf("\n");
 }
 
