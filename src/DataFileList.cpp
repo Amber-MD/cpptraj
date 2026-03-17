@@ -356,6 +356,17 @@ void DataFileList::List() const {
   }
 }
 
+/** Call write for all data files. and close out and clear all CpptrajFiles. */
+void DataFileList::Flush() {
+  WriteAllDF();
+  for (CFarray::iterator it = cfList_.begin(); it != cfList_.end(); ++it) {
+    (*it)->CloseFile();
+    delete *it;
+  }
+  cfList_.clear();
+  cfData_.clear();
+}
+
 // DataFileList::WriteAllDF()
 /** Call write for all DataFiles in list for which writeFile is true. Once
   * a file has been written set writeFile to false; it can be reset to
