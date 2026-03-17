@@ -172,15 +172,17 @@ const char* PDBfile::PDB_RECNAME_[] = {
 /** Must correspond to NumWrapType */
 const char* PDBfile::NumWrapTypeStr_[] = {
   "Reset to zero", ///< RESET
-  "Hybrid36",      ///< HYBRID36
-  "Unspecified wrap mode" ///< UNKNOWN_WRAPTYPE
+  "Hybrid36"       ///< HYBRID36
 };
+
+/** Corresponds to max int digit width plus null: -2147483647 */
+const unsigned int PDBfile::MAX_DIGIT_ = 12;
 
 /** CONSTRUCTOR */
 PDBfile::PDBfile() :
   anum_(1),
   recType_(UNKNOWN),
-  wrapType_(UNKNOWN_WRAPTYPE),
+  wrapType_(RESET),
   lineLengthWarning_(false),
   coordOverflow_(false),
   useCol21_(false)
@@ -645,9 +647,6 @@ void PDBfile::WriteRecordHeader(PDB_RECTYPE Record, int anum, NameType const& na
   // Atom number in PDB format can only be 5 digits wide
   resNum[4]='\0';
   atomNum[5]='\0';
-  if (wrapType_ == UNKNOWN_WRAPTYPE) {
-    wrapType_ = RESET;
-  }
   if (wrapType_ == RESET) {
     // Reset the residue/atom numbering if out of range
     if (resnum > 9999)
@@ -875,17 +874,44 @@ void PDBfile::WriteMODEL(int model) {
   Printf("MODEL     %i\n", model);
 }
 
+/** Wrap atom number. */
+void PDBfile::atomNumber(int anum, char* atomNum)
+const
+{
+  //if (wrapType_ == RESET) {
+  //  // Reset the atom numbering if out of range
+  //  if (anum > 99999)
+  //    anum = anum % 100000;
+  //  else if (anum < -9999)
+  //    anum = anum % -10000;
+  //  snprintf(atomNum, 6, "%5i", anum);
+  //} else {
+  if (wrapType_ == HYBRID36) {
+    // Hybrid36 numbering
+    Cpptraj::Hybrid36::Encode(5, anum, atomNum);
+  } else {
+    // For backwards compat, allow overflow
+    snprintf(atomNum, MAX_DIGIT_, "%5i", anum);
+  }
+}
+
 /** Write CONECT record: 1-6 CONECT, 7-11 serial #, 12-16 serial # ... */
 void PDBfile::WriteCONECT(int atnum, std::vector<int> const& atrec, Atom const& atomIn) {
   if (atomIn.Nbonds() < 1) return;
+  // Atom number in PDB format can only be 5 digits wide
+  char atomNum[MAX_DIGIT_];
+  atomNum[5]='\0';
   // PDB V3.3 spec: target-atom serial #s carried on these records also occur in increasing order.
   Atom atom(atomIn);
   atom.SortBonds();
   int nbond = 0;
   while (nbond < atom.Nbonds()) {
-    if ((nbond % 4) == 0)
-      Printf("CONECT%5i", atnum);
-    Printf("%5i", atrec[atom.Bond(nbond++)]);
+    if ((nbond % 4) == 0) {
+      atomNumber(atnum, atomNum);
+      Printf("CONECT%5s", atomNum);
+    }
+    atomNumber( atrec[atom.Bond(nbond++)], atomNum );
+    Printf("%5s", atomNum);
     if ((nbond % 4) == 0 || nbond == atom.Nbonds())
       Printf("\n");
   }
@@ -893,15 +919,48 @@ void PDBfile::WriteCONECT(int atnum, std::vector<int> const& atrec, Atom const& 
 
 /** This version is primarily intended for writing CONECT for disulfides. */
 void PDBfile::WriteCONECT(int atnum1, int atnum2) {
-  Printf("CONECT%5i%5i\n", atnum1, atnum2);
+  char atomNum1[6];
+  atomNum1[5]='\0';
+  char atomNum2[6];
+  atomNum2[5]='\0';
+  atomNumber(atnum1, atomNum1);
+  atomNumber(atnum2, atomNum2);
+  Printf("CONECT%5s%5s\n", atomNum1, atomNum2);
+}
+
+/** Wrap residue number */
+void PDBfile::resNumber(int resnum, char* resNum)
+const
+{
+//  if (wrapType_ == RESET) {
+//    // Reset the residue/atom numbering if out of range
+//    if (resnum > 9999)
+//      resnum = resnum % 10000;
+//    else if (resnum < -999)
+//      resnum = resnum % -1000;
+//    snprintf(resNum, 5, "%4i", resnum);
+//  } else {
+  if (wrapType_ == HYBRID36) {
+    // Hybrid36 numbering
+    Cpptraj::Hybrid36::Encode(4, resnum, resNum);
+  } else {
+    // For backwards compat, allow overflow
+    snprintf(resNum, MAX_DIGIT_, "%4i", resnum);
+  }
 }
 
 void PDBfile::WriteSSBOND(int num, SSBOND const& ss, float distIn) {
   // TODO: SymOp
+  char resNum1[5];
+  resNum1[4] = '\0';
+  char resNum2[5];
+  resNum2[3] = '\0';
+  resNumber(ss.Rnum1(), resNum1);
+  resNumber(ss.Rnum2(), resNum2);
   //Printf("SSBOND %3i %3s %c %4i%c   %3s %c %4i%c                       %6i %6i %5.2f\n", num,
-  Printf("SSBOND %3i %3s %c %4i%c   %3s %c %4i%c                       %6s %6s %5.2f\n", num,
-         ss.name1(), ss.Chain1(), ss.Rnum1(), ss.Icode1(),
-         ss.name2(), ss.Chain2(), ss.Rnum2(), ss.Icode2(), "", "", distIn);
+  Printf("SSBOND %3i %3s %c %4s%c   %3s %c %4s%c                       %6s %6s %5.2f\n", num,
+         ss.name1(), ss.Chain1(), resNum1, ss.Icode1(),
+         ss.name2(), ss.Chain2(), resNum2, ss.Icode2(), "", "", distIn);
 }
 
 void PDBfile::WriteENDMDL() { Printf("ENDMDL\n"); }

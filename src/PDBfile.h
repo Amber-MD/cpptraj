@@ -13,7 +13,7 @@ class PDBfile : public CpptrajFile {
     enum PDB_RECTYPE {ATOM=0, HETATM, CRYST1, TER, END, ANISOU, END_OF_FILE, 
                       CONECT, LINK, MISSING_RES, MISSING_ATOM, MISSING_HET, UNKNOWN};
     /// Determine how to handle out of range residue/atom numbers. Correspond to NumWrapTypeStr_
-    enum NumWrapType { RESET = 0, HYBRID36, UNKNOWN_WRAPTYPE };
+    enum NumWrapType { RESET = 0, HYBRID36 };
     /// CONSTRUCTOR
     PDBfile();
 
@@ -103,6 +103,10 @@ class PDBfile : public CpptrajFile {
     void readCRYST1(double*);
     /// Parse a MISSING residue line
     Residue missing_res() const;
+    /// Wrap atom number
+    inline void atomNumber(int, char*) const;
+    /// Wrap residue number
+    inline void resNumber(int, char*) const;
 
     int anum_;               ///< Atom number for writing.
     PDB_RECTYPE recType_;    ///< Current record type.
@@ -114,6 +118,7 @@ class PDBfile : public CpptrajFile {
     static const char* PDB_RECNAME_[];
     /// Correspond to NumWrapType
     static const char* NumWrapTypeStr_[];
+    static const unsigned int MAX_DIGIT_;
 };
 /// Hold information for an SSBOND record.
 class PDBfile::SSBOND {
