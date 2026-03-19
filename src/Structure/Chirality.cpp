@@ -65,7 +65,7 @@ static int visitAndComparePriority(int at1, int at2, int depth, Topology const& 
   for (int idx = 0; idx != atom2.Nbonds(); idx++)
     watoms2.push_back( WeightedAtom(atom2.Bond(idx), topIn[atom2.Bond(idx)].AtomicNumber()) );
   std::sort(watoms2.begin(), watoms2.end());
-
+/*
   mprintf("DEBUG: Atom %s depth=%i priority sort:", topIn.AtomMaskName(at1).c_str(), depth);
   for (WatomArray::const_iterator it = watoms1.begin(); it != watoms1.end(); ++it)
     mprintf(" %s(%i)", topIn.AtomMaskName(it->Idx()).c_str(), it->AtomicNum());
@@ -74,7 +74,7 @@ static int visitAndComparePriority(int at1, int at2, int depth, Topology const& 
   for (WatomArray::const_iterator it = watoms2.begin(); it != watoms2.end(); ++it)
     mprintf(" %s(%i)", topIn.AtomMaskName(it->Idx()).c_str(), it->AtomicNum());
   mprintf("\n");
-
+*/
   // Compare each atom in turn. First atom that has higher substituent is the winner.
   unsigned int maxIdx = std::min(watoms1.size(), watoms2.size());
   for (unsigned int idx = 0; idx < maxIdx; idx++) {
@@ -188,10 +188,12 @@ Cpptraj::Structure::ChiralType
   for (int idx = 0; idx != atom.Nbonds(); idx++)
     watoms.push_back( WeightedAtom(atom.Bond(idx), topIn[atom.Bond(idx)].AtomicNumber()) );
   std::sort(watoms.begin(), watoms.end());
-  mprintf("DEBUG: Initial priority sort:");
-  for (WatomArray::const_iterator it = watoms.begin(); it != watoms.end(); ++it)
-    mprintf(" %s(%i)", topIn.AtomMaskName(it->Idx()).c_str(), it->AtomicNum());
-  mprintf("\n");
+  if (debugIn > 0) {
+    mprintf("DEBUG: Initial priority sort:");
+    for (WatomArray::const_iterator it = watoms.begin(); it != watoms.end(); ++it)
+      mprintf(" %s(%i)", topIn.AtomMaskName(it->Idx()).c_str(), it->AtomicNum());
+    mprintf("\n");
+  }
   // For any identical priorities, need to go one more bond out.
   bool atom_needs_second_sort = false;
   bool atom_chirality_undetermined = false;
@@ -199,17 +201,19 @@ Cpptraj::Structure::ChiralType
     for (int idx2 = idx1+1; idx2 != atom.Nbonds(); idx2++) {
       if (watoms[idx1].AtomicNum() == watoms[idx2].AtomicNum()) {
         atom_needs_second_sort = true;
-        mprintf("DEBUG: Priority of index %s == %s\n",
-                topIn.AtomMaskName(watoms[idx1].Idx()).c_str(),
-                topIn.AtomMaskName(watoms[idx2].Idx()).c_str());
+        if (debugIn > 0) {
+          mprintf("DEBUG: Priority of index %s == %s\n",
+                  topIn.AtomMaskName(watoms[idx1].Idx()).c_str(),
+                  topIn.AtomMaskName(watoms[idx2].Idx()).c_str());
+        }
         std::vector<bool> visited(topIn.Natom(), false);
         visited[atnum] = true;
         int higherAt = visitAndComparePriority(watoms[idx1].Idx(), watoms[idx2].Idx(), 0, topIn, visited);
         if (higherAt == -1) {
-          mprintf("DEBUG: Could not determine which atom has higher priority.\n");
+          if (debugIn > 0) mprintf("DEBUG: Could not determine which atom has higher priority.\n");
           atom_chirality_undetermined = true;
         } else {
-          mprintf("DEBUG: Higher priority atom is %s, num=%i\n", topIn.AtomMaskName(higherAt).c_str(), higherAt+1);
+          if (debugIn> 0) mprintf("DEBUG: Higher priority atom is %s, num=%i\n", topIn.AtomMaskName(higherAt).c_str(), higherAt+1);
           if ( higherAt == watoms[idx1].Idx() ) watoms[idx1].IncreasePriority();
           else if ( higherAt == watoms[idx2].Idx() ) watoms[idx2].IncreasePriority();
         }
@@ -218,10 +222,12 @@ Cpptraj::Structure::ChiralType
   }
   if (atom_needs_second_sort) {
     std::sort(watoms.begin(), watoms.end());
-    mprintf("DEBUG: Priority scores:");
-    for (WatomArray::const_iterator it = watoms.begin(); it != watoms.end(); ++it)
-      mprintf(" %s(%i, %i)", topIn.AtomMaskName(it->Idx()).c_str(), it->AtomicNum(), it->PriorityScore());
-    mprintf("\n");
+    if (debugIn > 0) {
+      mprintf("DEBUG: Priority scores:");
+      for (WatomArray::const_iterator it = watoms.begin(); it != watoms.end(); ++it)
+        mprintf(" %s(%i, %i)", topIn.AtomMaskName(it->Idx()).c_str(), it->AtomicNum(), it->PriorityScore());
+      mprintf("\n");
+    }
   }
   if (AtomIndices != 0) {
     for (unsigned int ip = 0; ip != watoms.size(); ++ip)
