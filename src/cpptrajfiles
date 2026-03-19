@@ -549,6 +549,7 @@ LIBCPPTRAJ_FILE_OBJECTS= \
   FileIO_Std.o \
   FileTypes.o \
   CIFfile.o \
+  Hybrid36.o \
   ModXNA_Info.o \
   Mol2File.o \
   PDBfile.o \
