@@ -321,10 +321,10 @@ int Traj_PDBfile::processWriteArgs(ArgList& argIn, DataSetList const& DSLin) {
   space_group_ = argIn.GetStringKey("sg");
   chainchar_ = argIn.GetStringKey("chainid");
   if (!chainchar_.empty()) {
-    if (chainchar_.size() > 1) {
-      mprintf("Warning: Specified chain ID %s is too big for PDB, truncating to %c\n",
-              chainchar_.c_str(), chainchar_[0]);
-      chainchar_.assign(1, chainchar_[0]);
+    if (chainchar_.size() > 2) {
+      chainchar_.resize(2);
+      mprintf("Warning: Specified chain ID is too big for PDB, truncating to %s\n",
+              chainchar_.c_str());
     }
   }
   if (argIn.hasKey("usecol21"))
@@ -499,7 +499,7 @@ int Traj_PDBfile::setupTrajout(FileName const& fname, Topology* trajParm,
       else
         chainID_.push_back( def_chainid );
   } else
-    chainID_.resize(trajParm->Nres(), chainchar_[0]);
+    chainID_.resize(trajParm->Nres(), chainchar_);
         
   // Save residue names. If pdbres specified convert to PDBV3 residue names.
   resNames_.clear();

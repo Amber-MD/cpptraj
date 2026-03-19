@@ -686,13 +686,13 @@ PDBfile::Link PDBfile::pdb_Link() {
 // -----------------------------------------------------------------------------
 // PDBfile::WriteRecordHeader()
 void PDBfile::WriteRecordHeader(PDB_RECTYPE Record, int anum, NameType const& name,
-                                char altLoc, NameType const& resnameIn, char chain, 
+                                char altLoc, NameType const& resnameIn, std::string const& chain, 
                                 int resnum, char icode, const char* Elt)
 {
-  char resName[6], atomName[5];
+  char resName[7], atomName[5];
   char resNum[5], atomNum[6];
 
-  resName[5]='\0';
+  resName[6]='\0';
   atomName[4]='\0';
   // Residue number in PDB format can only be 4 digits wide
   // Atom number in PDB format can only be 5 digits wide
@@ -739,6 +739,20 @@ void PDBfile::WriteRecordHeader(PDB_RECTYPE Record, int anum, NameType const& na
     rn_idx = 3;
   for (int i = rn_size - 1; i > -1; i--, rn_idx--)
     resName[rn_idx] = resnameIn[i];
+  // Chain ID
+  // The chain ID normally is a single character in column 22.
+  // We can support chain IDs of 2 characters (for e.g. hybrid36 PDBs)
+  // by making use of column 21 as well, even though this is not
+  // PDB-format compliant.
+  resName[5] = ' ';
+  if (!chain.empty()) {
+    if (chain.size() == 1)
+      resName[5] = chain[0];
+    else if (!useCol21_) {
+      resName[4] = chain[0];
+      resName[5] = chain[1];
+    }
+  }
   // Determine size in characters of element name if given.
   int eNameChars = 0;
   if (Elt != 0) eNameChars = strlen( Elt );
@@ -766,14 +780,14 @@ void PDBfile::WriteRecordHeader(PDB_RECTYPE Record, int anum, NameType const& na
       atomName[i+1] = name[i];
   }
   // TODO if REMARK, which #?
-  Printf("%-6s%5s %-4s%5s%c%4s%c",PDB_RECNAME_[Record], atomNum, atomName,
-               resName, chain, resNum, icode);
+  Printf("%-6s%5s %-4s%6s%4s%c",PDB_RECNAME_[Record], atomNum, atomName,
+               resName, resNum, icode);
   if (Record == TER) Printf("\n");
 }
 
 // PDBfile::WriteHET()
 void PDBfile::WriteHET(int res, double x, double y, double z) {
-  WriteCoord(HETATM, anum_++, "XX", ' ', "XXX", ' ', 
+  WriteCoord(HETATM, anum_++, "XX", ' ', "XXX", "", 
              res, ' ', x, y, z, 0.0, 0.0, "", 0, false);
 }
 
@@ -781,7 +795,7 @@ void PDBfile::WriteHET(int res, double x, double y, double z) {
 void PDBfile::WriteATOM(int res, double x, double y, double z, 
                         const char* resnameIn, double Occ)
 {
-  WriteCoord(ATOM, anum_++, "XX", ' ', resnameIn, ' ',
+  WriteCoord(ATOM, anum_++, "XX", ' ', resnameIn, "",
              res, ' ', x, y, z, (float)Occ, 0.0, "", 0, false);
 }
 
@@ -789,13 +803,13 @@ void PDBfile::WriteATOM(int res, double x, double y, double z,
 void PDBfile::WriteATOM(const char* anameIn, int res, double x, double y, double z, 
                         const char* resnameIn, double Occ)
 {
-  WriteCoord(ATOM, anum_++, anameIn, ' ', resnameIn, ' ',
+  WriteCoord(ATOM, anum_++, anameIn, ' ', resnameIn, "",
              res, ' ', x, y, z, (float)Occ, 0.0, "", 0, false);
 }
 
 // PDBfile::WriteCoord()
 void PDBfile::WriteCoord(PDB_RECTYPE Record, int anum, NameType const& name,
-                         NameType const& resnameIn, char chain, int resnum,
+                         NameType const& resnameIn, std::string const& chain, int resnum,
                          double X, double Y, double Z)
 {
   WriteCoord(Record, anum, name, ' ', resnameIn, chain, 
@@ -807,7 +821,7 @@ void PDBfile::WriteCoord(PDB_RECTYPE Record, int anum, NameType const& aname,
                          double X, double Y, double Z,
                          float Occ, float Bfac, const char* Elt, int charge)
 {
-  WriteCoord(Record, anum, aname, ' ', rname, ' ', resnum, ' ', X, Y, Z, 
+  WriteCoord(Record, anum, aname, ' ', rname, "", resnum, ' ', X, Y, Z, 
              Occ, Bfac, Elt, charge, false);
 }
 
@@ -846,7 +860,7 @@ static inline void SetChargeString(char* charge_buf, int charge) {
 // PDBfile::WriteCoord()
 void PDBfile::WriteCoord(PDB_RECTYPE Record, int anum, NameType const& name,
                          char altLoc,
-                         NameType const& resnameIn, char chain, int resnum,
+                         NameType const& resnameIn, std::string const& chain, int resnum,
                          char icode,
                          double X, double Y, double Z, float Occ, float B, 
                          const char* Elt, int charge, bool highPrecision) 
@@ -868,7 +882,7 @@ void PDBfile::WriteCoord(PDB_RECTYPE Record, int anum, NameType const& name,
 
 // PDBfile::WriteANISOU()
 void PDBfile::WriteANISOU(int anum, NameType const& name, 
-                          NameType const& resnameIn, char chain, int resnum,
+                          NameType const& resnameIn, std::string const& chain, int resnum,
                           const double* anisou,
                           const char* Elt, int charge)
 { // TODO icode, altLoc
