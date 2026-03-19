@@ -9,6 +9,98 @@
 #include <cmath> // fabs
 #include <algorithm> // sort
 
+/// This class is used to sort bonded atoms when determining chirality.
+class WeightedAtom {
+  public:
+    WeightedAtom(int idx, int atomicNum) : idx_(idx), atomicNum_(atomicNum), priorityScore_(0) {}
+    bool operator<(WeightedAtom const& rhs) const {
+      if (atomicNum_ == rhs.atomicNum_) {
+        return (priorityScore_ > rhs.priorityScore_);
+      } else {
+        return (atomicNum_ > rhs.atomicNum_);
+      }
+    }
+    bool operator==(WeightedAtom const& rhs) const {
+      return (atomicNum_ == rhs.atomicNum_) && (priorityScore_ == rhs.priorityScore_);
+    }
+    bool operator!=(WeightedAtom const& rhs) const {
+      return (atomicNum_ != rhs.atomicNum_) || (priorityScore_ != rhs.priorityScore_);
+    }
+    int Idx() const { return idx_; }
+    int AtomicNum() const { return atomicNum_; }
+    int PriorityScore() const { return priorityScore_; }
+    void IncreasePriority() { priorityScore_++; }
+  private:
+    int idx_; ///< The atom index in Topology
+    int atomicNum_; ///< The atomic number
+    int priorityScore_; ///< When atomic number is tied, used to sort
+};
+
+typedef std::vector<WeightedAtom> WatomArray;
+
+/// \return atom with higher priority
+/** When determining priority via Cahn-Ingold-Prelog rules, in case of a tie
+  * you need to look at the substituents of bonded atoms. Sort the bonded
+  * substituents for each atom and compare; the first point of difference
+  * breaks the tie. If not, go to the next level of bonded atoms.
+  * This recursive function automatically bails out at a depth of 10.
+  */
+static int visitAndComparePriority(int at1, int at2, int depth, Topology const& topIn, std::vector<bool>& visited)
+{
+  if (depth == 10) {
+    mprintf("DEBUG: visitAndComparePriority: Depth limit hit.\n");
+    return -1;
+  }
+  visited[at1] = true;
+  visited[at2] = true;
+  // Priority around atom1
+  Atom const& atom1 = topIn[at1];
+  WatomArray watoms1;
+  for (int idx = 0; idx != atom1.Nbonds(); idx++)
+    watoms1.push_back( WeightedAtom(atom1.Bond(idx), topIn[atom1.Bond(idx)].AtomicNumber()) );
+  std::sort(watoms1.begin(), watoms1.end());
+  // Priority around atom2
+  Atom const& atom2 = topIn[at2];
+  WatomArray watoms2;
+  for (int idx = 0; idx != atom2.Nbonds(); idx++)
+    watoms2.push_back( WeightedAtom(atom2.Bond(idx), topIn[atom2.Bond(idx)].AtomicNumber()) );
+  std::sort(watoms2.begin(), watoms2.end());
+
+  mprintf("DEBUG: Atom %s depth=%i priority sort:", topIn.AtomMaskName(at1).c_str(), depth);
+  for (WatomArray::const_iterator it = watoms1.begin(); it != watoms1.end(); ++it)
+    mprintf(" %s(%i)", topIn.AtomMaskName(it->Idx()).c_str(), it->AtomicNum());
+  mprintf("\n");
+  mprintf("DEBUG: Atom %s depth=%i priority sort:", topIn.AtomMaskName(at2).c_str(), depth);
+  for (WatomArray::const_iterator it = watoms2.begin(); it != watoms2.end(); ++it)
+    mprintf(" %s(%i)", topIn.AtomMaskName(it->Idx()).c_str(), it->AtomicNum());
+  mprintf("\n");
+
+  // Compare each atom in turn. First atom that has higher substituent is the winner.
+  unsigned int maxIdx = std::min(watoms1.size(), watoms2.size());
+  for (unsigned int idx = 0; idx < maxIdx; idx++) {
+    if (watoms1[idx].AtomicNum() > watoms2[idx].AtomicNum())
+      return at1;
+    else if (watoms2[idx].AtomicNum() > watoms1[idx].AtomicNum())
+      return at2;
+  }
+  // If still tied here, more substituents wins
+  if (watoms1.size() > watoms2.size())
+    return at1;
+  else if (watoms2.size() > watoms1.size())
+    return at2;
+  // If still tied here, need to go one more bond out
+  for (unsigned int idx = 0; idx < maxIdx; idx++) {
+    if (!visited[watoms1[idx].Idx()] && !visited[watoms2[idx].Idx()]) {
+      int higherAt = visitAndComparePriority(watoms1[idx].Idx(), watoms2[idx].Idx(), depth+1, topIn, visited);
+      if (higherAt == watoms1[idx].Idx()) return at1;
+      else if (higherAt == watoms2[idx].Idx()) return at2;
+    }
+  }
+  // If still here we could not determine chirality
+  return -1;
+}
+
+/*
 /// \return Total priority (i.e. sum of atomic numbers) of atoms bonded to given atom.
 static int totalPriority(Topology const& topIn, int atnum, int rnum,
                          int depth, int tgtdepth, std::vector<bool>& Visited)
@@ -69,12 +161,12 @@ class priority_element {
     int priority1_;
     int priority2_;
 };
-
+*/
 
 /** Given an atom that is a chiral center, attempt to calculate a
   * torsion that will help determine R vs S. Priorities will be 
-  * assigned to bonded atoms as 1, 2, 3, and optionally 4. The
-  * torsion will then be calculated as
+  * assigned to bonded atoms using Cahn-Ingold-Prelog rules as 1, 2, 3,
+  * and optionally 4. The torsion will then be calculated as
   *   1-2-3-0
   * where 0 is the chiral center. Negative is S, positive is R.
   */
@@ -87,11 +179,61 @@ Cpptraj::Structure::ChiralType
   tors = 0.0;
   Atom const& atom = topIn[atnum];
   if (atom.Nbonds() < 3) {
-    mprinterr("Error: CalcChiralAtomTorsion called for atom %s with less than 3 bonds.\n",
+    mprinterr("Error: DetermineChirality() called for atom %s with less than 3 bonds.\n",
               topIn.AtomMaskName(atnum).c_str());
     return CHIRALITY_ERR;
   }
-  // Calculate a priority score for each bonded atom.
+  // Calculate a priority score (atomic number) for each bonded atom.
+  WatomArray watoms;
+  for (int idx = 0; idx != atom.Nbonds(); idx++)
+    watoms.push_back( WeightedAtom(atom.Bond(idx), topIn[atom.Bond(idx)].AtomicNumber()) );
+  std::sort(watoms.begin(), watoms.end());
+  mprintf("DEBUG: Initial priority sort:");
+  for (WatomArray::const_iterator it = watoms.begin(); it != watoms.end(); ++it)
+    mprintf(" %s(%i)", topIn.AtomMaskName(it->Idx()).c_str(), it->AtomicNum());
+  mprintf("\n");
+  // For any identical priorities, need to go one more bond out.
+  bool atom_needs_second_sort = false;
+  bool atom_chirality_undetermined = false;
+  for (int idx1 = 0; idx1 != atom.Nbonds(); idx1++) {
+    for (int idx2 = idx1+1; idx2 != atom.Nbonds(); idx2++) {
+      if (watoms[idx1].AtomicNum() == watoms[idx2].AtomicNum()) {
+        atom_needs_second_sort = true;
+        mprintf("DEBUG: Priority of index %s == %s\n",
+                topIn.AtomMaskName(watoms[idx1].Idx()).c_str(),
+                topIn.AtomMaskName(watoms[idx2].Idx()).c_str());
+        std::vector<bool> visited(topIn.Natom(), false);
+        visited[atnum] = true;
+        int higherAt = visitAndComparePriority(watoms[idx1].Idx(), watoms[idx2].Idx(), 0, topIn, visited);
+        if (higherAt == -1) {
+          mprintf("DEBUG: Could not determine which atom has higher priority.\n");
+          atom_chirality_undetermined = true;
+        } else {
+          mprintf("DEBUG: Higher priority atom is %s, num=%i\n", topIn.AtomMaskName(higherAt).c_str(), higherAt+1);
+          if ( higherAt == watoms[idx1].Idx() ) watoms[idx1].IncreasePriority();
+          else if ( higherAt == watoms[idx2].Idx() ) watoms[idx2].IncreasePriority();
+        }
+      }
+    }
+  }
+  if (atom_needs_second_sort) {
+    std::sort(watoms.begin(), watoms.end());
+    mprintf("DEBUG: Priority scores:");
+    for (WatomArray::const_iterator it = watoms.begin(); it != watoms.end(); ++it)
+      mprintf(" %s(%i, %i)", topIn.AtomMaskName(it->Idx()).c_str(), it->AtomicNum(), it->PriorityScore());
+    mprintf("\n");
+  }
+  if (AtomIndices != 0) {
+    for (unsigned int ip = 0; ip != watoms.size(); ++ip)
+      AtomIndices[ip] = watoms[ip].Idx();
+  }
+  if (atom_chirality_undetermined) return IS_UNKNOWN_CHIRALITY;
+
+  tors = Torsion( frameIn.XYZ(watoms[0].Idx()),
+                  frameIn.XYZ(watoms[1].Idx()),
+                  frameIn.XYZ(watoms[2].Idx()),
+                  frameIn.XYZ(atnum) );
+/*
   // First just use the atomic number.
   if (debugIn > 0)
     mprintf("DEBUG: Determining priorities around atom %s\n", topIn.AtomMaskName(atnum).c_str());
@@ -146,7 +288,6 @@ Cpptraj::Structure::ChiralType
       mprintf(" %s", topIn.AtomMaskName(it->AtNum()).c_str());
     mprintf("\n");
   }
-
   if (AtomIndices != 0) {
     for (unsigned int ip = 0; ip != priority.size(); ++ip)
       AtomIndices[ip] = priority[ip].AtNum();
@@ -157,6 +298,7 @@ Cpptraj::Structure::ChiralType
                   frameIn.XYZ(priority[1].AtNum()),
                   frameIn.XYZ(priority[2].AtNum()),
                   frameIn.XYZ(atnum) );
+*/
   if (debugIn > 0)
     mprintf("DEBUG: Torsion around '%s' is %f",  topIn.AtomMaskName(atnum).c_str(), tors*Constants::RADDEG);
   ChiralType ret;
