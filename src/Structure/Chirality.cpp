@@ -65,7 +65,7 @@ static int visitAndComparePriority(int at1, int at2, int depth, Topology const& 
   for (int idx = 0; idx != atom2.Nbonds(); idx++)
     watoms2.push_back( WeightedAtom(atom2.Bond(idx), topIn[atom2.Bond(idx)].AtomicNumber()) );
   std::sort(watoms2.begin(), watoms2.end());
-/*
+
   mprintf("DEBUG: Atom %s depth=%i priority sort:", topIn.AtomMaskName(at1).c_str(), depth);
   for (WatomArray::const_iterator it = watoms1.begin(); it != watoms1.end(); ++it)
     mprintf(" %s(%i)", topIn.AtomMaskName(it->Idx()).c_str(), it->AtomicNum());
@@ -74,7 +74,7 @@ static int visitAndComparePriority(int at1, int at2, int depth, Topology const& 
   for (WatomArray::const_iterator it = watoms2.begin(); it != watoms2.end(); ++it)
     mprintf(" %s(%i)", topIn.AtomMaskName(it->Idx()).c_str(), it->AtomicNum());
   mprintf("\n");
-*/
+
   // Compare each atom in turn. First atom that has higher substituent is the winner.
   unsigned int maxIdx = std::min(watoms1.size(), watoms2.size());
   for (unsigned int idx = 0; idx < maxIdx; idx++) {
@@ -189,7 +189,7 @@ Cpptraj::Structure::ChiralType
     watoms.push_back( WeightedAtom(atom.Bond(idx), topIn[atom.Bond(idx)].AtomicNumber()) );
   std::sort(watoms.begin(), watoms.end());
   if (debugIn > 0) {
-    mprintf("DEBUG: Initial priority sort:");
+    mprintf("DEBUG: Initial priority for %s sort:", topIn.AtomMaskName(atnum).c_str());
     for (WatomArray::const_iterator it = watoms.begin(); it != watoms.end(); ++it)
       mprintf(" %s(%i)", topIn.AtomMaskName(it->Idx()).c_str(), it->AtomicNum());
     mprintf("\n");
