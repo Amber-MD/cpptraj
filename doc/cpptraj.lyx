@@ -27684,7 +27684,7 @@ checkchirality
 \end_layout
 
 \begin_layout LyX-Code
-checkchirality [<name>] [<mask>] [out <filename>]
+checkchirality [<name>] [<mask>] [out <filename>] [byatom]
 \begin_inset Separator latexpar
 \end_inset
 
@@ -27706,6 +27706,10 @@ checkchirality [<name>] [<mask>] [out <filename>]
 \end_inset
 
 <filename>] File to write results to.
+\end_layout
+
+\begin_layout Description
+[byatom] Check the chirality of any atoms in <mask1> that are chiral centers.
 \end_layout
 
 \begin_layout Standard
@@ -27730,7 +27734,12 @@ Check the chirality around the alpha carbon in amino acid residues selected by <
  CB.
  For each residue,
  the number of frames in which the amino acid is 'L' or 'D' will be recorded.
- For example,
+ If byatom is specified,
+ 
+\end_layout
+
+\begin_layout Standard
+For example,
  to check the chirality of all amino acids in a system and write to a file named chiral.dat with data set name DPDP:
 \end_layout
 
