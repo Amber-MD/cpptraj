@@ -196,8 +196,8 @@ Cpptraj::Structure::ChiralType
 {
   tors = 0.0;
   Atom const& atom = topIn[atnum];
-  if (atom.Nbonds() < 3) {
-    mprinterr("Error: DetermineChirality() called for atom %s with less than 3 bonds.\n",
+  if (atom.Nbonds() < 2) {
+    mprinterr("Error: DetermineChirality() called for atom %s with less than 2 bonds.\n",
               topIn.AtomMaskName(atnum).c_str());
     return CHIRALITY_ERR;
   }
@@ -251,7 +251,8 @@ Cpptraj::Structure::ChiralType
     for (unsigned int ip = 0; ip != watoms.size(); ++ip)
       AtomIndices[ip] = watoms[ip].Idx();
   }
-  if (atom_chirality_undetermined) return IS_UNKNOWN_CHIRALITY;
+  if (atom.Nbonds() < 3 || atom_chirality_undetermined) return IS_UNKNOWN_CHIRALITY;
+  if (frameIn.Natom() < 1) return IS_UNKNOWN_CHIRALITY; // FIXME should have separate priority routine
 
   tors = Torsion( frameIn.XYZ(watoms[0].Idx()),
                   frameIn.XYZ(watoms[1].Idx()),
