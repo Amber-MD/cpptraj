@@ -27684,7 +27684,7 @@ checkchirality
 \end_layout
 
 \begin_layout LyX-Code
-checkchirality [<name>] [<mask>] [out <filename>]
+checkchirality [<name>] [<mask>] [out <filename>] [byatom]
 \begin_inset Separator latexpar
 \end_inset
 
@@ -27708,29 +27708,61 @@ checkchirality [<name>] [<mask>] [out <filename>]
 <filename>] File to write results to.
 \end_layout
 
+\begin_layout Description
+[byatom] Check the chirality of any atoms in <mask1> that are chiral centers.
+\end_layout
+
 \begin_layout Standard
 DataSet Aspects:
 \end_layout
 
 \begin_layout Description
-[L] Number of frames 'L' for each residue.
+<name>[L] Number of frames 'L' for each residue.
 \end_layout
 
 \begin_layout Description
-[D] Number of frames 'D' for each residue.
+<name>[D] Number of frames 'D' for each residue.
+\end_layout
+
+\begin_layout Standard
+If 'byatom':
+\end_layout
+
+\begin_layout Description
+<name>:<atom#> For each frame,
+ will contain 'S' or 'R' (corresponding to 'L' or 'D'),
+ or 
+\begin_inset Quotes eld
+\end_inset
+
+Unknown
+\begin_inset Quotes erd
+\end_inset
+
+ if chirality could not be determined.
 \end_layout
 
 \end_deeper
 \begin_layout Standard
 Check the chirality around the alpha carbon in amino acid residues selected by <mask>.
- Note that cpptraj expects atom names to correspond to the PDB V3 standard:
+ Note that CPPTRAJ expects atom names to correspond to the PDB V3 standard:
  N,
  CA,
  C,
  CB.
  For each residue,
  the number of frames in which the amino acid is 'L' or 'D' will be recorded.
- For example,
+ If 
+\series bold
+byatom
+\series default
+ is specified,
+ the chirality ('S' or 'R') for each atom selected by the atom mask will be determined if possible;
+ otherwise 'Unknown' will be printed.
+\end_layout
+
+\begin_layout Standard
+For example,
  to check the chirality of all amino acids in a system and write to a file named chiral.dat with data set name DPDP:
 \end_layout
 
@@ -27752,6 +27784,38 @@ Output will have format similar to:
 
 \begin_layout Standard
 So in this example residue 2 was 'L' for 100 frames and 'D' for 0 frames.
+\end_layout
+
+\begin_layout Standard
+To check the chirality of CA atoms in residues 1 to 8 in a system:
+\end_layout
+
+\begin_layout LyX-Code
+parm ../DPDP.parm7
+\end_layout
+
+\begin_layout LyX-Code
+trajin ../DPDP.nc
+\end_layout
+
+\begin_layout LyX-Code
+checkchirality DPDP out dpdp.byatom.dat byatom :1-8@CA
+\end_layout
+
+\begin_layout Standard
+Output will look like:
+\end_layout
+
+\begin_layout LyX-Code
+#Frame   :2@CA :3@CA :4@CA :5@CA :6@CA :7@CA   :8@CA
+\end_layout
+
+\begin_layout LyX-Code
+       1     S     S     S     S     S     R Unknown
+\end_layout
+
+\begin_layout LyX-Code
+       2     S     S     S     S     S     R Unknown
 \end_layout
 
 \begin_layout Subsection
