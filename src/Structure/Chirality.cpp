@@ -65,7 +65,7 @@ typedef std::vector<WeightedAtom> WatomArray;
   */
 static int visitAndComparePriority(int at1, int at2, int depth, Topology const& topIn, std::vector<bool>& visited)
 {
-  if (depth == 15) {
+  if (depth == 20) {
     mprintf("DEBUG: visitAndComparePriority: Depth limit hit.\n");
     return -1;
   }
