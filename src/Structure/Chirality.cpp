@@ -9,7 +9,7 @@
 #include <cmath> // fabs
 #include <algorithm> // sort
 
-/// This class is used to sort bonded atoms when determining chirality.
+/// This class is used to sort bonded atoms by priority when determining chirality.
 class WeightedAtom {
   public:
     WeightedAtom(int idx, Atom const& atomIn, Topology const& topIn) :
@@ -77,12 +77,14 @@ static int visitAndComparePriority(int at1, int at2, int depth, Topology const& 
   WatomArray watoms1;
   for (int idx = 0; idx != atom1.Nbonds(); idx++)
     watoms1.push_back( WeightedAtom(atom1.Bond(idx), topIn[atom1.Bond(idx)], topIn) );
+  // TODO resolve ties here as well?
   std::sort(watoms1.begin(), watoms1.end());
   // Priority around atom2
   Atom const& atom2 = topIn[at2];
   WatomArray watoms2;
   for (int idx = 0; idx != atom2.Nbonds(); idx++)
     watoms2.push_back( WeightedAtom(atom2.Bond(idx), topIn[atom2.Bond(idx)], topIn) );
+  // TODO resolve ties here as well?
   std::sort(watoms2.begin(), watoms2.end());
   if (debugIn > 0) {
     mprintf("DEBUG: Atom %s depth=%i priority sort:", topIn.AtomMaskName(at1).c_str(), depth);
@@ -182,7 +184,14 @@ class priority_element {
 };
 */
 
-/** Try to break any ties between atoms with intially identical priorities. */
+/// Try to break any ties between atoms with intially identical priorities.
+/** The intial attempt to break the tie is by looking at the total weight
+  * (sum of atomic numbers of bonded substituents) of each atom. If this
+  * fails, which can happen when a lot of symmetry is present, then keep
+  * looking ahead up to a certain depth. We do this to try and ensure
+  * bond ordering is as regular as possible when looking to break ties
+  * via visitAndComparePriority()
+  */
 static bool resolve_priority_ties(int atnum, WatomArray& watoms, Topology const& topIn, int debugIn) {
   Atom const& atom = topIn[atnum];
   // For any identical priorities, need to check who they are bonded to.
