@@ -1,7 +1,6 @@
 #include <algorithm> // sort
 #include "AtomMap.h"
 #include "CpptrajStdio.h"
-#include "Structure/Chirality.h"
 
 // CONSTRUCTOR
 AtomMap::AtomMap() : debug_(0), allowNoBonds_(false) {}
@@ -131,43 +130,18 @@ bool AtomMap::BondIsRepeated(int atom, int bondedAtom) const {
   * atomIDs of all bonded atoms (sorted).
   */
 void AtomMap::AssignUniqueAtomIDs() {
-  using namespace Cpptraj::Structure;
-  // FIXME this is wasteful but needed for DetermineChirality
-  Frame tmpfrm;
-  Topology tmptop;
-  for (Marray::iterator matom = mapatoms_.begin(); matom != mapatoms_.end(); ++matom)
-    tmptop.AddTopAtom(*matom, Residue("TMP", 1, ' ', ""));
-
   // Determine self IDs
   if (debug_>0) mprintf("ATOM IDs:\n");
   unsigned int anum = 1;
-  typedef std::vector<int> Iarray;
-  typedef std::vector<Iarray> OrderArray;
-  OrderArray Orders;
-  Orders.reserve( mapatoms_.size() );
   for (Marray::iterator matom = mapatoms_.begin(); 
                         matom != mapatoms_.end(); ++matom)
   {
     std::string atomID;
-    if (matom->Nbonds() > 0) {
-      if (matom->Nbonds() == 1) {
-        atomID += mapatoms_[matom->Bond(0)].CharName();
-        Orders.push_back( Iarray(1, matom->Bond(0)) );
-      } else {
-        double tors = 0;
-        std::vector<int> AtomIndices(matom->Nbonds(), -1);
-        DetermineChirality(tors, &AtomIndices[0], matom - mapatoms_.begin(), tmptop, tmpfrm, debug_);
-        for (std::vector<int>::const_iterator it = AtomIndices.begin(); it != AtomIndices.end(); ++it)
-          atomID += mapatoms_[*it].CharName();
-        Orders.push_back( AtomIndices );
-      }
-    } else
-      Orders.push_back( Iarray() );
-//    for (Atom::bond_iterator bondedAtom = matom->bondbegin();
-//                             bondedAtom != matom->bondend(); ++bondedAtom)
-//      atomID += mapatoms_[ *bondedAtom ].CharName();
-//    // Sort atom ID
-//    sort( atomID.begin(), atomID.end() );
+    for (Atom::bond_iterator bondedAtom = matom->bondbegin();
+                             bondedAtom != matom->bondend(); ++bondedAtom)
+      atomID += mapatoms_[ *bondedAtom ].CharName();
+    // Sort atom ID
+    sort( atomID.begin(), atomID.end() );
     // Place current atom 1 char name at beginning
     atomID = matom->CharName() + atomID;
     matom->SetAtomID( atomID );
@@ -181,34 +155,10 @@ void AtomMap::AssignUniqueAtomIDs() {
     std::string unique = matom.AtomID();
     if (mapatoms_.size() > 9)
     {
-/*
-      for (Iarray::const_iterator bondedAtom = Orders[ma1].begin(); bondedAtom != Orders[ma1].end(); ++bondedAtom)
-      {
-        unique += mapatoms_[*bondedAtom].AtomID();
-        // Go one more level through bonds for unique ID.
-        Iarray const& Batom = Orders[*bondedAtom];
-        for (Iarray::const_iterator ba2 = Batom.begin(); ba2 != Batom.end(); ++ba2)
-        {
-          if (*ba2 != ma1) {
-            unique += mapatoms_[ *ba2 ].AtomID();
-            // For larger residues go one additional level.
-            if (mapatoms_.size() > 19) {
-              Iarray const& Catom = Orders[ *ba2 ];
-              for (Iarray::const_iterator ca3 = Catom.begin(); ca3 != Catom.end(); ++ca3)
-              {
-                if (ca3 != ba2 && *ca3 != ma1)
-                  unique += mapatoms_[ *ca3 ].AtomID();
-              }
-            }
-          }
-        }
-      }
-*/
       for (Atom::bond_iterator bondedAtom = matom.bondbegin();
                                bondedAtom != matom.bondend(); ++bondedAtom)
       {
         unique += mapatoms_[ *bondedAtom ].AtomID();
-/*
         // Go one more level through bonds for unique ID.
         // FIXME: This may only be optimal above a certain # of atoms
         MapAtom const& Batom = mapatoms_[ *bondedAtom ];
@@ -227,11 +177,10 @@ void AtomMap::AssignUniqueAtomIDs() {
             }
           }
         }
-*/
       }
     }
     // Do not sort first character (this atoms element ID char).
-    //sort( unique.begin() + 1, unique.end() );
+    sort( unique.begin() + 1, unique.end() );
     // NOTE: SetUnique also resets the duplicated counter.
     matom.SetUnique( unique );
   }
