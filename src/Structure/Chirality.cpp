@@ -64,10 +64,10 @@ typedef std::vector<WeightedAtom> WatomArray;
   * breaks the tie. If not, go to the next level of bonded atoms.
   * This recursive function automatically bails out at a depth of 10.
   */
-static int visitAndComparePriority(int at1, int at2, int depth, Topology const& topIn, std::vector<bool>& visited)
+static int visitAndComparePriority(int at1, int at2, int depth, Topology const& topIn, std::vector<bool>& visited, int debugIn)
 {
   if (depth == 20) {
-    mprintf("DEBUG: visitAndComparePriority: Depth limit hit.\n");
+    if (debugIn>0) mprintf("DEBUG: visitAndComparePriority: Depth limit hit.\n");
     return -1;
   }
   visited[at1] = true;
@@ -84,16 +84,16 @@ static int visitAndComparePriority(int at1, int at2, int depth, Topology const& 
   for (int idx = 0; idx != atom2.Nbonds(); idx++)
     watoms2.push_back( WeightedAtom(atom2.Bond(idx), topIn[atom2.Bond(idx)], topIn) );
   std::sort(watoms2.begin(), watoms2.end());
-
-  mprintf("DEBUG: Atom %s depth=%i priority sort:", topIn.AtomMaskName(at1).c_str(), depth);
-  for (WatomArray::const_iterator it = watoms1.begin(); it != watoms1.end(); ++it)
-    it->print(topIn);
-  mprintf("\n");
-  mprintf("DEBUG: Atom %s depth=%i priority sort:", topIn.AtomMaskName(at2).c_str(), depth);
-  for (WatomArray::const_iterator it = watoms2.begin(); it != watoms2.end(); ++it)
-    it->print(topIn);
-  mprintf("\n");
-
+  if (debugIn > 0) {
+    mprintf("DEBUG: Atom %s depth=%i priority sort:", topIn.AtomMaskName(at1).c_str(), depth);
+    for (WatomArray::const_iterator it = watoms1.begin(); it != watoms1.end(); ++it)
+      it->print(topIn);
+    mprintf("\n");
+    mprintf("DEBUG: Atom %s depth=%i priority sort:", topIn.AtomMaskName(at2).c_str(), depth);
+    for (WatomArray::const_iterator it = watoms2.begin(); it != watoms2.end(); ++it)
+      it->print(topIn);
+    mprintf("\n");
+  }
   // Compare each atom in turn. First atom that has higher substituent is the winner.
   unsigned int maxIdx = std::min(watoms1.size(), watoms2.size());
   for (unsigned int idx = 0; idx < maxIdx; idx++) {
@@ -110,7 +110,7 @@ static int visitAndComparePriority(int at1, int at2, int depth, Topology const& 
   // If still tied here, need to go one more bond out
   for (unsigned int idx = 0; idx < maxIdx; idx++) {
     if (!visited[watoms1[idx].Idx()] && !visited[watoms2[idx].Idx()]) {
-      int higherAt = visitAndComparePriority(watoms1[idx].Idx(), watoms2[idx].Idx(), depth+1, topIn, visited);
+      int higherAt = visitAndComparePriority(watoms1[idx].Idx(), watoms2[idx].Idx(), depth+1, topIn, visited, debugIn);
       if (higherAt == watoms1[idx].Idx()) return at1;
       else if (higherAt == watoms2[idx].Idx()) return at2;
     }
@@ -211,7 +211,7 @@ static bool resolve_priority_ties(int atnum, WatomArray& watoms, Topology const&
             break;
           }
           if (depth == 10) {
-            if (debugIn > -1)
+            if (debugIn > 0)
               mprintf("Warning: Could not determine priority around '%s'\n",
                         topIn.AtomMaskName(atnum).c_str());
             depth_limit_hit = true;
@@ -272,7 +272,7 @@ Cpptraj::Structure::ChiralType
         }
         std::vector<bool> visited(topIn.Natom(), false);
         visited[atnum] = true;
-        int higherAt = visitAndComparePriority(watoms[idx1].Idx(), watoms[idx2].Idx(), 0, topIn, visited);
+        int higherAt = visitAndComparePriority(watoms[idx1].Idx(), watoms[idx2].Idx(), 0, topIn, visited, debugIn);
         if (higherAt == -1) {
           if (debugIn > 0) mprintf("DEBUG: Could not determine which atom has higher priority.\n");
           atom_chirality_undetermined = true;
