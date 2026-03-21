@@ -44,6 +44,7 @@ class WeightedAtom {
     int PriorityScore() const { return priorityScore_; }
     void IncreasePriority() { priorityScore_++; }
     int BondSum() const { return bondSum_; }
+    void SetBondSum(int sumIn) { bondSum_ = sumIn; }
     void print(Topology const& topIn) const {
       mprintf(" %s(%i, %i, %i)@%i", topIn.AtomMaskName(idx_).c_str(), atomicNum_, priorityScore_, bondSum_, idx_);
     }
@@ -118,7 +119,6 @@ static int visitAndComparePriority(int at1, int at2, int depth, Topology const& 
   return -1;
 }
 
-/*
 /// \return Total priority (i.e. sum of atomic numbers) of atoms bonded to given atom.
 static int totalPriority(Topology const& topIn, int atnum, int rnum,
                          int depth, int tgtdepth, std::vector<bool>& Visited)
@@ -140,6 +140,7 @@ static int totalPriority(Topology const& topIn, int atnum, int rnum,
   return sum;
 }
 
+/*
 /// Used to determine priority of moieties bonded to an atom
 class priority_element {
   public:
@@ -181,6 +182,49 @@ class priority_element {
 };
 */
 
+/** Try to break any ties between atoms with intially identical priorities. */
+static bool resolve_priority_ties(int atnum, WatomArray& watoms, Topology const& topIn, int debugIn) {
+  Atom const& atom = topIn[atnum];
+  // For any identical priorities, need to check who they are bonded to.
+  bool depth_limit_hit = false;
+  for (unsigned int idx1 = 0; idx1 != watoms.size(); idx1++) {
+    for (unsigned int idx2 = idx1+1; idx2 != watoms.size(); idx2++) {
+      if (watoms[idx1] == watoms[idx2]) {
+        bool identical_priorities = true;
+        int depth = 1;
+        while (identical_priorities) {
+          if (debugIn > 0)
+            mprintf("DEBUG: Priority of index %u == %u, depth %i\n", idx1, idx2, depth);
+          std::vector<bool> Visited(topIn.Natom(), false);
+          Visited[atnum] = true;
+          watoms[idx1].SetBondSum(totalPriority(topIn, watoms[idx1].Idx(), atom.ResNum(), 0, depth, Visited));
+          if (debugIn > 0)
+            mprintf("DEBUG:\tPriority2 of %u is %i\n", idx1, watoms[idx1].BondSum());
+
+          Visited.assign(topIn.Natom(), false);
+          Visited[atnum] = true;
+          watoms[idx2].SetBondSum(totalPriority(topIn, watoms[idx2].Idx(), atom.ResNum(), 0, depth, Visited));
+          if (debugIn > 0)
+            mprintf("DEBUG:\tPriority2 of %u is %i\n", idx2, watoms[idx2].BondSum());
+          if (watoms[idx1] != watoms[idx2]) {
+            identical_priorities = false;
+            break;
+          }
+          if (depth == 10) {
+            if (debugIn > -1)
+              mprintf("Warning: Could not determine priority around '%s'\n",
+                        topIn.AtomMaskName(atnum).c_str());
+            depth_limit_hit = true;
+            break;
+          }
+          depth++;
+        } // END while identical priorities
+      }
+    }
+  }
+  return depth_limit_hit;
+}
+
 /** Given an atom that is a chiral center, attempt to calculate a
   * torsion that will help determine R vs S. Priorities will be 
   * assigned to bonded atoms using Cahn-Ingold-Prelog rules as 1, 2, 3,
@@ -205,6 +249,8 @@ Cpptraj::Structure::ChiralType
   WatomArray watoms;
   for (int idx = 0; idx != atom.Nbonds(); idx++)
     watoms.push_back( WeightedAtom(atom.Bond(idx), topIn[atom.Bond(idx)], topIn) );
+  // Try to resolve ties before sorting
+  bool depth_limit_hit = resolve_priority_ties(atnum, watoms, topIn, debugIn);
   std::sort(watoms.begin(), watoms.end());
   if (debugIn > 0) {
     mprintf("DEBUG: Initial priority for %s sort:", topIn.AtomMaskName(atnum).c_str());
@@ -267,43 +313,6 @@ Cpptraj::Structure::ChiralType
     priority.push_back( priority_element(atom.Bond(idx), topIn[atom.Bond(idx)].AtomicNumber()) );
     if (debugIn > 0)
       mprintf("DEBUG:\t\t%i Priority for %s is %i\n", idx, topIn.AtomMaskName(atom.Bond(idx)).c_str(), priority.back().Priority1());
-  }
-  // For any identical priorities, need to check who they are bonded to.
-  bool depth_limit_hit = false;
-  for (int idx1 = 0; idx1 != atom.Nbonds(); idx1++) {
-    for (int idx2 = idx1+1; idx2 != atom.Nbonds(); idx2++) {
-      if (priority[idx1] == priority[idx2]) {
-        bool identical_priorities = true;
-        int depth = 1;
-        while (identical_priorities) {
-          if (debugIn > 0)
-            mprintf("DEBUG: Priority of index %i == %i, depth %i\n", idx1, idx2, depth);
-          std::vector<bool> Visited(topIn.Natom(), false);
-          Visited[atnum] = true;
-          priority[idx1].SetPriority2(totalPriority(topIn, atom.Bond(idx1), atom.ResNum(), 0, depth, Visited));
-          if (debugIn > 0)
-            mprintf("DEBUG:\tPriority2 of %i is %i\n", idx1, priority[idx1].Priority2());
-
-          Visited.assign(topIn.Natom(), false);
-          Visited[atnum] = true;
-          priority[idx2].SetPriority2(totalPriority(topIn, atom.Bond(idx2), atom.ResNum(), 0, depth, Visited));
-          if (debugIn > 0)
-            mprintf("DEBUG:\tPriority2 of %i is %i\n", idx2, priority[idx2].Priority2());
-          if (priority[idx1] != priority[idx2]) {
-            identical_priorities = false;
-            break;
-          }
-          if (depth == 10) {
-            if (debugIn > -1)
-              mprintf("Warning: Could not determine priority around '%s'\n",
-                        topIn.AtomMaskName(atnum).c_str());
-            depth_limit_hit = true;
-            break;
-          }
-          depth++;
-        } // END while identical priorities
-      }
-    }
   }
   std::sort(priority.begin(), priority.end());
   if (debugIn > 0) {
