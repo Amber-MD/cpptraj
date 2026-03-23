@@ -402,7 +402,11 @@ void Solvate::octBoxCheck(Frame const& frameOut) {
   }
 
   // calc distance of diagonal face from origin
-  double dBmax = 0.5 * sqrt( dXhalf*dXhalf + dYhalf*dYhalf + dZhalf*dZhalf );
+  //double dBmax = 0.5 * sqrt( dXhalf*dXhalf + dYhalf*dYhalf + dZhalf*dZhalf );
+  double dBmax = 1.5 * dXhalf * dYhalf * dZhalf /
+                   sqrt( dYhalf*dYhalf*dZhalf*dZhalf +
+                         dXhalf*dXhalf*dZhalf*dZhalf +
+                         dXhalf*dXhalf*dYhalf*dYhalf );
 
   // see if diagonal clearance is satisfied
   dTmp = dMax + dPBuf[3];
@@ -416,9 +420,9 @@ void Solvate::octBoxCheck(Frame const& frameOut) {
   dTmp /= dBmax;
   mprintf("\t  Scaling up box by a factor of %f to meet diagonal cut criterion\n", dTmp );
 
-  bufferX_ *= dTmp;
-  bufferY_ *= dTmp;
-  bufferZ_ *= dTmp;
+  bufferX_ += dXhalf * (dTmp - 1.0); //bufferX_ *= dTmp;
+  bufferY_ += dYhalf * (dTmp - 1.0); //bufferY_ *= dTmp;
+  bufferZ_ += dZhalf * (dTmp - 1.0); //bufferZ_ *= dTmp;
 }
 
 /** Rotate 45 deg. around z axis, (90-tetra/2) around y axis, 90 around x axis.
