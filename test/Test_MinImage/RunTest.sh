@@ -18,6 +18,7 @@ minimage m3 :1-13 toface out toface.dat
 EOF
 RunCpptraj "Minimum Image test."
 DoTest min.dat.save min.dat
+DoTest toface.dat.save toface.dat
 
 cat > test.pdb <<EOF
 CRYST1    4.000    4.000    4.000  90.00  90.00  90.00 P 1           2         
