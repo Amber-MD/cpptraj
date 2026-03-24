@@ -11,7 +11,8 @@
 Action_MinImage::Action_MinImage() : 
   dist_(0),
   useMass_(true),
-  calcUsingMask_(false)
+  calcUsingMask_(false),
+  toFace_(false)
 {} 
 
 void Action_MinImage::Help() const {
@@ -25,16 +26,24 @@ Action::RetType Action_MinImage::Init(ArgList& actionArgs, ActionInit& init, int
   // Get Keywords
   useMass_ = !(actionArgs.hasKey("geom"));
   calcUsingMask_ = actionArgs.hasKey("maskcenter");
+  toFace_ = actionArgs.hasKey("toface");
+  if (calcUsingMask_ && toFace_) {
+    mprinterr("Error: Specify either 'maskcenter' or 'toface', not both.\n");
+    return Action::ERR;
+  }
   DataFile* outfile = init.DFL().AddDataFile( actionArgs.GetStringKey("out"), actionArgs );
   // Get Masks
   std::string mask1 = actionArgs.GetMaskNext();
-  std::string mask2 = actionArgs.GetMaskNext();
-  if (mask1.empty() || mask2.empty()) {
-    mprinterr("Error: Requires 2 masks\n");
-    return Action::ERR;
-  }
   if (Mask1_.SetMaskString(mask1)) return Action::ERR;
-  if (Mask2_.SetMaskString(mask2)) return Action::ERR;
+  std::string mask2;
+  if (!toFace_) {
+    mask2 = actionArgs.GetMaskNext();
+    if (mask1.empty() || mask2.empty()) {
+      mprinterr("Error: Requires 2 masks\n");
+      return Action::ERR;
+    }
+    if (Mask2_.SetMaskString(mask2)) return Action::ERR;
+  }
 
   // Dataset to store distances
   MetaData md(actionArgs.GetStringNext());
@@ -44,7 +53,7 @@ Action::RetType Action_MinImage::Init(ArgList& actionArgs, ActionInit& init, int
   // Update metadata in case a default name was generated
   md.SetName( dist_->Meta().Name() );
   if (outfile != 0) outfile->AddDataSet( dist_ );
-  if (!calcUsingMask_) {
+  if (toFace_ || !calcUsingMask_) {
     md.SetAspect("A1");
     atom1_ = init.DSL().AddSet(DataSet::INTEGER, md);
     md.SetAspect("A2");
@@ -68,7 +77,9 @@ Action::RetType Action_MinImage::Init(ArgList& actionArgs, ActionInit& init, int
   minAtom2_.resize( numthreads );
 
   mprintf("    MINIMAGE: Looking for closest approach of");
-  if (calcUsingMask_) {
+  if (toFace_) {
+    mprintf(" atoms in mask '%s' to unit cell faces.\n", Mask1_.MaskString());
+  } else if (calcUsingMask_) {
     mprintf(" center of mask %s\n\tto images of center of mask %s\n",
             Mask1_.MaskString(), Mask2_.MaskString());
     if (useMass_) 
@@ -94,12 +105,21 @@ Action::RetType Action_MinImage::Setup(ActionSetup& setup) {
     return Action::SKIP;
   }
   if (setup.Top().SetupIntegerMask( Mask1_ )) return Action::ERR;
-  if (setup.Top().SetupIntegerMask( Mask2_ )) return Action::ERR;
-  mprintf("\t%s (%i atoms) to %s (%i atoms)\n",Mask1_.MaskString(), Mask1_.Nselected(),
-          Mask2_.MaskString(),Mask2_.Nselected());
-  if (Mask1_.None() || Mask2_.None()) {
-    mprintf("Warning: One or both masks have no atoms.\n");
-    return Action::SKIP;
+  if (!toFace_) {
+    if (setup.Top().SetupIntegerMask( Mask2_ )) return Action::ERR;
+    mprintf("\t%s (%i atoms) to %s (%i atoms)\n",
+            Mask1_.MaskString(), Mask1_.Nselected(),
+            Mask2_.MaskString(), Mask2_.Nselected());
+    if (Mask1_.None() || Mask2_.None()) {
+      mprintf("Warning: One or both masks have no atoms.\n");
+      return Action::SKIP;
+    }
+  } else {
+    mprintf("\t%s (%i atoms)\n", Mask1_.MaskString(), Mask1_.Nselected());
+    if (Mask1_.None()) {
+      mprintf("Warning: Mask has no atoms.\n");
+      return Action::SKIP;
+    }
   }
 
   return Action::OK;  
@@ -117,6 +137,68 @@ static void WriteMatrix(Matrix_3x3 const& ucell, PDBfile& pdbout, const char* na
   pdbout.WriteATOM("Z", res, zvec[0], zvec[1], zvec[2], name, 1.0);
 }
 */
+
+/** Distance of each atom in mask to each unit cell face. */
+double Action_MinImage::minDistToCellFace(AtomMask const& maskIn, Frame const& frameIn, int frameNum)
+{
+  Box const& boxIn = frameIn.BoxCrd();
+  // Store face coords in cartesian space
+  Vec3 Faces[6];
+  Faces[0] = boxIn.UnitCell().TransposeMult( Vec3(1.0, 0.5, 0.5) ); // +X
+  Faces[1] = boxIn.UnitCell().TransposeMult( Vec3(0.0, 0.5, 0.5) ); // -X
+  Faces[2] = boxIn.UnitCell().TransposeMult( Vec3(0.5, 1.0, 0.5) ); // +Y 
+  Faces[3] = boxIn.UnitCell().TransposeMult( Vec3(0.5, 0.0, 0.5) ); // -Y
+  Faces[4] = boxIn.UnitCell().TransposeMult( Vec3(0.5, 0.5, 1.0) ); // +Z
+  Faces[5] = boxIn.UnitCell().TransposeMult( Vec3(0.5, 0.5, 0.0) ); // -Z
+  minDist_.assign(minDist_.size(), DBL_MAX);
+  int mythread = 0;
+  for (AtomMask::const_iterator at = maskIn.begin(); at != maskIn.end(); ++at)
+  {
+    // To fractional space
+    Vec3 frac = boxIn.FracCell() * Vec3( frameIn.XYZ(*at) );
+    // Bring back into main unit cell
+    frac[0] = frac[0] - floor(frac[0]);
+    frac[1] = frac[1] - floor(frac[1]);
+    frac[2] = frac[2] - floor(frac[2]);
+    // Back to Cartesian
+    Vec3 cart = boxIn.UnitCell().TransposeMult( frac );
+    // Distance to each face
+    for (unsigned int idx = 0; idx < 6; idx++) {
+      Vec3 dxyz = Faces[idx] - cart;
+      double dist2 = dxyz.Magnitude2();
+      //minDist2 = std::min(minDist2, dist2);
+      if (dist2 < minDist_[mythread]) {
+        minDist_[mythread] = dist2;
+        minAtom1_[mythread] = *at;
+        minAtom2_[mythread] = idx;
+        //rprintf("DEBUG: New Min Dist: Atom %i to %i (%g)\n",
+        //        Mask1_[m1]+1,Mask2_[m2]+1,sqrt(Dist2));
+        //pdbout_.WriteHET(1, minxyz_[0], minxyz_[1], minxyz_[2]);
+      }
+    }
+  }
+  // Find lowest minDist
+  double globalMin = minDist_[0];
+  int min1 = minAtom1_[0];
+  int min2 = minAtom2_[0];
+  for (unsigned int n = 1; n != minDist_.size(); n++)
+    if (minDist_[n] < globalMin) {
+      globalMin = minDist_[n];
+      min1 = minAtom1_[n];
+      min2 = minAtom2_[n];
+    }
+  ++min1;
+  //++min2;
+  // By convention make atom 1 the lowest number
+  //int lowest_num = std::min(min1, min2);
+  //int highest_num = std::max(min1, min2);
+  //atom1_->Add(frameNum, &lowest_num);
+  //atom2_->Add(frameNum, &highest_num);
+  atom1_->Add(frameNum, &min1);
+  atom2_->Add(frameNum, &min2);
+
+  return globalMin;
+}
 
 double Action_MinImage::MinNonSelfDist2(Vec3 const& a1, Vec3 const& a2, Box const& boxIn) {
 //  a1.Print("A1");
@@ -167,7 +249,10 @@ Action::RetType Action_MinImage::DoAction(int frameNum, ActionFrame& frm) {
 //  pdbout_.OpenWrite("minimage.pdb");
   double Dist2;
 
-  if (calcUsingMask_) {
+  if (toFace_) {
+    Dist2 = minDistToCellFace(Mask1_, frm.Frm(), frameNum);
+    Dist2 = sqrt( Dist2 );
+  } else if (calcUsingMask_) {
     // Use center of mask1 and mask2
     Vec3 a1, a2;
     if (useMass_) {
