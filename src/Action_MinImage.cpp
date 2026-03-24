@@ -56,8 +56,13 @@ Action::RetType Action_MinImage::Init(ArgList& actionArgs, ActionInit& init, int
   if (toFace_ || !calcUsingMask_) {
     md.SetAspect("A1");
     atom1_ = init.DSL().AddSet(DataSet::INTEGER, md);
-    md.SetAspect("A2");
-    atom2_ = init.DSL().AddSet(DataSet::INTEGER, md);
+    if (toFace_) {
+      md.SetAspect("FACE");
+      atom2_ = init.DSL().AddSet(DataSet::STRING, md);
+    } else {
+      md.SetAspect("A2");
+      atom2_ = init.DSL().AddSet(DataSet::INTEGER, md);
+    }
     if (atom1_ == 0 || atom2_ == 0) return Action::ERR;
     if (outfile != 0) {
       outfile->AddDataSet( atom1_ );
@@ -143,13 +148,15 @@ double Action_MinImage::minDistToCellFace(AtomMask const& maskIn, Frame const& f
 {
   Box const& boxIn = frameIn.BoxCrd();
   // Store face coords in cartesian space
+  static const char* faceStr[] = { "+X", "-X", "+Y", "-Y", "+Z", "-Z" };
   Vec3 Faces[6];
   Faces[0] = boxIn.UnitCell().TransposeMult( Vec3(1.0, 0.5, 0.5) ); // +X
   Faces[1] = boxIn.UnitCell().TransposeMult( Vec3(0.0, 0.5, 0.5) ); // -X
-  Faces[2] = boxIn.UnitCell().TransposeMult( Vec3(0.5, 1.0, 0.5) ); // +Y 
+  Faces[2] = boxIn.UnitCell().TransposeMult( Vec3(0.5, 1.0, 0.5) ); // +Y
   Faces[3] = boxIn.UnitCell().TransposeMult( Vec3(0.5, 0.0, 0.5) ); // -Y
   Faces[4] = boxIn.UnitCell().TransposeMult( Vec3(0.5, 0.5, 1.0) ); // +Z
   Faces[5] = boxIn.UnitCell().TransposeMult( Vec3(0.5, 0.5, 0.0) ); // -Z
+
   minDist_.assign(minDist_.size(), DBL_MAX);
   int mythread = 0;
   for (AtomMask::const_iterator at = maskIn.begin(); at != maskIn.end(); ++at)
@@ -160,12 +167,17 @@ double Action_MinImage::minDistToCellFace(AtomMask const& maskIn, Frame const& f
     frac[0] = frac[0] - floor(frac[0]);
     frac[1] = frac[1] - floor(frac[1]);
     frac[2] = frac[2] - floor(frac[2]);
+    if (frac[0] < 0.0) frac[0] += 1.0;
+    if (frac[1] < 0.0) frac[1] += 1.0;
+    if (frac[2] < 0.0) frac[2] += 1.0;
     // Back to Cartesian
     Vec3 cart = boxIn.UnitCell().TransposeMult( frac );
     // Distance to each face
     for (unsigned int idx = 0; idx < 6; idx++) {
       Vec3 dxyz = Faces[idx] - cart;
       double dist2 = dxyz.Magnitude2();
+//      mprintf("DEBUG: %3i Dist from at %i to face %s is %g face={%g %g %g} cart={%g %g %g}\n", frameNum+1, *at+1, faceStr[idx], sqrt(dist2),
+//              Faces[idx][0], Faces[idx][1], Faces[idx][2], cart[0], cart[1], cart[2]);
       //minDist2 = std::min(minDist2, dist2);
       if (dist2 < minDist_[mythread]) {
         minDist_[mythread] = dist2;
@@ -195,7 +207,7 @@ double Action_MinImage::minDistToCellFace(AtomMask const& maskIn, Frame const& f
   //atom1_->Add(frameNum, &lowest_num);
   //atom2_->Add(frameNum, &highest_num);
   atom1_->Add(frameNum, &min1);
-  atom2_->Add(frameNum, &min2);
+  atom2_->Add(frameNum, faceStr[min2]);
 
   return globalMin;
 }
