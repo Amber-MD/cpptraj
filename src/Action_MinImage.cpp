@@ -41,6 +41,8 @@ Action::RetType Action_MinImage::Init(ArgList& actionArgs, ActionInit& init, int
   md.SetScalarMode( MetaData::M_DISTANCE );
   dist_ = init.DSL().AddSet(DataSet::DOUBLE, md, "MID");
   if (dist_==0) return Action::ERR;
+  // Update metadata in case a default name was generated
+  md.SetName( dist_->Meta().Name() );
   if (outfile != 0) outfile->AddDataSet( dist_ );
   if (!calcUsingMask_) {
     md.SetAspect("A1");
