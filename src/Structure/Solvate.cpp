@@ -338,7 +338,8 @@ int Solvate::SetVdwBoundingBox(Topology& topOut, Frame& frameOut, Cpptraj::Parm:
 }
 
 /** Scale buffer if needed to meet diagonal clearance. */
-void Solvate::octBoxCheck(Frame const& frameOut) {
+void Solvate::octBoxCheck(Frame const& frameOut, double dXWidth, double dYWidth, double dZWidth, std::vector<double> const& soluteRadii)
+{
   if (frameOut.Natom() < 1) return;
   double dPBuf[4];
 
@@ -348,7 +349,7 @@ void Solvate::octBoxCheck(Frame const& frameOut) {
   dPBuf[3] = bufferD_;
   //mprintf("dPBuf %f %f %f %f\n", dPBuf[0], dPBuf[1], dPBuf[2], dPBuf[3]);
 
-  const double* XYZ = frameOut.XYZ(0);
+/*  const double* XYZ = frameOut.XYZ(0);
   double dXmax = XYZ[0];
   double dYmax = XYZ[1];
   double dZmax = XYZ[2];
@@ -371,12 +372,20 @@ void Solvate::octBoxCheck(Frame const& frameOut) {
             dZmax = XYZ[2];
     else if ( XYZ[2] < dZmin )
             dZmin = XYZ[2];
-  }
+  }*/
+  double dTemp = std::max(dXWidth, dYWidth);
+         dTemp = std::max(dTemp, dZWidth);
+         dXWidth = dYWidth = dZWidth = dTemp;
 
   // calc halfbox on centers
+/*
   double dXhalf = 0.5 * (dXmax - dXmin) + dPBuf[0];
   double dYhalf = 0.5 * (dYmax - dYmin) + dPBuf[1];
   double dZhalf = 0.5 * (dZmax - dZmin) + dPBuf[2];
+*/
+  double dXhalf = 0.5 * dXWidth + dPBuf[0];
+  double dYhalf = 0.5 * dYWidth + dPBuf[1];
+  double dZhalf = 0.5 * dZWidth + dPBuf[2];
 
   // find unit vector of diagonal
   double dX = dYhalf * dZhalf;
@@ -393,20 +402,30 @@ void Solvate::octBoxCheck(Frame const& frameOut) {
   double dMax = 0.0;
   for (int at = 0; at < frameOut.Natom(); at++)
   {
-    XYZ = frameOut.XYZ(at);
+    const double* XYZ = frameOut.XYZ(at);
+    dX = XYZ[0];
+    dY = XYZ[1];
+    dZ = XYZ[2];
+/*
     dTmp = fabs(XYZ[0]) * dXunit +
            fabs(XYZ[1]) * dYunit +
            fabs(XYZ[2]) * dZunit;
     if ( dTmp > dMax )
       dMax = dTmp;
+*/
+    double dR = soluteRadii[at];
+    dTmp = fabs(dX) * dXunit +
+           fabs(dY) * dYunit +
+           fabs(dZ) * dZunit +
+           +dR;
+
+        if (dTmp > dMax)
+            dMax = dTmp;
   }
 
   // calc distance of diagonal face from origin
   //double dBmax = 0.5 * sqrt( dXhalf*dXhalf + dYhalf*dYhalf + dZhalf*dZhalf );
-  double dBmax = 1.5 * dXhalf * dYhalf * dZhalf /
-                   sqrt( dYhalf*dYhalf*dZhalf*dZhalf +
-                         dXhalf*dXhalf*dZhalf*dZhalf +
-                         dXhalf*dXhalf*dYhalf*dYhalf );
+  double dBmax = 1.5 / sqrt(1 / (dXhalf * dXhalf) + 1 / (dYhalf * dYhalf) + 1 / (dZhalf * dZhalf));
 
   // see if diagonal clearance is satisfied
   dTmp = dMax + dPBuf[3];
@@ -420,9 +439,12 @@ void Solvate::octBoxCheck(Frame const& frameOut) {
   dTmp /= dBmax;
   mprintf("\t  Scaling up box by a factor of %f to meet diagonal cut criterion\n", dTmp );
 
-  bufferX_ += dXhalf * (dTmp - 1.0); //bufferX_ *= dTmp;
-  bufferY_ += dYhalf * (dTmp - 1.0); //bufferY_ *= dTmp;
-  bufferZ_ += dZhalf * (dTmp - 1.0); //bufferZ_ *= dTmp;
+  bufferX_ = dXhalf * dTmp - (0.5 * dXWidth);
+  bufferY_ = dYhalf * dTmp - (0.5 * dYWidth);
+  bufferZ_ = dZhalf * dTmp - (0.5 * dZWidth);
+  //bufferX_ += dXhalf * (dTmp - 1.0); //bufferX_ *= dTmp;
+  //bufferY_ += dYhalf * (dTmp - 1.0); //bufferY_ *= dTmp;
+  //bufferZ_ += dZhalf * (dTmp - 1.0); //bufferZ_ *= dTmp;
 }
 
 /** Rotate 45 deg. around z axis, (90-tetra/2) around y axis, 90 around x axis.
@@ -605,7 +627,7 @@ int Solvate::SolvateBoxWithExactNumber(Topology& topOut, Frame& frameOut, Cpptra
   }
   // Check if buffers need to be increased for trunc oct.
   if (doTruncatedOct_)
-    octBoxCheck( frameOut );
+    octBoxCheck( frameOut, boxX, boxY, boxZ, soluteRadii );
   mprintf("\t  Solute vdw bounding box:              %-5.3f %-5.3f %-5.3f\n", boxX, boxY, boxZ);
 
   // Ratio of solute box size to solvent box size 
@@ -994,7 +1016,7 @@ int Solvate::SolvateBox(Topology& topOut, Frame& frameOut, Cpptraj::Parm::Parame
   }
   // Check if buffers need to be increased for trunc oct.
   if (doTruncatedOct_)
-    octBoxCheck( frameOut );
+    octBoxCheck( frameOut, boxX, boxY, boxZ, soluteRadii );
   mprintf("\t  Solute vdw bounding box:              %-5.3f %-5.3f %-5.3f\n", boxX, boxY, boxZ);
 
   double dXWidth = boxX + bufferX_ * 2;
