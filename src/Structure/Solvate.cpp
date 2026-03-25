@@ -219,6 +219,7 @@ int Solvate::setTruncOctVdwBoundingBox(Box& newBox, std::vector<double> const& R
 const
 {
   Vec3 fracMin(0.0), fracMax(0.0);
+  unsigned int OOB = 0;
   for (int at = 0; at < frameOut.Natom(); at++)
   {
     // Get radius
@@ -242,12 +243,14 @@ const
       if (fracMinus[idx] < fracMin[idx]) fracMin[idx] = fracMinus[idx];
     }
     if (out_of_bounds) {
-      mprintf("DEBUG: atom index %i {%g %g %g} radius=%g fracPlus={%g %g %g} fracMinus={%g %g %g}\n",
-              at, atomCenter[0], atomCenter[1], atomCenter[2], atom_radius,
-              fracPlus[0], fracPlus[1], fracPlus[2],
-              fracMinus[0], fracMinus[1], fracMinus[2]);
+      OOB++;
+//      mprintf("DEBUG: atom index %i {%g %g %g} radius=%g fracPlus={%g %g %g} fracMinus={%g %g %g}\n",
+//              at, atomCenter[0], atomCenter[1], atomCenter[2], atom_radius,
+//              fracPlus[0], fracPlus[1], fracPlus[2],
+//              fracMinus[0], fracMinus[1], fracMinus[2]);
     }
   }
+  mprintf("DEBUG: %u out of bounds\n", OOB);
   mprintf("DEBUG: fracMax={%g %g %g} fracMin={%g %g %g}\n", fracMax[0], fracMax[1], fracMax[2], fracMin[0], fracMin[1], fracMin[2]);
   // DEBUG
   // Origin in Cart
@@ -632,7 +635,7 @@ static inline void checkBuffer(double& buf, double min, double max) {
   if (buf > max) buf = max;
 }
 
-
+#ifdef CPPTRAJ_DEBUG_SOLVATE
 static inline void printIntermediateStructure(int idx, CharMask const& cmask, Topology const& topOut, Frame const& frameOut) {
 //  cmask.MaskInfo();
   AtomMask imask( cmask.ConvertToIntMask(), topOut.Natom() );
@@ -657,6 +660,7 @@ static inline void printIntermediateStructure(int idx, CharMask const& cmask, To
   trajout.EndTraj();
   // END DEBUG
 }
+#endif
 
 /** Create box, fill with target number of solvent molecules. */
 int Solvate::SolvateBoxWithExactNumber(Topology& topOut, Frame& frameOut, Cpptraj::Parm::ParameterSet const& set0,
@@ -761,7 +765,7 @@ int Solvate::SolvateBoxWithExactNumber(Topology& topOut, Frame& frameOut, Cpptra
   addSolventUnits(iX, iY, iZ, soluteMaxR, dXStart, dYStart, dZStart, solventX, solventY, solventZ,
                   solventFrame, SOLVENTBOX.Top(), frameOut, topOut,
                   soluteRadii, solventRadii);
-
+# ifdef CPPTRAJ_DEBUG_SOLVATE
   // DEBUG
   Trajout_Single trajout;
   trajout.InitTrajWrite("BigCube.mol2", ArgList(), DataSetList(), TrajectoryFile::MOL2FILE);
@@ -769,7 +773,7 @@ int Solvate::SolvateBoxWithExactNumber(Topology& topOut, Frame& frameOut, Cpptra
   trajout.WriteSingle(0, frameOut);
   trajout.EndTraj();
   // END DEBUG
-
+# endif
   // Define the size of the new solvent/solute system
   double maxX, maxY, maxZ;
   soluteRadii = getAtomRadii(soluteMaxR, topOut, set0) ;
@@ -825,9 +829,12 @@ int Solvate::SolvateBoxWithExactNumber(Topology& topOut, Frame& frameOut, Cpptra
   double bufZ = boxZ + ((maxZ - boxZ) / 2.0);
 
   if (doTruncatedOct_) {
-    if (bufX >= bufY && bufX >= bufZ) { bufY = bufX; bufZ = bufX; }
-    if (bufY >= bufX && bufY >= bufZ) { bufX = bufY; bufZ = bufY; }
-    if (bufZ >= bufX && bufZ >= bufY) { bufX = bufZ; bufY = bufZ; }
+    double dTemp = std::max(bufX, bufY);
+           dTemp = std::max(dTemp, bufZ);
+           bufX = bufY = bufZ = dTemp;
+    //if (bufX >= bufY && bufX >= bufZ) { bufY = bufX; bufZ = bufX; }
+    //if (bufY >= bufX && bufY >= bufZ) { bufX = bufY; bufZ = bufY; }
+    //if (bufZ >= bufX && bufZ >= bufY) { bufX = bufZ; bufY = bufZ; }
   }
 
   // Mask selecting everything that should be kept. Always keep solute
@@ -969,19 +976,27 @@ int Solvate::SolvateBoxWithExactNumber(Topology& topOut, Frame& frameOut, Cpptra
       double newbufX = bufX + CD; // TODO should be minus
       double newbufY = bufY + CD; // TODO should be minus
       double newbufZ = bufZ + CD; // TODO should be minus
+
       //CheckBuffer $newbuffer;
       //lastbuffer=$buffer
       checkBuffer(newbufX, boxX, maxX);
       checkBuffer(newbufY, boxY, maxY);
       checkBuffer(newbufZ, boxZ, maxZ);
+      if (doTruncatedOct_) {
+        double dTemp = std::max(newbufX, newbufY);
+        dTemp = std::max(dTemp, newbufZ);
+        newbufX = newbufY = newbufZ = dTemp;
+      }
       bufX = newbufX;
       bufY = newbufY;
       bufZ = newbufZ;
       mprintf("DEBUG: Change: %G (%g) newBuf= %f %f %f\n", change, CHANGE_DIR, bufX, bufY, bufZ);
     } // END change calc
+#   ifdef CPPTRAJ_DEBUG_SOLVATE
     // DEBUG
     printIntermediateStructure(ntries, cmask, topOut, frameOut);
     // END DEBUG
+#   endif
     // Safety valve
     ntries++;
     if (ntries > 100) {
