@@ -214,6 +214,64 @@ const
   return Radii;
 }
 
+/** Set VDW bounding box for truncated oct */
+int Solvate::setTruncOctVdwBoundingBox(Box& newBox, std::vector<double> const& Radii, Frame& frameOut)
+const
+{
+  Vec3 fracMin(0.0), fracMax(0.0);
+  for (int at = 0; at < frameOut.Natom(); at++)
+  {
+    // Get radius
+    double atom_radius = Radii[at];
+    // Atom center, plus, and minus
+    Vec3 atomCenter( frameOut.XYZ(at) );
+    Vec3 atomPlus = atomCenter + atom_radius;
+    Vec3 atomMinus = atomCenter - atom_radius;
+    // Plus and minus in fractional space
+    Vec3 fracPlus = newBox.FracCell() * atomPlus;
+    Vec3 fracMinus = newBox.FracCell() * atomMinus;
+    if (at == 0) {
+      fracMax = fracPlus;
+      fracMin = fracMinus;
+    }
+    bool out_of_bounds = false;
+    for (unsigned int idx = 0; idx < 3; idx++) {
+      if (fracPlus[idx] > 0.5 || fracMinus[idx] < -0.5)
+        out_of_bounds = true;
+      if (fracPlus[idx]  > fracMax[idx]) fracMax[idx] = fracPlus[idx];
+      if (fracMinus[idx] < fracMin[idx]) fracMin[idx] = fracMinus[idx];
+    }
+    if (out_of_bounds) {
+      mprintf("DEBUG: atom index %i {%g %g %g} radius=%g fracPlus={%g %g %g} fracMinus={%g %g %g}\n",
+              at, atomCenter[0], atomCenter[1], atomCenter[2], atom_radius,
+              fracPlus[0], fracPlus[1], fracPlus[2],
+              fracMinus[0], fracMinus[1], fracMinus[2]);
+    }
+  }
+  mprintf("DEBUG: fracMax={%g %g %g} fracMin={%g %g %g}\n", fracMax[0], fracMax[1], fracMax[2], fracMin[0], fracMin[1], fracMin[2]);
+  // DEBUG
+  // Origin in Cart
+  Vec3 origin = newBox.UnitCell().TransposeMult( Vec3(0.0) );
+  origin.Print("Origin");
+  // Max in Cart
+  Vec3 maxBox = newBox.UnitCell().TransposeMult( Vec3(1.0) );
+  maxBox.Print("MaxBox");
+  // minFrac in Cart
+  Vec3 cartMin = newBox.UnitCell().TransposeMult( fracMin );
+  cartMin.Print("CartMin");
+  // maxFrac in Cart
+  Vec3 cartMax = newBox.UnitCell().TransposeMult( fracMax );
+  cartMax.Print("CartMax");
+  // Distance
+  Vec3 newDist = cartMax - cartMin;
+  mprintf("New distance= %g\n", sqrt(newDist.Magnitude2()));
+  // Box center
+  Vec3 boxCenter = newBox.UnitCell().TransposeMult( Vec3(0.5) );
+  boxCenter.Print("BoxCenter");
+  frameOut.CenterOnPoint( boxCenter, false );
+  return 0;
+}
+
 /** Set VDW bounding box. */
 int Solvate::setVdwBoundingBox(double& boxX, double& boxY, double& boxZ,
                                std::vector<double> const& Radii,
@@ -703,6 +761,7 @@ int Solvate::SolvateBoxWithExactNumber(Topology& topOut, Frame& frameOut, Cpptra
   addSolventUnits(iX, iY, iZ, soluteMaxR, dXStart, dYStart, dZStart, solventX, solventY, solventZ,
                   solventFrame, SOLVENTBOX.Top(), frameOut, topOut,
                   soluteRadii, solventRadii);
+
   // DEBUG
   Trajout_Single trajout;
   trajout.InitTrajWrite("BigCube.mol2", ArgList(), DataSetList(), TrajectoryFile::MOL2FILE);
@@ -943,6 +1002,15 @@ int Solvate::SolvateBoxWithExactNumber(Topology& topOut, Frame& frameOut, Cpptra
   topOut = *newParm;
   delete newParm;
   topOut.Brief("Topology with target # of solvent:");
+  // Reset the solvent residue numbers
+  int solventResNum = topOut.Res(firstSolventRes - 1).OriginalResNum() + 1;
+  for (int ires = firstSolventRes; ires < topOut.Nres(); ires++)
+    topOut.SetRes(ires).SetOriginalNum( solventResNum++ );
+  // Reset the solvent atom numbers TODO zero these?
+  if (!topOut.PdbSerialNum().empty()) {
+    for (int at = topOut.Res(firstSolventRes).FirstAtom(); at < topOut.Natom(); at++)
+      topOut.ModifyPdbSerialNum()[at] = at+1;
+  }
 
   Frame newFrame;
   newFrame.SetupFrameV(topOut.Atoms(), frameOut.CoordsInfo());
@@ -951,28 +1019,35 @@ int Solvate::SolvateBoxWithExactNumber(Topology& topOut, Frame& frameOut, Cpptra
   // ---------------------------------------------
   // Define the size of the new solvent/solute system
   soluteRadii = getAtomRadii(soluteMaxR, topOut, set0) ;
-  if (setVdwBoundingBox(boxX, boxY, boxZ, soluteRadii, frameOut, false)) {
-    mprinterr("Error: Setting vdw bounding box for solute/solvent system failed.\n", topOut.c_str());
-    return 1;
-  }
   if (doTruncatedOct_) {
-    double dAngle = 0;
-    ewald_rotate(frameOut, dAngle);
-    //mprintf("EwaldRotate: %f\n", dAngle);
-    // Add an angstrom to the desired box size rather than using the bounding box size
-    dAngle = clipX_ + .5; // NOTE: If truncoct is enabled for nsolvent, clipX_ will be 0
-    boxX = boxY = boxZ = dAngle * sqrt(3.0) * 0.5;
-  }
+    if (setTruncOctVdwBoundingBox(newBox, soluteRadii, frameOut)) {
+      mprinterr("Error: Setting truncated octahedron vdw bounding box for solute/solvent system failed.\n", topOut.c_str());
+      return 1;
+    }
+  } else {
+    if (setVdwBoundingBox(boxX, boxY, boxZ, soluteRadii, frameOut, false)) {
+      mprinterr("Error: Setting vdw bounding box for solute/solvent system failed.\n", topOut.c_str());
+      return 1;
+    }
+    if (doTruncatedOct_) {
+      double dAngle = 0;
+      ewald_rotate(frameOut, dAngle);
+      //mprintf("EwaldRotate: %f\n", dAngle);
+      // Add an angstrom to the desired box size rather than using the bounding box size
+      dAngle = clipX_ + .5; // NOTE: If truncoct is enabled for nsolvent, clipX_ will be 0
+      boxX = boxY = boxZ = dAngle * sqrt(3.0) * 0.5;
+    }
 
-  // Setup box
-  double boxBeta = 90.0;
-  if (doTruncatedOct_) {
-    boxBeta = Box::TruncatedOctAngle();
-    boxX *= 2.0;
-    boxY *= 2.0;
-    boxZ *= 2.0;
+    // Setup box
+    double boxBeta = 90.0;
+    if (doTruncatedOct_) {
+      boxBeta = Box::TruncatedOctAngle();
+      boxX *= 2.0;
+      boxY *= 2.0;
+      boxZ *= 2.0;
+    }
+    newBox.SetupFromXyzAbg( boxX, boxY, boxZ, boxBeta, boxBeta, boxBeta );
   }
-  newBox.SetupFromXyzAbg( boxX, boxY, boxZ, boxBeta, boxBeta, boxBeta );
   // ---------------------------------------------
   frameOut.SetBox( newBox );
   frameOut.BoxCrd().PrintInfo("\t  ");
