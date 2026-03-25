@@ -6,6 +6,8 @@
 #include "../DataSet_Coords.h"
 #include "../DataSetList.h"
 #include "../Frame.h"
+#include "../StringRoutines.h" // DEBUG, integerToString
+#include "../Trajout_Single.h" // DEBUG
 #include "../Topology.h"
 #include "../Parm/ParameterSet.h"
 #include <algorithm> //std::max
@@ -71,10 +73,10 @@ int Solvate::InitSolvate(ArgList& argIn, bool octIn, int debugIn) {
   doTruncatedOct_ = octIn;
   nsolvent_ = (unsigned int)argIn.getKeyInt("nsolvent", 0);
   if (nsolvent_ > 0) {
-    if (doTruncatedOct_) {
-      mprinterr("Error: 'nsolvent' currently does not work for truncated octahedral cells.\n");
-      return 1;
-    }
+    //if (doTruncatedOct_) {
+    //  mprinterr("Error: 'nsolvent' currently does not work for truncated octahedral cells.\n");
+    //  return 1;
+    //}
     clip_ = false;
     mprintf("Warning: The 'nsolvent' functionality is currently EXPERIMENTAL.\n");
   }
@@ -572,6 +574,32 @@ static inline void checkBuffer(double& buf, double min, double max) {
   if (buf > max) buf = max;
 }
 
+
+static inline void printIntermediateStructure(int idx, CharMask const& cmask, Topology const& topOut, Frame const& frameOut) {
+//  cmask.MaskInfo();
+  AtomMask imask( cmask.ConvertToIntMask(), topOut.Natom() );
+//  imask.MaskInfo();
+  Topology* newParm = topOut.modifyStateByMask( imask );
+  if (newParm == 0) {
+    mprinterr("Error: printIntermediateStructure: Could not create topology with the desired # of solvent.\n");
+    return;
+  }
+  //newParm->Brief("Topology with target # of solvent:");
+
+  Frame newFrame;
+  newFrame.SetupFrameV(newParm->Atoms(), frameOut.CoordsInfo());
+  newFrame.SetFrame( frameOut, imask );
+
+  // DEBUG
+  std::string fnameOut("nsolvent." + integerToString(idx) + ".mol2");
+  Trajout_Single trajout;
+  trajout.InitTrajWrite(fnameOut, ArgList(), DataSetList(), TrajectoryFile::MOL2FILE);
+  trajout.SetupTrajWrite(newParm, newFrame.CoordsInfo(), 1);
+  trajout.WriteSingle(0, newFrame);
+  trajout.EndTraj();
+  // END DEBUG
+}
+
 /** Create box, fill with target number of solvent molecules. */
 int Solvate::SolvateBoxWithExactNumber(Topology& topOut, Frame& frameOut, Cpptraj::Parm::ParameterSet const& set0,
                                        DataSetList const& DSL)
@@ -676,11 +704,11 @@ int Solvate::SolvateBoxWithExactNumber(Topology& topOut, Frame& frameOut, Cpptra
                   solventFrame, SOLVENTBOX.Top(), frameOut, topOut,
                   soluteRadii, solventRadii);
   // DEBUG
-//  Trajout_Single trajout;
-//  trajout.InitTrajWrite("BigCube.mol2", ArgList(), DataSetList(), TrajectoryFile::MOL2FILE);
-//  trajout.SetupTrajWrite(&topOut, frameOut.CoordsInfo(), 1);
-//  trajout.WriteSingle(0, frameOut);
-//  trajout.EndTraj();
+  Trajout_Single trajout;
+  trajout.InitTrajWrite("BigCube.mol2", ArgList(), DataSetList(), TrajectoryFile::MOL2FILE);
+  trajout.SetupTrajWrite(&topOut, frameOut.CoordsInfo(), 1);
+  trajout.WriteSingle(0, frameOut);
+  trajout.EndTraj();
   // END DEBUG
 
   // Define the size of the new solvent/solute system
@@ -892,7 +920,9 @@ int Solvate::SolvateBoxWithExactNumber(Topology& topOut, Frame& frameOut, Cpptra
       bufZ = newbufZ;
       mprintf("DEBUG: Change: %G (%g) newBuf= %f %f %f\n", change, CHANGE_DIR, bufX, bufY, bufZ);
     } // END change calc
-
+    // DEBUG
+    printIntermediateStructure(ntries, cmask, topOut, frameOut);
+    // END DEBUG
     // Safety valve
     ntries++;
     if (ntries > 100) {
