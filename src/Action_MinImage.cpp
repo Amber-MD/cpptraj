@@ -12,7 +12,7 @@ Action_MinImage::Action_MinImage() :
   dist_(0),
   useMass_(true),
   calcUsingMask_(false),
-  toFace_(false)
+  toFace_(false) // HIDDEN, TODO make not hidden after testing
 {} 
 
 void Action_MinImage::Help() const {

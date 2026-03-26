@@ -3,7 +3,6 @@
 #include <string>
 #include <vector>
 class ArgList;
-class Box;
 class DataSet_Coords;
 class DataSetList;
 class Frame;
@@ -54,8 +53,6 @@ class Solvate {
     /// Get radii for atoms in topology
     std::vector<double> getAtomRadii(double&, Topology const&,
                                      Cpptraj::Parm::ParameterSet const&) const;
-    /// Set vdW bounding box for trunc. oct.
-    int setTruncOctVdwBoundingBox(Box&, std::vector<double> const&, Frame&) const;
     /// Set vdW bounding box
     int setVdwBoundingBox(double&, double&, double&, std::vector<double> const&, Frame&, bool) const;
     /// Find solute atoms within a solvent box at given center
