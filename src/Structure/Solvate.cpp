@@ -6,8 +6,10 @@
 #include "../DataSet_Coords.h"
 #include "../DataSetList.h"
 #include "../Frame.h"
+# ifdef CPPTRAJ_DEBUG_SOLVATE
 #include "../StringRoutines.h" // DEBUG, integerToString
 #include "../Trajout_Single.h" // DEBUG
+#endif
 #include "../Topology.h"
 #include "../Parm/ParameterSet.h"
 #include <algorithm> //std::max
