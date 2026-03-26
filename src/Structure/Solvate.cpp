@@ -1174,6 +1174,19 @@ int Solvate::SolvateBoxWithExactNumber(Topology& topOut, Frame& frameOut, Cpptra
   }
 */
   calculateDensity(topOut, frameOut, set0);
+  // Center if needed
+  if (center_) {
+    double dX2 = boxX * 0.5;
+    double dY2 = boxY * 0.5;
+    double dZ2 = boxZ * 0.5;
+    double* xptr = frameOut.xAddress();
+    for (int at = 0; at < frameOut.Natom(); at++, xptr += 3)
+    {
+      xptr[0] += dX2;
+      xptr[1] += dY2;
+      xptr[2] += dZ2;
+    }
+  }
 
   return 0;
 }
