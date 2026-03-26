@@ -69,7 +69,7 @@ class Solvate {
                                       Frame const&, Topology const&, Frame const&,
                                       std::vector<double> const&, std::vector<double> const&) const;
     /// Scale up buffer sizes for oct box if needed
-    void octBoxCheck(Frame const&,double,double,double,std::vector<double> const&);
+    double octBoxCheck(Frame const&,double,double,double,std::vector<double> const&);
     /// Ewald rotate for trun. oct system
     static void ewald_rotate(Frame&, double&);
     /// Add solvent unit boxes
