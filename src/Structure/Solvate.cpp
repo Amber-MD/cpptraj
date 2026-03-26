@@ -15,9 +15,6 @@
 #include <algorithm> //std::max
 #include <cmath> // cos, sin, sqrt
 
-// DEBUG
-//#inc lude "../Trajout_Single.h"
-
 using namespace Cpptraj::Structure;
 
 /** CONSTRUCTOR */
