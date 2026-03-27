@@ -14,6 +14,8 @@ class Action_MinImage: public Action {
     Action::RetType DoAction(int, ActionFrame&);
     void Print() {}
 
+    double minDistToCellFace(AtomMask const&, Frame const&, int);
+
     double MinNonSelfDist2(Vec3 const&, Vec3 const&, Box const&);
 
     DataSet* dist_;      ///< Will hold DataSet of calculated distances.
@@ -21,6 +23,7 @@ class Action_MinImage: public Action {
     DataSet* atom2_;
     bool useMass_;       ///< If true, mass-weight distances.
     bool calcUsingMask_; ///< If true use center of masks
+    bool toFace_;
     AtomMask Mask1_;
     AtomMask Mask2_;
     std::vector<double> minDist_;

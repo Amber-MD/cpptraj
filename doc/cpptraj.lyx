@@ -7501,7 +7501,7 @@ Solvation/box:
 \end_layout
 
 \begin_layout Description
-solvatebox|solvateoct Solvate the system in either an orthorhombic or truncated octadedral box.
+solvatebox|solvateoct Solvate the system in either an orthorhombic or truncated octahedral box.
 \end_layout
 
 \begin_deeper
@@ -7551,8 +7551,7 @@ nsolvent
 <#> EXPERIMENTAL.
  Instead of a buffer,
  specify a target number of waters to solvate the system with.
- Currently only works for orthorhombic cells (i.e.
- not truncated octahedron).
+ 
 \end_layout
 
 \end_deeper
@@ -7769,14 +7768,23 @@ fixatomorder
  The build procedure is similar to that of LEaP,
  but CPPTRAJ's build tends to be faster and more robust,
  particularly for large systems and/or system containing CMAP terms.
- Note that since LEaP uses an imprecise value of PI compared to CPPTRAJ/sander/pmemd,
+ 
+\end_layout
+
+\begin_layout Standard
+Note that since LEaP uses an imprecise value of PI compared to CPPTRAJ/sander/pmemd,
  the topologies produced by CPPTRAJ will have slight differences in any terms involving PI (e.g.
  angles,
  dihedrals,
  etc).
  For 1:1 direct comparison to LEaP topologies,
  CPPTRAJ can be compiled using LEaP's value of PI by configuring with the '-leappi' configure flag,
- which activates the CPPTRAJ_USE_LEAP_PI compiler define.
+ which activates the CPPTRAJ_USE_LEAP_PI compiler define;
+ 
+\series bold
+this should only be used to compare directly to LEaP
+\series default
+.
  Note also that CPPTRAJ retains PDB information (chain ID,
  original residue number,
  Bfactor/Occupancy etc) which is printed to the output Topology.
@@ -7898,6 +7906,16 @@ addionsrand
  ion2,
  or both.
  Note that currently CPPTRAJ does not support adding ions if no solvent has been added.
+ Either a 
+\series bold
+buffer
+\series default
+ size (in Angstroms) must be given,
+ or a target number of waters given with 
+\series bold
+nsolvent
+\series default
+.
 \end_layout
 
 \begin_layout Enumerate
