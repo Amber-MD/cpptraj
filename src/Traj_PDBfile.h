@@ -63,6 +63,7 @@ class Traj_PDBfile: public TrajectoryIO {
     CONECT_Mode conectMode_; ///< CONECT record mode.
     PDBWRITEMODE pdbWriteMode_;
     RESNUM_Mode resNumType_; ///< What residue numbers will be used
+    unsigned int maxpdbchain_; ///< Max length of PDB chain IDs (1 is PDB standard, allow up to 2 by default)
     int pdbAtom_;
     int currentSet_;
     int ter_num_;       ///< Amount to increment atom number for TER
