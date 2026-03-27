@@ -6,13 +6,14 @@
 #include "../DataSet_Coords.h"
 #include "../DataSetList.h"
 #include "../Frame.h"
+# ifdef CPPTRAJ_DEBUG_SOLVATE
+#include "../StringRoutines.h" // DEBUG, integerToString
+#include "../Trajout_Single.h" // DEBUG
+#endif
 #include "../Topology.h"
 #include "../Parm/ParameterSet.h"
 #include <algorithm> //std::max
 #include <cmath> // cos, sin, sqrt
-
-// DEBUG
-//#inc lude "../Trajout_Single.h"
 
 using namespace Cpptraj::Structure;
 
@@ -71,10 +72,6 @@ int Solvate::InitSolvate(ArgList& argIn, bool octIn, int debugIn) {
   doTruncatedOct_ = octIn;
   nsolvent_ = (unsigned int)argIn.getKeyInt("nsolvent", 0);
   if (nsolvent_ > 0) {
-    if (doTruncatedOct_) {
-      mprinterr("Error: 'nsolvent' currently does not work for truncated octahedral cells.\n");
-      return 1;
-    }
     clip_ = false;
     mprintf("Warning: The 'nsolvent' functionality is currently EXPERIMENTAL.\n");
   }
@@ -338,8 +335,9 @@ int Solvate::SetVdwBoundingBox(Topology& topOut, Frame& frameOut, Cpptraj::Parm:
 }
 
 /** Scale buffer if needed to meet diagonal clearance. */
-void Solvate::octBoxCheck(Frame const& frameOut) {
-  if (frameOut.Natom() < 1) return;
+double Solvate::octBoxCheck(Frame const& frameOut, double dXWidth, double dYWidth, double dZWidth, std::vector<double> const& soluteRadii)
+{
+  if (frameOut.Natom() < 1) return 0;
   double dPBuf[4];
 
   dPBuf[0] = bufferX_;
@@ -348,7 +346,7 @@ void Solvate::octBoxCheck(Frame const& frameOut) {
   dPBuf[3] = bufferD_;
   //mprintf("dPBuf %f %f %f %f\n", dPBuf[0], dPBuf[1], dPBuf[2], dPBuf[3]);
 
-  const double* XYZ = frameOut.XYZ(0);
+/*  const double* XYZ = frameOut.XYZ(0);
   double dXmax = XYZ[0];
   double dYmax = XYZ[1];
   double dZmax = XYZ[2];
@@ -371,12 +369,20 @@ void Solvate::octBoxCheck(Frame const& frameOut) {
             dZmax = XYZ[2];
     else if ( XYZ[2] < dZmin )
             dZmin = XYZ[2];
-  }
+  }*/
+  double dTemp = std::max(dXWidth, dYWidth);
+         dTemp = std::max(dTemp, dZWidth);
+         dXWidth = dYWidth = dZWidth = dTemp;
 
   // calc halfbox on centers
+/*
   double dXhalf = 0.5 * (dXmax - dXmin) + dPBuf[0];
   double dYhalf = 0.5 * (dYmax - dYmin) + dPBuf[1];
   double dZhalf = 0.5 * (dZmax - dZmin) + dPBuf[2];
+*/
+  double dXhalf = 0.5 * dXWidth + dPBuf[0];
+  double dYhalf = 0.5 * dYWidth + dPBuf[1];
+  double dZhalf = 0.5 * dZWidth + dPBuf[2];
 
   // find unit vector of diagonal
   double dX = dYhalf * dZhalf;
@@ -393,32 +399,50 @@ void Solvate::octBoxCheck(Frame const& frameOut) {
   double dMax = 0.0;
   for (int at = 0; at < frameOut.Natom(); at++)
   {
-    XYZ = frameOut.XYZ(at);
+    const double* XYZ = frameOut.XYZ(at);
+    dX = XYZ[0];
+    dY = XYZ[1];
+    dZ = XYZ[2];
+/*
     dTmp = fabs(XYZ[0]) * dXunit +
            fabs(XYZ[1]) * dYunit +
            fabs(XYZ[2]) * dZunit;
     if ( dTmp > dMax )
       dMax = dTmp;
+*/
+    double dR = soluteRadii[at];
+    dTmp = fabs(dX) * dXunit +
+           fabs(dY) * dYunit +
+           fabs(dZ) * dZunit +
+           +dR;
+
+        if (dTmp > dMax)
+            dMax = dTmp;
   }
 
   // calc distance of diagonal face from origin
-  double dBmax = 0.5 * sqrt( dXhalf*dXhalf + dYhalf*dYhalf + dZhalf*dZhalf );
+  //double dBmax = 0.5 * sqrt( dXhalf*dXhalf + dYhalf*dYhalf + dZhalf*dZhalf );
+  double dBmax = 1.5 / sqrt(1 / (dXhalf * dXhalf) + 1 / (dYhalf * dYhalf) + 1 / (dZhalf * dZhalf));
 
   // see if diagonal clearance is satisfied
   dTmp = dMax + dPBuf[3];
   if ( dTmp <= dBmax ) {
     if ( dPBuf[3] == 0.0 )
       mprintf("\t  (Diagonal clearance is %f)\n", dMax );
-    return;
+    return 1.0;
   }
 
   //  not satisfied: scale up box
   dTmp /= dBmax;
   mprintf("\t  Scaling up box by a factor of %f to meet diagonal cut criterion\n", dTmp );
 
-  bufferX_ *= dTmp;
-  bufferY_ *= dTmp;
-  bufferZ_ *= dTmp;
+  bufferX_ = dXhalf * dTmp - (0.5 * dXWidth);
+  bufferY_ = dYhalf * dTmp - (0.5 * dYWidth);
+  bufferZ_ = dZhalf * dTmp - (0.5 * dZWidth);
+  //bufferX_ += dXhalf * (dTmp - 1.0); //bufferX_ *= dTmp;
+  //bufferY_ += dYhalf * (dTmp - 1.0); //bufferY_ *= dTmp;
+  //bufferZ_ += dZhalf * (dTmp - 1.0); //bufferZ_ *= dTmp;
+  return dTmp;
 }
 
 /** Rotate 45 deg. around z axis, (90-tetra/2) around y axis, 90 around x axis.
@@ -541,10 +565,60 @@ unsigned int Solvate::nBoxesInCube(int n) {
   return cube;
 }
 
-static inline void checkBuffer(double& buf, double min, double max) {
-  if (buf < min) buf = min;
-  if (buf > max) buf = max;
+static inline void checkBuffer(double& buf, double min, double max, double lastbuffer, double& change, int diff)
+{
+  //if (buf < min) buf = min;
+  //if (buf > max) buf = max;
+  bool updateChangeVal = false;
+  if (buf > max) {
+    // Pick a target halfway between last buffer and max instead
+    double halftgt = ((max - lastbuffer) / 2.0) + lastbuffer;
+    mprintf("DEBUG: New buffer %g would have been > max %g; choosing %g instead.\n",
+            buf, max, halftgt);
+    buf = halftgt;
+    updateChangeVal = true;
+  } else if (buf < min) {
+    // pick a target halfway between min and last buffer instead
+    double halftgt = lastbuffer - ((lastbuffer - min) / 2.0);
+    mprintf("DEBUG: New buffer %g would have been < min %g; choosing %g instead.\n",
+            buf, min, halftgt);
+    buf = halftgt;
+    updateChangeVal = true;
+  }
+  if (updateChangeVal) {
+    // Update the change value TODO is this ok?
+    double newchange = fabs((buf - lastbuffer) / (double)diff);
+    mprintf("DEBUG: Old change %g new change %g\n", change, newchange);
+    change = newchange;
+  }
 }
+
+#ifdef CPPTRAJ_DEBUG_SOLVATE
+static inline void printIntermediateStructure(int idx, CharMask const& cmask, Topology const& topOut, Frame const& frameOut) {
+//  cmask.MaskInfo();
+  AtomMask imask( cmask.ConvertToIntMask(), topOut.Natom() );
+//  imask.MaskInfo();
+  Topology* newParm = topOut.modifyStateByMask( imask );
+  if (newParm == 0) {
+    mprinterr("Error: printIntermediateStructure: Could not create topology with the desired # of solvent.\n");
+    return;
+  }
+  //newParm->Brief("Topology with target # of solvent:");
+
+  Frame newFrame;
+  newFrame.SetupFrameV(newParm->Atoms(), frameOut.CoordsInfo());
+  newFrame.SetFrame( frameOut, imask );
+
+  // DEBUG
+  std::string fnameOut("nsolvent." + integerToString(idx) + ".mol2");
+  Trajout_Single trajout;
+  trajout.InitTrajWrite(fnameOut, ArgList(), DataSetList(), TrajectoryFile::MOL2FILE);
+  trajout.SetupTrajWrite(newParm, newFrame.CoordsInfo(), 1);
+  trajout.WriteSingle(0, newFrame);
+  trajout.EndTraj();
+  // END DEBUG
+}
+#endif
 
 /** Create box, fill with target number of solvent molecules. */
 int Solvate::SolvateBoxWithExactNumber(Topology& topOut, Frame& frameOut, Cpptraj::Parm::ParameterSet const& set0,
@@ -600,13 +674,13 @@ int Solvate::SolvateBoxWithExactNumber(Topology& topOut, Frame& frameOut, Cpptra
     return 1;
   }
   // Check if buffers need to be increased for trunc oct.
-  if (doTruncatedOct_)
-    octBoxCheck( frameOut );
+  //if (doTruncatedOct_)
+  //  octBoxCheck( frameOut, boxX, boxY, boxZ, soluteRadii );
   mprintf("\t  Solute vdw bounding box:              %-5.3f %-5.3f %-5.3f\n", boxX, boxY, boxZ);
 
   // Ratio of solute box size to solvent box size 
   double soluteFac = (boxX*boxY*boxZ) / solventBoxVol;
-  mprintf("\t  Solute is %g times the solvent box.\n", soluteFac);
+  mprintf("\t  Solute box is %g times the solvent box.\n", soluteFac);
   // Estimate how many solvent molecules will be removed by solvent
   unsigned int nMolsRemovedBySolute = (unsigned int)ceil( soluteFac * (double)SOLVENTBOX.Top().Nmol() );
   mprintf("\t  Estimating approximately %u solvent molecules will be removed by solute.\n", nMolsRemovedBySolute);
@@ -617,7 +691,8 @@ int Solvate::SolvateBoxWithExactNumber(Topology& topOut, Frame& frameOut, Cpptra
   while (nSolventAdded < nsolvent_) {
     nSolventAdded = (long int)(nBoxesInCube(layer) * (unsigned int)SOLVENTBOX.Top().Nmol());
     nSolventAdded = nSolventAdded - (long int)nMolsRemovedBySolute;
-    mprintf("DEBUG: Layer %i, # solvent added = %li\n", layer, nSolventAdded);
+    if (debug_ > 0)
+      mprintf("DEBUG: Layer %i, # solvent added = %li\n", layer, nSolventAdded);
     layer++;
   }
   // NOTE: layer is actually layer+1 right now
@@ -628,7 +703,8 @@ int Solvate::SolvateBoxWithExactNumber(Topology& topOut, Frame& frameOut, Cpptra
   double dXWidth = ((double)layer * solventX);
   double dYWidth = ((double)layer * solventY);
   double dZWidth = ((double)layer * solventZ);
-  mprintf("DEBUG: Estimated size with buffer: %f %f %f\n", dXWidth, dYWidth, dZWidth);
+  if (debug_ > 0)
+    mprintf("DEBUG: Estimated size with buffer: %f %f %f\n", dXWidth, dYWidth, dZWidth);
 
   // See how many solvent boxes required in each dimension
   int iX = (int)( dXWidth / solventX ) + 1;
@@ -649,14 +725,15 @@ int Solvate::SolvateBoxWithExactNumber(Topology& topOut, Frame& frameOut, Cpptra
   addSolventUnits(iX, iY, iZ, soluteMaxR, dXStart, dYStart, dZStart, solventX, solventY, solventZ,
                   solventFrame, SOLVENTBOX.Top(), frameOut, topOut,
                   soluteRadii, solventRadii);
+# ifdef CPPTRAJ_DEBUG_SOLVATE
   // DEBUG
-//  Trajout_Single trajout;
-//  trajout.InitTrajWrite("BigCube.mol2", ArgList(), DataSetList(), TrajectoryFile::MOL2FILE);
-//  trajout.SetupTrajWrite(&topOut, frameOut.CoordsInfo(), 1);
-//  trajout.WriteSingle(0, frameOut);
-//  trajout.EndTraj();
+  Trajout_Single trajout;
+  trajout.InitTrajWrite("BigCube.mol2", ArgList(), DataSetList(), TrajectoryFile::MOL2FILE);
+  trajout.SetupTrajWrite(&topOut, frameOut.CoordsInfo(), 1);
+  trajout.WriteSingle(0, frameOut);
+  trajout.EndTraj();
   // END DEBUG
-
+# endif
   // Define the size of the new solvent/solute system
   double maxX, maxY, maxZ;
   soluteRadii = getAtomRadii(soluteMaxR, topOut, set0) ;
@@ -664,11 +741,19 @@ int Solvate::SolvateBoxWithExactNumber(Topology& topOut, Frame& frameOut, Cpptra
     mprinterr("Error: Setting vdw bounding box for solute/solvent system failed.\n", topOut.c_str());
     return 1;
   }
+  double scaleFac = 1.0;
+  if (doTruncatedOct_)
+    scaleFac = octBoxCheck( frameOut, maxX, maxY, maxZ, soluteRadii );
+  maxX *= scaleFac;
+  maxY *= scaleFac;
+  maxZ *= scaleFac;
+  mprintf("\t  Initial trial cell size is %g %g %g\n", maxX, maxY, maxZ);
 
   if (firstSolventRes >= topOut.Nres()) {
     mprinterr("Internal Error: Solvate::SolvateBoxWithExactNumber(): No solvent added.\n");
     return 1;
   }
+  mprintf("\t  %i solvent residues in initial cell.\n",  topOut.Nres() - firstSolventRes);
 
   //unsigned int nBoxesForSolvent = (unsigned int)ceil( (double)nsolvent / (double)SOLVENTBOX.Top().Nmol() );
 //  // Calculate the solvent box density
@@ -692,9 +777,8 @@ int Solvate::SolvateBoxWithExactNumber(Topology& topOut, Frame& frameOut, Cpptra
   //unsigned int nSolventBoxesNeeded = (unsigned int)ceil( (double)neededNumberOfSolvent / (double)SOLVENTBOX.Top().Nmol() );
   //mprintf("\t  Estimating %u solvent boxes will be needed.\n", nSolventBoxesNeeded);
 
-  frameOut.CenterOnOrigin(false);
+/*  frameOut.CenterOnOrigin(false);*/
 
-  // FIXME make user-specifiable
   double alpha, beta, gamma;
   if (doTruncatedOct_) {
     alpha = Box::TruncatedOctAngle();
@@ -705,6 +789,7 @@ int Solvate::SolvateBoxWithExactNumber(Topology& topOut, Frame& frameOut, Cpptra
     beta  = 90.0;
     gamma = 90.0;
   }
+  // FIXME make user-specifiable
   int negtol = -5;
 
   double bufX = boxX + ((maxX - boxX) / 2.0);
@@ -712,9 +797,9 @@ int Solvate::SolvateBoxWithExactNumber(Topology& topOut, Frame& frameOut, Cpptra
   double bufZ = boxZ + ((maxZ - boxZ) / 2.0);
 
   if (doTruncatedOct_) {
-    if (bufX >= bufY && bufX >= bufZ) { bufY = bufX; bufZ = bufX; }
-    if (bufY >= bufX && bufY >= bufZ) { bufX = bufY; bufZ = bufY; }
-    if (bufZ >= bufX && bufZ >= bufY) { bufX = bufZ; bufY = bufZ; }
+    double dTemp = std::max(bufX, bufY);
+           dTemp = std::max(dTemp, bufZ);
+           bufX = bufY = bufZ = dTemp;
   }
 
   // Mask selecting everything that should be kept. Always keep solute
@@ -739,12 +824,56 @@ int Solvate::SolvateBoxWithExactNumber(Topology& topOut, Frame& frameOut, Cpptra
   int lastdiff = 0;
   Box newBox;
   while (loop) {
-    mprintf("DEBUG: %i) Buffer %f %f %f\n", ntries, bufX, bufY, bufZ);
+    // Set clipping
+    clipX_ = 0.5 * bufX;
+    clipY_ = 0.5 * bufY;
+    clipZ_ = 0.5 * bufZ;
+    //mprintf("cCriteria: %f %f %f\n", clipX_, clipY_, clipZ_); // DEBUG
+    mprintf("\t  %i) Trial cell: %f %f %f\n", ntries, bufX, bufY, bufZ);
     // Define the unit cell
     newBox.SetupFromXyzAbg( bufX, bufY, bufZ, alpha, beta, gamma );
-    newBox.PrintInfo();
-    // Convert to fractional
+    if (debug_ > 0)
+      newBox.PrintInfo();
     int nSolventInCell = 0;
+    // -------------------------------------------
+    for (int ires = firstSolventRes; ires < topOut.Nres(); ires++) {
+      Residue const& solventRes = topOut.Res(ires);
+      bool collision = false;
+      for (int vat = solventRes.FirstAtom(); vat != solventRes.LastAtom(); vat++)
+      {
+        // Check for clipping
+        const double* VXYZ = frameOut.XYZ(vat);
+        double dXabs = fabs(VXYZ[0]);
+        double dYabs = fabs(VXYZ[1]);
+        double dZabs = fabs(VXYZ[2]);
+        if ( dXabs >= clipX_ ) { collision = true; break; }
+        if ( dYabs >= clipY_ ) { collision = true; break; }
+        if ( dZabs >= clipZ_ ) { collision = true; break; }
+        // Check if atom falls outside of oct/diagonal clip
+        if (doTruncatedOct_) {
+          double dX = 0.5 * (clipX_ - dXabs) / clipX_;
+                 dX = fabs( dX - 0.5 );
+          double dY = 0.5 * (clipY_ - dYabs) / clipY_;
+                 dY = fabs( dY - 0.5 );
+          double dZ = 0.5 * (clipZ_ - dZabs) / clipZ_;
+                 dZ = fabs( dZ - 0.5 );
+          if ( ( dX + dY + dZ )  >  0.75 ) { collision = true; break; }
+        }
+      } // END loop over solvent residue atoms
+      if (collision) {
+        // Remove solvent
+        for (int at = solventRes.FirstAtom(); at != solventRes.LastAtom(); at++)
+          cmask.SelectAtom(at, false);
+      } else {
+        // Keep solvent
+        for (int at = solventRes.FirstAtom(); at != solventRes.LastAtom(); at++)
+          cmask.SelectAtom(at, true);
+        nSolventInCell++;
+      }
+    } // END loop over solvent residues
+    // -------------------------------------------
+/*
+    // Convert to fractional
     Matrix_3x3 const& recip = newBox.FracCell();
     for (int ires = firstSolventRes; ires < topOut.Nres(); ires++) {
       bool inCell = true;
@@ -773,12 +902,14 @@ int Solvate::SolvateBoxWithExactNumber(Topology& topOut, Frame& frameOut, Cpptra
           cmask.SelectAtom(at, false);
       }
     } // END loop over solvent residues
+*/
+    // -------------------------------------------
     //cmask.MaskInfo(); // DEBUG
     //mprintf("DEBUG: Should select %i atoms.\n", firstSolventAtom + (nSolventInCell*topOut.Res(firstSolventRes).NumAtoms()));
 
     // How far off is it?
     int diff = nsolvent_ - nSolventInCell;
-    mprintf("DEBUG:\t%i solvent residues in cell. Diff: %i\n", nSolventInCell, diff);
+    mprintf("\t\t%i solvent residues in trial cell. Diff: %i\n", nSolventInCell, diff);
 
     if (diff < 0) {
       if (smallestNegDiff == 0 || diff > smallestNegDiff) {
@@ -790,8 +921,9 @@ int Solvate::SolvateBoxWithExactNumber(Topology& topOut, Frame& frameOut, Cpptra
         // Update smallest buffer; presumably is closer
         smallestBuf = Vec3(bufX, bufY, bufZ);
       }
-    } 
-    mprintf("DEBUG: SmallestNegDiff= %i  nTimesSmallestSeen= %i\n", smallestNegDiff, nTimesSmallestSeen);
+    }
+    if (debug_ > 0)
+      mprintf("DEBUG: SmallestNegDiff= %i  nTimesSmallestSeen= %i\n", smallestNegDiff, nTimesSmallestSeen);
     // If this is the first time through choose an appropriate change val
     if (ntries == 0) {
       change = 0.001;
@@ -800,11 +932,11 @@ int Solvate::SolvateBoxWithExactNumber(Topology& topOut, Frame& frameOut, Cpptra
     if ((diff < 0 && nTimesSmallestSeen > 2) || (diff < 0 && diff >= negtol)) {
       // Close enough, just remove the last water residue(s)
       int nToRemove = -diff;
-      mprintf("\tOnly %i solvent molecules off, removing them.\n", nToRemove);
+      mprintf("\t  Only %i solvent molecules off, removing them.\n", nToRemove);
       for (int ires = topOut.Nres() - 1; ires > firstSolventRes-1; ires--) {
         Residue const& currentRes = topOut.Res(ires);
         if (cmask.AtomInCharMask( currentRes.FirstAtom() )) {
-          mprintf("Removing %s\n", topOut.TruncResNameNum(ires).c_str());
+          mprintf("\t\tRemoving %s\n", topOut.TruncResNameNum(ires).c_str());
           for (int at = currentRes.FirstAtom(); at != currentRes.LastAtom(); at++)
             cmask.SelectAtom(at, false);
           nToRemove--;
@@ -824,7 +956,7 @@ int Solvate::SolvateBoxWithExactNumber(Topology& topOut, Frame& frameOut, Cpptra
       loop = false;
     } else if (diff == 0) {
       loop = false;
-      mprintf("DEBUG: Found.\n");
+      if (debug_ > 0) mprintf("DEBUG: Found.\n");
     } else {
       double CHANGE_DIR = 0;
       if ( lastdiff > 0 && diff < 0) {
@@ -853,26 +985,39 @@ int Solvate::SolvateBoxWithExactNumber(Topology& topOut, Frame& frameOut, Cpptra
       lastdiff = diff;
       // Choose a new buffer value
       double CD = change * (double)diff; // TODO should be minus?
+      //mprintf("DEBUG: CD= %16.8E\n", CD);
       double newbufX = bufX + CD; // TODO should be minus
       double newbufY = bufY + CD; // TODO should be minus
       double newbufZ = bufZ + CD; // TODO should be minus
+      //mprintf("DEBUG: New proposed buffer sizes: %f %f %f\n", newbufX, newbufY, newbufZ);
       //CheckBuffer $newbuffer;
       //lastbuffer=$buffer
-      checkBuffer(newbufX, boxX, maxX);
-      checkBuffer(newbufY, boxY, maxY);
-      checkBuffer(newbufZ, boxZ, maxZ);
+      checkBuffer(newbufX, boxX, maxX, bufX, change, diff);
+      if (doTruncatedOct_) {
+        newbufY = newbufZ = newbufX;
+      } else {
+        checkBuffer(newbufY, boxY, maxY, bufY, change, diff);
+        checkBuffer(newbufZ, boxZ, maxZ, bufZ, change, diff);
+      }
+
       bufX = newbufX;
       bufY = newbufY;
       bufZ = newbufZ;
-      mprintf("DEBUG: Change: %G (%g) newBuf= %f %f %f\n", change, CHANGE_DIR, bufX, bufY, bufZ);
+      if (debug_ > 0)
+        mprintf("DEBUG: Change: %G (%g) newBuf= %f %f %f\n", change, CHANGE_DIR, bufX, bufY, bufZ);
     } // END change calc
-
+#   ifdef CPPTRAJ_DEBUG_SOLVATE
+    // DEBUG
+    printIntermediateStructure(ntries, cmask, topOut, frameOut);
+    // END DEBUG
+#   endif
     // Safety valve
     ntries++;
     if (ntries > 100) {
       mprintf("\tTaking too long - moving on...\n");
       loop = false;
-      mprintf("DEBUG: SmallestNegDiff %i (%i) : %f %f %f\n", smallestNegDiff, nTimesSmallestSeen, smallestBuf[0], smallestBuf[1], smallestBuf[2]);
+      if (debug_ > 0)
+        mprintf("DEBUG: SmallestNegDiff %i (%i) : %f %f %f\n", smallestNegDiff, nTimesSmallestSeen, smallestBuf[0], smallestBuf[1], smallestBuf[2]);
     }
   } // END cell loop
 
@@ -887,6 +1032,15 @@ int Solvate::SolvateBoxWithExactNumber(Topology& topOut, Frame& frameOut, Cpptra
   topOut = *newParm;
   delete newParm;
   topOut.Brief("Topology with target # of solvent:");
+  // Reset the solvent residue numbers
+  int solventResNum = topOut.Res(firstSolventRes - 1).OriginalResNum() + 1;
+  for (int ires = firstSolventRes; ires < topOut.Nres(); ires++)
+    topOut.SetRes(ires).SetOriginalNum( solventResNum++ );
+  // Reset the solvent atom numbers TODO zero these?
+  if (!topOut.PdbSerialNum().empty()) {
+    for (int at = topOut.Res(firstSolventRes).FirstAtom(); at < topOut.Natom(); at++)
+      topOut.ModifyPdbSerialNum()[at] = at+1;
+  }
 
   Frame newFrame;
   newFrame.SetupFrameV(topOut.Atoms(), frameOut.CoordsInfo());
@@ -904,7 +1058,7 @@ int Solvate::SolvateBoxWithExactNumber(Topology& topOut, Frame& frameOut, Cpptra
     ewald_rotate(frameOut, dAngle);
     //mprintf("EwaldRotate: %f\n", dAngle);
     // Add an angstrom to the desired box size rather than using the bounding box size
-    dAngle = clipX_ + .5; // NOTE: If truncoct is enabled for nsolvent, clipX_ will be 0
+    dAngle = clipX_ + .5;
     boxX = boxY = boxZ = dAngle * sqrt(3.0) * 0.5;
   }
 
@@ -924,6 +1078,7 @@ int Solvate::SolvateBoxWithExactNumber(Topology& topOut, Frame& frameOut, Cpptra
   mprintf("\t  Volume: %5.3lf A^3\n", frameOut.BoxCrd().CellVolume());
 
   // Reimage FIXME create separate init routine for autoimage
+/*
   Action_AutoImage autoimage;
   ArgList actionargs;
   DataSetList tempdsl;
@@ -945,8 +1100,21 @@ int Solvate::SolvateBoxWithExactNumber(Topology& topOut, Frame& frameOut, Cpptra
     mprinterr("Error: Could not autoimage post-solvate.\n");
     return 1;
   }
-
+*/
   calculateDensity(topOut, frameOut, set0);
+  // Center if needed
+  if (center_) {
+    double dX2 = boxX * 0.5;
+    double dY2 = boxY * 0.5;
+    double dZ2 = boxZ * 0.5;
+    double* xptr = frameOut.xAddress();
+    for (int at = 0; at < frameOut.Natom(); at++, xptr += 3)
+    {
+      xptr[0] += dX2;
+      xptr[1] += dY2;
+      xptr[2] += dZ2;
+    }
+  }
 
   return 0;
 }
@@ -990,7 +1158,7 @@ int Solvate::SolvateBox(Topology& topOut, Frame& frameOut, Cpptraj::Parm::Parame
   }
   // Check if buffers need to be increased for trunc oct.
   if (doTruncatedOct_)
-    octBoxCheck( frameOut );
+    octBoxCheck( frameOut, boxX, boxY, boxZ, soluteRadii );
   mprintf("\t  Solute vdw bounding box:              %-5.3f %-5.3f %-5.3f\n", boxX, boxY, boxZ);
 
   double dXWidth = boxX + bufferX_ * 2;
