@@ -180,6 +180,7 @@ int Parm_PDB::ReadParm(FileName const& fname, Topology &TopIn) {
   } // END loop over PDB records
   if (infile.HasHybrid36())
     mprintf("\tPDB appears to have hybrid36 encoding in atom/residue number fields.\n");
+  infile.WarnLargeChainID();
 
   if (hasMissingResidues) {
     mprintf("\t%zu missing residues.\n", missingResidues.size());
@@ -238,7 +239,7 @@ int Parm_PDB::ReadParm(FileName const& fname, Topology &TopIn) {
       for (Topology::res_iterator res = TopIn.ResStart(); res != TopIn.ResEnd(); ++res) {
         if (r1 == TopIn.ResEnd()) {
           if (link->Rnum1() == res->OriginalResNum() &&
-              link->Chain1() == res->ChainID_1char() &&
+              link->Chain1() == res->ChainID_Nchar(1)[0] &&
               link->Icode1() == res->Icode())
           {
             r1 = res;
@@ -247,7 +248,7 @@ int Parm_PDB::ReadParm(FileName const& fname, Topology &TopIn) {
         }
         if (r2 == TopIn.ResEnd()) {
           if (link->Rnum2() == res->OriginalResNum() &&
-              link->Chain2() == res->ChainID_1char() &&
+              link->Chain2() == res->ChainID_Nchar(1)[0] &&
               link->Icode2() == res->Icode())
           {
             r2 = res;

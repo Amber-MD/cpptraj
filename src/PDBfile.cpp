@@ -20,7 +20,7 @@ PDBfile::SSBOND::SSBOND() :
 PDBfile::SSBOND::SSBOND(int idx1, int idx2, Residue const& r1, Residue const& r2) :
   idx1_(  idx1),                idx2_(  idx2),
   rnum1_( r1.OriginalResNum()), rnum2_( r2.OriginalResNum()),
-  chain1_(r1.ChainID_1char()),        chain2_(r2.ChainID_1char()),
+  chain1_(r1.ChainID_Nchar(1)[0]),        chain2_(r2.ChainID_Nchar(1)[0]), // FIXME support >1 char chain ID?
   icode1_(r1.Icode()),          icode2_(r2.Icode())
 {
   std::copy(r1.c_str(), r1.c_str()+3, name1_);
@@ -121,7 +121,7 @@ PDBfile::Link::Link() : rnum1_(-1), rnum2_(-1), altloc1_(' '), altloc2_(' '),
 PDBfile::Link::Link(const char* a1, char alt1, const char* r1, char ch1, int rnum1, char code1,
                     const char* a2, char alt2, const char* r2, char ch2, int rnum2, char code2,
                     SymOp const& S1, SymOp const& S2) :
-  rnum1_(rnum1), rnum2_(rnum2), altloc1_(alt1), altloc2_(alt2), chain1_(ch1), chain2_(ch2),
+  rnum1_(rnum1), rnum2_(rnum2), altloc1_(alt1), altloc2_(alt2), chain1_(ch1), chain2_(ch2), // FIXME support > 1 char chain ID?
   icode1_(code1), icode2_(code2), sym1_(S1), sym2_(S2)
 {
   std::copy(a1, a1+4, aname1_); aname1_[4] = '\0'; 
@@ -186,7 +186,8 @@ PDBfile::PDBfile() :
   wrapType_(HYBRID36),
   lineLengthWarning_(false),
   coordOverflow_(false),
-  useCol21_(false)
+  useCol21_(false),
+  has_large_chainid_(false)
 {}
 
 /** Set atom/residue number wrap type */
@@ -468,14 +469,30 @@ Residue PDBfile::pdb_Residue() {
   linebuffer_[20] = '\0';
   NameType resName(linebuffer_+17);
   linebuffer_[20] = savechar;
-  // Chain ID (21)
+  // Chain ID (21) - extended is 20-21
+  std::string chainID;
+  if (linebuffer_[20] != ' ') {
+    chainID.reserve(2);
+    chainID += linebuffer_[20];
+    has_large_chainid_ = true;
+  } else
+    chainID.reserve(1);
+  chainID += linebuffer_[21];
   // Res num (22-26), insertion code (26)
   char icode = linebuffer_[26];
   linebuffer_[26] = '\0';
   //int resnum = atoi( linebuffer_+22 );
   int resnum = decodeResNum( linebuffer_+22 );
   linebuffer_[26] = icode;
-  return Residue( resName, resnum, icode, std::string(1, linebuffer_[21]) );
+  return Residue( resName, resnum, icode, chainID );
+}
+
+/** Print a warning if the large chain ID flag is set and reset the flag. */
+void PDBfile::WarnLargeChainID() {
+  if (has_large_chainid_) {
+    mprintf("Warning: PDB file has large (>1 char) chain IDs.\n");
+    has_large_chainid_ = false;
+  }
 }
 
 // PDBfile::pdb_XYZ()
@@ -686,13 +703,13 @@ PDBfile::Link PDBfile::pdb_Link() {
 // -----------------------------------------------------------------------------
 // PDBfile::WriteRecordHeader()
 void PDBfile::WriteRecordHeader(PDB_RECTYPE Record, int anum, NameType const& name,
-                                char altLoc, NameType const& resnameIn, char chain, 
+                                char altLoc, NameType const& resnameIn, std::string const& chain, 
                                 int resnum, char icode, const char* Elt)
 {
-  char resName[6], atomName[5];
+  char resName[7], atomName[5];
   char resNum[5], atomNum[6];
 
-  resName[5]='\0';
+  resName[6]='\0';
   atomName[4]='\0';
   // Residue number in PDB format can only be 4 digits wide
   // Atom number in PDB format can only be 5 digits wide
@@ -739,6 +756,21 @@ void PDBfile::WriteRecordHeader(PDB_RECTYPE Record, int anum, NameType const& na
     rn_idx = 3;
   for (int i = rn_size - 1; i > -1; i--, rn_idx--)
     resName[rn_idx] = resnameIn[i];
+  // Chain ID
+  // The chain ID normally is a single character in column 22.
+  // We can support chain IDs of 2 characters (for e.g. hybrid36 PDBs)
+  // by making use of column 21 as well, even though this is not
+  // PDB-format compliant.
+  resName[5] = ' ';
+  if (!chain.empty()) {
+    if (chain.size() == 1)
+      resName[5] = chain[0];
+    else if (!useCol21_) {
+      resName[4] = chain[0];
+      resName[5] = chain[1];
+      has_large_chainid_ = true;
+    }
+  }
   // Determine size in characters of element name if given.
   int eNameChars = 0;
   if (Elt != 0) eNameChars = strlen( Elt );
@@ -766,14 +798,14 @@ void PDBfile::WriteRecordHeader(PDB_RECTYPE Record, int anum, NameType const& na
       atomName[i+1] = name[i];
   }
   // TODO if REMARK, which #?
-  Printf("%-6s%5s %-4s%5s%c%4s%c",PDB_RECNAME_[Record], atomNum, atomName,
-               resName, chain, resNum, icode);
+  Printf("%-6s%5s %-4s%6s%4s%c",PDB_RECNAME_[Record], atomNum, atomName,
+               resName, resNum, icode);
   if (Record == TER) Printf("\n");
 }
 
 // PDBfile::WriteHET()
 void PDBfile::WriteHET(int res, double x, double y, double z) {
-  WriteCoord(HETATM, anum_++, "XX", ' ', "XXX", ' ', 
+  WriteCoord(HETATM, anum_++, "XX", ' ', "XXX", "", 
              res, ' ', x, y, z, 0.0, 0.0, "", 0, false);
 }
 
@@ -781,7 +813,7 @@ void PDBfile::WriteHET(int res, double x, double y, double z) {
 void PDBfile::WriteATOM(int res, double x, double y, double z, 
                         const char* resnameIn, double Occ)
 {
-  WriteCoord(ATOM, anum_++, "XX", ' ', resnameIn, ' ',
+  WriteCoord(ATOM, anum_++, "XX", ' ', resnameIn, "",
              res, ' ', x, y, z, (float)Occ, 0.0, "", 0, false);
 }
 
@@ -789,13 +821,13 @@ void PDBfile::WriteATOM(int res, double x, double y, double z,
 void PDBfile::WriteATOM(const char* anameIn, int res, double x, double y, double z, 
                         const char* resnameIn, double Occ)
 {
-  WriteCoord(ATOM, anum_++, anameIn, ' ', resnameIn, ' ',
+  WriteCoord(ATOM, anum_++, anameIn, ' ', resnameIn, "",
              res, ' ', x, y, z, (float)Occ, 0.0, "", 0, false);
 }
 
 // PDBfile::WriteCoord()
 void PDBfile::WriteCoord(PDB_RECTYPE Record, int anum, NameType const& name,
-                         NameType const& resnameIn, char chain, int resnum,
+                         NameType const& resnameIn, std::string const& chain, int resnum,
                          double X, double Y, double Z)
 {
   WriteCoord(Record, anum, name, ' ', resnameIn, chain, 
@@ -807,7 +839,7 @@ void PDBfile::WriteCoord(PDB_RECTYPE Record, int anum, NameType const& aname,
                          double X, double Y, double Z,
                          float Occ, float Bfac, const char* Elt, int charge)
 {
-  WriteCoord(Record, anum, aname, ' ', rname, ' ', resnum, ' ', X, Y, Z, 
+  WriteCoord(Record, anum, aname, ' ', rname, "", resnum, ' ', X, Y, Z, 
              Occ, Bfac, Elt, charge, false);
 }
 
@@ -846,7 +878,7 @@ static inline void SetChargeString(char* charge_buf, int charge) {
 // PDBfile::WriteCoord()
 void PDBfile::WriteCoord(PDB_RECTYPE Record, int anum, NameType const& name,
                          char altLoc,
-                         NameType const& resnameIn, char chain, int resnum,
+                         NameType const& resnameIn, std::string const& chain, int resnum,
                          char icode,
                          double X, double Y, double Z, float Occ, float B, 
                          const char* Elt, int charge, bool highPrecision) 
@@ -868,7 +900,7 @@ void PDBfile::WriteCoord(PDB_RECTYPE Record, int anum, NameType const& name,
 
 // PDBfile::WriteANISOU()
 void PDBfile::WriteANISOU(int anum, NameType const& name, 
-                          NameType const& resnameIn, char chain, int resnum,
+                          NameType const& resnameIn, std::string const& chain, int resnum,
                           const double* anisou,
                           const char* Elt, int charge)
 { // TODO icode, altLoc

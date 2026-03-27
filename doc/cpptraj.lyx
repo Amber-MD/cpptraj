@@ -21779,7 +21779,7 @@ Options for pdb format
 \end_layout
 
 \begin_layout LyX-Code
-  [pdbv3] [teradvance] [terbyres | pdbter | noter] 
+  [pdbv3] [pdbchain] [teradvance] [terbyres | pdbter | noter] 
 \end_layout
 
 \begin_layout LyX-Code
@@ -21803,7 +21803,7 @@ Options for pdb format
 \end_layout
 
 \begin_layout LyX-Code
-  [adpdata <set>]
+  [adpdata <set>] [{hybrid36|wrapnumbers}]
 \end_layout
 
 \begin_deeper
@@ -21834,6 +21834,11 @@ pdbatom Use PDB V3 atom names.
 \begin_layout Description
 pdbv3 Use PDB V3 residue/atom names.
  Same as specifying 'pdbres' and 'pdbatom'.
+\end_layout
+
+\begin_layout Description
+pdbchain Restrict PDB chain ID to a single character (PDB V3 standard),
+ otherwise allow chain IDs up to 2 characters.
 \end_layout
 
 \begin_layout Description
@@ -21998,6 +22003,14 @@ nolink "false"
 \end_inset
 
 ) for anisotropic B-factors.
+\end_layout
+
+\begin_layout Description
+hybrid36 Use hybrid36 formatting for large atom/residue numbers (default).
+\end_layout
+
+\begin_layout Description
+wrapnumbers Wrap large atom/residue numbers to zero (previous behavior).
 \end_layout
 
 \end_deeper

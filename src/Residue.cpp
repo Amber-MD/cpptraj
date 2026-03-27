@@ -4,12 +4,22 @@
 
 const char Residue::DEFAULT_CHAINID_ = 'Z';
 
-/** \return 1 character chain ID, warn if chain ID is larger than that. */
-char Residue::ChainID_1char() const {
-  if (chainID_.size() == 1) return chainID_[0];
-  if (chainID_.empty()) return ' ';
-  mprintf("Warning: Chain ID '%s' is larger than 1 character. Truncating.\n", chainID_.c_str());
-  return chainID_[0];
+/** \return Max N character chain ID, warn if chain ID is larger than that. */
+std::string Residue::ChainID_Nchar(unsigned int max) const {
+  if (max == 0 || chainID_.empty()) return std::string("");
+  // Max is bigger than or equal to the chain ID size, just return the chain ID
+  if (max >= chainID_.size()) return chainID_;
+  // Need to truncate
+  mprintf("Warning: Chain ID '%s' is larger than %u character. Truncating.\n", chainID(), max, chainID_.c_str());
+  std::string trunc;
+  trunc.reserve(max);
+  //int startIdx = chainID_.size() - max;
+  //if (startIdx < 0) startIdx = 0;
+  //for (unsigned int idx = (unsigned int)startIdx; idx < chainID_.size(); idx++)
+  //  trunc += chainID_[idx];
+  for (unsigned int idx = 0; idx < max; idx++)
+    trunc += chainID_[idx];
+  return trunc;
 }
 
 /** Check if a blank string has been set as the chain ID; if so, clear it. */

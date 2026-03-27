@@ -16,6 +16,7 @@ Traj_PDBfile::Traj_PDBfile() :
   conectMode_(NO_CONECT),
   pdbWriteMode_(NONE),
   resNumType_(ORIGINAL),
+  maxpdbchain_(2),
   pdbAtom_(0),
   currentSet_(0),
   ter_num_(0),
@@ -237,6 +238,7 @@ void Traj_PDBfile::WriteHelp() {
           "\tpdbres          : Use PDB V3 residue names.\n"
           "\tpdbatom         : Use PDB V3 atom names.\n"
           "\tpdbv3           : Use PDB V3 residue/atom names.\n"
+          "\tpdbchain        : Restrict PDB chain ID to a single character (PDB V3 standard).\n"
           "\ttopresnum       : Use topology residue numbers; otherwise use original residue numbers.\n"
           "\tteradvance      : Increment record (atom) # for TER records (default no).\n"
           "\tterbyres        : Print TER cards based on residue sequence instead of molecules.\n"
@@ -262,6 +264,8 @@ void Traj_PDBfile::WriteHelp() {
           "\tbfacmax <max>   : Max value for bfacscale.\n"
           "\toccmax <max>    : Max value for occscale.\n"
           "\tadpdata <set>   : Use data in <set> for anisotropic B-factors.\n"
+          "\thybrid36        : Use hybrid36 formatting for large atom/residue numbers (default).\n"
+          "\twrapnumbers     : Wrap large atom/residue numbers to zero (previous behavior).\n"
   );
 }
 
@@ -319,12 +323,16 @@ int Traj_PDBfile::processWriteArgs(ArgList& argIn, DataSetList const& DSLin) {
   prependExt_ = argIn.hasKey("keepext"); // Implies MULTI
   if (prependExt_) pdbWriteMode_ = MULTI;
   space_group_ = argIn.GetStringKey("sg");
+  if (argIn.hasKey("pdbchain"))
+    maxpdbchain_ = 1;
+  else
+    maxpdbchain_ = 2;
   chainchar_ = argIn.GetStringKey("chainid");
   if (!chainchar_.empty()) {
-    if (chainchar_.size() > 1) {
-      mprintf("Warning: Specified chain ID %s is too big for PDB, truncating to %c\n",
-              chainchar_.c_str(), chainchar_[0]);
-      chainchar_.assign(1, chainchar_[0]);
+    if (chainchar_.size() > maxpdbchain_) {
+      chainchar_.resize(maxpdbchain_);
+      mprintf("Warning: Specified chain ID is too big for PDB, truncating to %s\n",
+              chainchar_.c_str());
     }
   }
   if (argIn.hasKey("usecol21"))
@@ -485,21 +493,28 @@ int Traj_PDBfile::setupTrajout(FileName const& fname, Topology* trajParm,
   // TODO: Set different chain ID for solute mols and solvent
   chainID_.clear();
   // Default to a blank chain ID unless user requested PDB v3 compliance
-  char def_chainid;
+  std::string def_chainid;
+  def_chainid.reserve(2);
   if (pdbres_)
-    def_chainid = Residue::DefaultChainID();
+    def_chainid = std::string(1, Residue::DefaultChainID());
   else
-    def_chainid = ' ';
+    def_chainid = std::string(" ");
    // If no chain ID specified, determine chain ID.
+  unsigned int max_chain_id_size = 0;
   if (chainchar_.empty()) {
     chainID_.reserve( trajParm->Nres() );
-    for (Topology::res_iterator res = trajParm->ResStart(); res != trajParm->ResEnd(); ++res)
+    for (Topology::res_iterator res = trajParm->ResStart(); res != trajParm->ResEnd(); ++res) {
       if (res->HasChainID())
-        chainID_.push_back( res->ChainID_1char() );
+        chainID_.push_back( res->ChainID_Nchar(maxpdbchain_) );
       else
         chainID_.push_back( def_chainid );
+      if (chainID_.back().size() > max_chain_id_size)
+        max_chain_id_size = chainID_.back().size();
+    }
   } else
-    chainID_.resize(trajParm->Nres(), chainchar_[0]);
+    chainID_.resize(trajParm->Nres(), chainchar_);
+  if (max_chain_id_size > 1)
+    mprintf("Warning: PDB will have large (2 char) chain IDs.\n");
         
   // Save residue names. If pdbres specified convert to PDBV3 residue names.
   resNames_.clear();
