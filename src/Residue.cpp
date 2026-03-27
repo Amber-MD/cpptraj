@@ -13,9 +13,11 @@ std::string Residue::ChainID_Nchar(unsigned int max) const {
   mprintf("Warning: Chain ID '%s' is larger than %u character. Truncating.\n", chainID(), max, chainID_.c_str());
   std::string trunc;
   trunc.reserve(max);
-  int startIdx = chainID_.size() - max;
-  if (startIdx < 0) startIdx = 0;
-  for (unsigned int idx = (unsigned int)startIdx; idx < chainID_.size(); idx++)
+  //int startIdx = chainID_.size() - max;
+  //if (startIdx < 0) startIdx = 0;
+  //for (unsigned int idx = (unsigned int)startIdx; idx < chainID_.size(); idx++)
+  //  trunc += chainID_[idx];
+  for (unsigned int idx = 0; idx < max; idx++)
     trunc += chainID_[idx];
   return trunc;
 }
