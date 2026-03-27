@@ -36,6 +36,8 @@ class PDBfile : public CpptrajFile {
     Atom pdb_Atom() { char al; int n; return pdb_Atom(al,n); }
     /// \return Residue info with name, number, icode, and chainID for ATOM/HETATM.
     Residue pdb_Residue();
+    /// Warn if large chainIDs detected
+    void WarnLargeChainID();
     /// Set given XYZ array with coords from ATOM/HETATM record.
     void pdb_XYZ(double*);
     /// Get occupancy and B-factor from ATOM/HETATM record.
@@ -120,6 +122,7 @@ class PDBfile : public CpptrajFile {
     bool lineLengthWarning_; ///< True if any read line is shorter than 80 char
     bool coordOverflow_;     ///< True if coords on write exceed field width
     bool useCol21_;          ///< If true, use column 21 for 4-char res name
+    bool has_large_chainid_; ///< If true, large (>1 char) chain IDs detected
     /// Recognized PDB record types; corresponds to PDB_RECTYPE
     static const char* PDB_RECNAME_[];
     /// Correspond to NumWrapType

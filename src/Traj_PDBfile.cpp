@@ -485,17 +485,18 @@ int Traj_PDBfile::setupTrajout(FileName const& fname, Topology* trajParm,
   // TODO: Set different chain ID for solute mols and solvent
   chainID_.clear();
   // Default to a blank chain ID unless user requested PDB v3 compliance
-  char def_chainid;
+  std::string def_chainid;
+  def_chainid.reserve(2);
   if (pdbres_)
-    def_chainid = Residue::DefaultChainID();
+    def_chainid = std::string(1, Residue::DefaultChainID());
   else
-    def_chainid = ' ';
+    def_chainid = std::string(" ");
    // If no chain ID specified, determine chain ID.
   if (chainchar_.empty()) {
     chainID_.reserve( trajParm->Nres() );
     for (Topology::res_iterator res = trajParm->ResStart(); res != trajParm->ResEnd(); ++res)
       if (res->HasChainID())
-        chainID_.push_back( res->ChainID_1char() );
+        chainID_.push_back( res->ChainID_Nchar(2) );
       else
         chainID_.push_back( def_chainid );
   } else

@@ -20,7 +20,7 @@ PDBfile::SSBOND::SSBOND() :
 PDBfile::SSBOND::SSBOND(int idx1, int idx2, Residue const& r1, Residue const& r2) :
   idx1_(  idx1),                idx2_(  idx2),
   rnum1_( r1.OriginalResNum()), rnum2_( r2.OriginalResNum()),
-  chain1_(r1.ChainID_1char()),        chain2_(r2.ChainID_1char()),
+  chain1_(r1.ChainID_Nchar(1)[0]),        chain2_(r2.ChainID_Nchar(1)[0]), // FIXME support >1 char chain ID?
   icode1_(r1.Icode()),          icode2_(r2.Icode())
 {
   std::copy(r1.c_str(), r1.c_str()+3, name1_);
@@ -121,7 +121,7 @@ PDBfile::Link::Link() : rnum1_(-1), rnum2_(-1), altloc1_(' '), altloc2_(' '),
 PDBfile::Link::Link(const char* a1, char alt1, const char* r1, char ch1, int rnum1, char code1,
                     const char* a2, char alt2, const char* r2, char ch2, int rnum2, char code2,
                     SymOp const& S1, SymOp const& S2) :
-  rnum1_(rnum1), rnum2_(rnum2), altloc1_(alt1), altloc2_(alt2), chain1_(ch1), chain2_(ch2),
+  rnum1_(rnum1), rnum2_(rnum2), altloc1_(alt1), altloc2_(alt2), chain1_(ch1), chain2_(ch2), // FIXME support > 1 char chain ID?
   icode1_(code1), icode2_(code2), sym1_(S1), sym2_(S2)
 {
   std::copy(a1, a1+4, aname1_); aname1_[4] = '\0'; 
@@ -186,7 +186,8 @@ PDBfile::PDBfile() :
   wrapType_(HYBRID36),
   lineLengthWarning_(false),
   coordOverflow_(false),
-  useCol21_(false)
+  useCol21_(false),
+  has_large_chainid_(false)
 {}
 
 /** Set atom/residue number wrap type */
@@ -468,14 +469,30 @@ Residue PDBfile::pdb_Residue() {
   linebuffer_[20] = '\0';
   NameType resName(linebuffer_+17);
   linebuffer_[20] = savechar;
-  // Chain ID (21)
+  // Chain ID (21) - extended is 20-21
+  std::string chainID;
+  if (linebuffer_[20] != ' ') {
+    chainID.reserve(2);
+    chainID += linebuffer_[20];
+    has_large_chainid_ = true;
+  } else
+    chainID.reserve(1);
+  chainID += linebuffer_[21];
   // Res num (22-26), insertion code (26)
   char icode = linebuffer_[26];
   linebuffer_[26] = '\0';
   //int resnum = atoi( linebuffer_+22 );
   int resnum = decodeResNum( linebuffer_+22 );
   linebuffer_[26] = icode;
-  return Residue( resName, resnum, icode, std::string(1, linebuffer_[21]) );
+  return Residue( resName, resnum, icode, chainID );
+}
+
+/** Print a warning if the large chain ID flag is set and reset the flag. */
+void PDBfile::WarnLargeChainID() {
+  if (has_large_chainid_) {
+    mprintf("Warning: PDB file has large (>1 char) chain IDs.\n");
+    has_large_chainid_ = false;
+  }
 }
 
 // PDBfile::pdb_XYZ()
@@ -751,6 +768,7 @@ void PDBfile::WriteRecordHeader(PDB_RECTYPE Record, int anum, NameType const& na
     else if (!useCol21_) {
       resName[4] = chain[0];
       resName[5] = chain[1];
+      has_large_chainid_ = true;
     }
   }
   // Determine size in characters of element name if given.

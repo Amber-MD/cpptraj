@@ -84,8 +84,8 @@ class Residue {
     inline std::string const& ChainID() const { return chainID_; }
     /// \return const char* for printing chain ID to stdout
     inline const char* chainID()        const { return chainID_.c_str(); }
-    /// \return 1 character chain ID; warn if chainID is more than 1 character
-    char ChainID_1char() const;
+    /// \return Chain ID with max specified length; warn if residue's chainID is more than the given max.
+    std::string ChainID_Nchar(unsigned int) const;
     /// \return True if chain ID is not blank.
     inline bool HasChainID()      const { return !chainID_.empty(); }
     inline const char *c_str()    const { return *resname_;       }
