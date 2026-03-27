@@ -238,6 +238,7 @@ void Traj_PDBfile::WriteHelp() {
           "\tpdbres          : Use PDB V3 residue names.\n"
           "\tpdbatom         : Use PDB V3 atom names.\n"
           "\tpdbv3           : Use PDB V3 residue/atom names.\n"
+          "\tpdbchain        : Restrict PDB chain ID to a single character (PDB V3 standard).\n"
           "\ttopresnum       : Use topology residue numbers; otherwise use original residue numbers.\n"
           "\tteradvance      : Increment record (atom) # for TER records (default no).\n"
           "\tterbyres        : Print TER cards based on residue sequence instead of molecules.\n"
@@ -263,6 +264,8 @@ void Traj_PDBfile::WriteHelp() {
           "\tbfacmax <max>   : Max value for bfacscale.\n"
           "\toccmax <max>    : Max value for occscale.\n"
           "\tadpdata <set>   : Use data in <set> for anisotropic B-factors.\n"
+          "\thybrid36        : Use hybrid36 formatting for large atom/residue numbers (default).\n"
+          "\twrapnumbers     : Wrap large atom/residue numbers to zero (previous behavior).\n"
   );
 }
 
