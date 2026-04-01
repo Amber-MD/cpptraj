@@ -90,6 +90,8 @@ int Traj_PDBfile::setupTrajin(FileName const& fname, Topology* trajParm)
     mprintf("\tWhen present, only reading alternate location ID %c\n", keepAltLoc_);
   int atom;
   pdbWriteMode_ = NONE;
+  // Wrap type is not known a priori; it will be detected if present.
+  file_.SetWrapTypeSilent(PDBfile::RESET);
   if (file_.SetupRead( fname, debug_ )) return TRAJIN_ERR;
   if (file_.OpenFile()) return TRAJIN_ERR;
   // Two strats - check for MODEL keywords or see how many times natom ATOM

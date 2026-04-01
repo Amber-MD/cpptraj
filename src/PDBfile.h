@@ -19,6 +19,8 @@ class PDBfile : public CpptrajFile {
 
     /// Set out of range atom/residue number wrap type
     void SetWrapType(NumWrapType);
+    /// Set out of range atom/residue number wrap type (silent)
+    void SetWrapTypeSilent(NumWrapType);
 
     /// Check if either of the first two lines contain valid PDB records.
     static bool ID_PDB(CpptrajFile&);

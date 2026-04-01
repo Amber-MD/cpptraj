@@ -57,6 +57,8 @@ int Parm_PDB::ReadParm(FileName const& fname, Topology &TopIn) {
   int barray[5];                // Hold CONECT atom and bonds
   char altLoc = ' ';            // For reading in altLoc.
   Frame Coords;
+  // Wrap type is not known a priori; it will be detected if present.
+  infile.SetWrapTypeSilent(PDBfile::RESET);
   // Determine if CONECT records should be read.
   bool readConect;
   if (ConectMode_ == SKIP)
