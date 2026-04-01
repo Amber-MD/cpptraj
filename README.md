@@ -207,6 +207,9 @@ Original code for the 'xtalsymm' Action.
 * Johannes Kraml, Franz Waibl & Klaus R. Liedl (Department of General, Inorganic, and Theoretical Chemistry, University of Innsbruck)
 Improvements and enhancements for GIST.
 
+* Nikolai Skrynnikov, Danil Yevdokimov, Olga O. Lebedenko and Ivan S. Podkorytov (Purdue University, IN)
+Fix for truncated octahedron cell solvation of large systems.
+
 #### Various Contributions
 * David A. Case (Rutgers University, Piscataway, NJ, USA)
 * Hai Nguyen (Rutgers University, Piscataway, NJ, USA)
