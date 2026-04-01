@@ -190,11 +190,17 @@ PDBfile::PDBfile() :
   has_large_chainid_(false)
 {}
 
-/** Set atom/residue number wrap type */
+/** Set atom/residue number wrap type. Verbose, intended when setting up for writes. */
 void PDBfile::SetWrapType(NumWrapType typeIn)
 {
   wrapType_ = typeIn;
   mprintf("\tPDB atom/residue number out of range mode: %s\n", NumWrapTypeStr_[wrapType_]);
+}
+
+/** Set atom/residue number wrap type. Silent, intended when setting up for reads. */
+void PDBfile::SetWrapTypeSilent(NumWrapType typeIn)
+{
+  wrapType_ = typeIn;
 }
 
 // PDBfile::IsPDBkeyword()
