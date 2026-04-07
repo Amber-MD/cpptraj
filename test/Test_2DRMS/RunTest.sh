@@ -77,15 +77,19 @@ DoTest nofit.dat.save nofit.dat
 # Test 7 - coords with velocities
 TOP=''
 CRD=''
-cat > rms.in <<EOF
+UNITNAME="2D RMSD test, read coords with velocity info"
+CheckFor maxthreads 9
+if [ $? -eq 0 ] ; then
+  cat > rms.in <<EOF
 parm ../rGACC.full.parm7
 for i=1;i<10;i++
   trajin ../rGACC.full.nc
 done
 2drms crd1 :1-4&!@H= out rgacc.dat nosquare2d
 EOF
-RunCpptraj "2D RMSD test, read coords with velocity info"
-DoTest rgacc.dat.save rgacc.dat
+  RunCpptraj "$UNITNAME"
+  DoTest rgacc.dat.save rgacc.dat
+fi
 
 # Test 8 - 2drms with quaternion
 cat > rms.in <<EOF
