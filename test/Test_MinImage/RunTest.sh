@@ -20,7 +20,10 @@ RunCpptraj "Minimum Image test."
 DoTest min.dat.save min.dat
 DoTest toface.dat.save toface.dat
 
-cat > test.pdb <<EOF
+UNITNAME="Simple distance to unit cell face test."
+CheckFor maxthreads 7
+if [ $? -eq 0 ] ; then
+  cat > test.pdb <<EOF
 CRYST1    4.000    4.000    4.000  90.00  90.00  90.00 P 1           2         
 MODEL     1 
 ATOM      1  N   THR A   1S      2.000   2.000   2.000  1.00 65.41           N 
@@ -45,15 +48,16 @@ ATOM      1  N   THR A   1S      2.000   2.000   3.000  1.00 65.41           N
 ENDMDL
 END                                                                             
 EOF
-cat > min.in <<EOF
+  cat > min.in <<EOF
 noprogress
 parm test.pdb
 trajin test.pdb
 minimage Test toface @1 out test.toface.dat
 run
 EOF
-RunCpptraj "Simple distance to unit cell face test."
-DoTest test.toface.dat.save test.toface.dat
+  RunCpptraj "$UNITNAME"
+  DoTest test.toface.dat.save test.toface.dat
+fi
 
 EndTest
 exit 0
