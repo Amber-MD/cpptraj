@@ -625,7 +625,8 @@ LIBCPPTRAJ_TRAJ_OBJECTS= \
   Traj_SDF.o \
   Traj_SQM.o \
   Traj_Tinker.o \
-  Traj_XYZ.o
+  Traj_XYZ.o \
+  vmdplugin/dtrplugin.o
 
 # These objects contain parameter file functionality. Requires core and file libraries.
 LIBCPPTRAJ_PARM_OBJECTS= \
