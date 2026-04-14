@@ -3902,12 +3902,21 @@ class PMEInstance {
                 splineModA_.resize(myNumKSumTermsA_);
                 splineModB_.resize(myNumKSumTermsB_);
                 splineModC_.resize(myNumKSumTermsC_);
-                std::copy(&fullSplineModA[firstKSumTermA_], &fullSplineModA[firstKSumTermA_ + myNumKSumTermsA_],
-                          splineModA_.begin());
-                std::copy(&fullSplineModB[firstKSumTermB_], &fullSplineModB[firstKSumTermB_ + myNumKSumTermsB_],
-                          splineModB_.begin());
-                std::copy(&fullSplineModC[firstKSumTermC_], &fullSplineModC[firstKSumTermC_ + myNumKSumTermsC_],
-                          splineModC_.begin());
+                auto fSMAptrBeg = &fullSplineModA[firstKSumTermA_];
+                auto fSMAptrEnd = fSMAptrBeg + myNumKSumTermsA_;
+                std::copy(fSMAptrBeg, fSMAptrEnd, splineModA_.begin());
+                //std::copy(&fullSplineModA[firstKSumTermA_], &fullSplineModA[firstKSumTermA_ + myNumKSumTermsA_],
+                //          splineModA_.begin());
+                auto fSMBptrBeg = &fullSplineModB[firstKSumTermB_];
+                auto fSMBptrEnd = fSMBptrBeg + myNumKSumTermsB_;
+                std::copy(fSMBptrBeg, fSMBptrEnd, splineModB_.begin());
+                //std::copy(&fullSplineModB[firstKSumTermB_], &fullSplineModB[firstKSumTermB_ + myNumKSumTermsB_],
+                //          splineModB_.begin());
+                auto fSMCptrBeg = &fullSplineModC[firstKSumTermC_];
+                auto fSMCptrEnd = fSMCptrBeg + myNumKSumTermsC_;
+                std::copy(fSMCptrBeg, fSMCptrEnd, splineModC_.begin());
+                //std::copy(&fullSplineModC[firstKSumTermC_], &fullSplineModC[firstKSumTermC_ + myNumKSumTermsC_],
+                //          splineModC_.begin());
             }
 
             // Set up function pointers by instantiating the appropriate evaluation functions.  We could add many more
