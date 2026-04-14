@@ -904,7 +904,8 @@ int StructureCheck::Mask1_CheckOverlap(Frame const& currentFrame)
   problemAtoms_.clear();
   int Nproblems = 0;
   // Calculation of atoms in Mask1 to all other atoms in Mask1
-  int mask1_max = Mask1_.Nselected();
+  int mask1_max = Mask1_.Nselected() - 1;
+  int mask2_max = Mask1_.Nselected();
   int nmask1;
 # ifdef _OPENMP
   int mythread;
@@ -942,7 +943,7 @@ int StructureCheck::Mask1_CheckOverlap(Frame const& currentFrame)
       nmask2++;
     } // End loop over atom1 exclusion list
     // Now, no more interactions to exclude.
-    for (; nmask2 < mask1_max; nmask2++) {
+    for (; nmask2 < mask2_max; nmask2++) {
       atom2 = Mask1_[nmask2];
       DistanceCheck(currentFrame, atom1, atom2,
 #                   ifdef _OPENMP
