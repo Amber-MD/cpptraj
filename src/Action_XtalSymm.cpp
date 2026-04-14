@@ -93,7 +93,7 @@ Action::RetType Action_XtalSymm::Init(ArgList& actionArgs, ActionInit& init, int
   
   // Set the masks for all symmetry-related subunits
   Masks_.assign(nops_, AtomMask());
-  subunitOpID_.reserve(nops_);
+  subunitOpID_.resize(nops_);
   std::string mask = actionArgs.GetMaskNext();
   if (mask.empty()) {
     mprintf("Error.  A mask for the asymmetric unit must be specified.\n");
@@ -751,7 +751,7 @@ Action::RetType Action_XtalSymm::DoAction(int frameNum, ActionFrame& frm)
             orig.SetCoordinates(RefFrame_, Masks_[0]);
             Vec3 corig = orig.VCenterOfMass(0, orig.Natom());
             std::vector<int> trialOpID;
-            trialOpID.reserve(nops_);
+            trialOpID.resize(nops_);
             for (j = 0; j < nops_; j++) {
               other_[j].SetCoordinates(RefFrame_, Masks_[leads[HowToGetThere[j]].subunit_]);
               Vec3 cothr = other_[j].VCenterOfMass(0, other_[j].Natom());

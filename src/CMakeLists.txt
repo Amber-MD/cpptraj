@@ -289,6 +289,11 @@ if(INSIDE_AMBER AND ("${AMBER_TOOLS}" MATCHES "sander" AND BUILD_SANDER_API))
 	target_link_libraries(cpptraj libsander)
 endif()
 
+# DTR trajectory
+if(NOT MSVC)
+  add_definitions(-DENABLE_DTR)
+endif()
+
 # arpack
 if(arpack_DISABLED)
 	add_definitions(-DNO_ARPACK)

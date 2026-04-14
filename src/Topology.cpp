@@ -247,8 +247,14 @@ int Topology::MergeResidues(int startRes, int stopRes) {
   for (int at = Res(startRes+1).FirstAtom(); at != Res(stopRes).LastAtom(); at++)
     atoms_[at].SetResNum( startRes );
   // Residues from after stopRes to end
-  for (int ires = stopRes + 1; ires < Nres(); ires++)
+  int currentRes = startRes + 1;
+  for (int ires = stopRes + 1; ires < Nres(); ires++) {
     newResidues.push_back( Res(ires) );
+    // Update the atoms of the subsequent residues
+    for (int at = newResidues.back().FirstAtom(); at != newResidues.back().LastAtom(); at++)
+      atoms_[at].SetResNum( currentRes );
+    currentRes++;
+  }
   // Overwrite old residue info
   residues_ = newResidues;
 

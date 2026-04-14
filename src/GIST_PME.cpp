@@ -390,32 +390,37 @@ double GIST_PME::Recip_ParticleMesh_GIST(Box const& boxIn,
       }
     }
   }
-  MatType m_ux( &Ucoords[0],      Ucharges.size(),     3 );
-  MatType m_uq( &Ucharges[0],     Ucharges.size(),     1 );
-  MatType m_ox( &onGridCoords[0], n_on_grid,           3 );
-  MatType m_vx( &Vcoords[0],      Vcharges.size(),     3 );
-  MatType m_vq( &Vcharges[0],     Vcharges.size(),     1 );
-  MatType ongrid_potentialD(n_on_grid, 4);
-  // UV recip
-  ongrid_potentialD.setZero();
-  pme_object_.computePRec(0, m_uq, m_ux, m_ox, 1, ongrid_potentialD);
-  for (unsigned int i = 0; i != onGridAt.size(); i++) {
-#   ifdef DEBUG_GIST_PME
-    mprintf("DEBUG: gistpme uv recip at %i erecip= %20.10g\n", onGridAt[i], Charge_[onGridAt[i]] * ongrid_potentialD(i, 0));
-#   endif
-    e_uv_elec[onGridAt[i]] += Charge()[onGridAt[i]] * ongrid_potentialD(i, 0);
+  if (!onGridCoords.empty()) {
+    MatType m_ox( &onGridCoords[0], n_on_grid,           3 );
+    MatType ongrid_potentialD(n_on_grid, 4);
+    // UV recip
+    if (!Ucoords.empty()) {
+      MatType m_ux( &Ucoords[0],      Ucharges.size(),     3 );
+      MatType m_uq( &Ucharges[0],     Ucharges.size(),     1 );
+      ongrid_potentialD.setZero();
+      pme_object_.computePRec(0, m_uq, m_ux, m_ox, 1, ongrid_potentialD);
+      for (unsigned int i = 0; i != onGridAt.size(); i++) {
+#       ifdef DEBUG_GIST_PME
+        mprintf("DEBUG: gistpme uv recip at %i erecip= %20.10g\n", onGridAt[i], Charge_[onGridAt[i]] * ongrid_potentialD(i, 0));
+#       endif
+        e_uv_elec[onGridAt[i]] += Charge()[onGridAt[i]] * ongrid_potentialD(i, 0);
+      }
+    }
+    // VV recip.
+    if (!Vcoords.empty()) {
+      MatType m_vx( &Vcoords[0],      Vcharges.size(),     3 );
+      MatType m_vq( &Vcharges[0],     Vcharges.size(),     1 );
+      // NOTE: If we do not zero the potential matrix, it will be summed into
+      ongrid_potentialD.setZero();
+      pme_object_.computePRec(0, m_vq, m_vx, m_ox, 1, ongrid_potentialD);
+      for (unsigned int i = 0; i != onGridAt.size(); i++) {
+#       ifdef DEBUG_GIST_PME
+        mprintf("DEBUG: gistpme vv recip at %i erecip= %20.10g\n", onGridAt[i], Charge_[onGridAt[i]] * ongrid_potentialD(i, 0));
+#       endif
+        e_vv_elec[onGridAt[i]] += Charge()[onGridAt[i]] * ongrid_potentialD(i, 0);
+      }
+    }
   }
-  // VV recip.
-  // NOTE: If we do not zero the potential matrix, it will be summed into
-  ongrid_potentialD.setZero();
-  pme_object_.computePRec(0, m_vq, m_vx, m_ox, 1, ongrid_potentialD);
-  for (unsigned int i = 0; i != onGridAt.size(); i++) {
-#   ifdef DEBUG_GIST_PME
-    mprintf("DEBUG: gistpme vv recip at %i erecip= %20.10g\n", onGridAt[i], Charge_[onGridAt[i]] * ongrid_potentialD(i, 0));
-#   endif
-    e_vv_elec[onGridAt[i]] += Charge()[onGridAt[i]] * ongrid_potentialD(i, 0);
-  }
-
   t_recip_.Stop();
   return erecip;
 }

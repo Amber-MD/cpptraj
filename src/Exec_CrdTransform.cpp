@@ -247,7 +247,7 @@ const
     std::sort(comp_sims.begin(), comp_sims.end(), ReverseIdxValPairCmp());
   }
   // Remove frames up to the cutoff
-  std::vector<bool> keepFrame(comp_sims.size(), true);
+  std::vector<bool> keepFrame(crdIn->Size(), true);
   if (debug_ > 0) mprintf("[");
   unsigned int nToRemove = 0;
   for (unsigned int idx = 0; idx < cutoff; idx++) {

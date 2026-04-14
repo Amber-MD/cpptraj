@@ -36,6 +36,7 @@ void GistEntropyUtils::searchVectorsForNearestNeighbors6D(
 #   endif
     )
 {
+  if (V_XYZ_vec.empty()) return;
   int nw_tot = V_XYZ_vec.size() / 3;
 # ifdef DEBUG_GIST_6D
   if (int(V_Q_vec.size()) != 4 * nw_tot) {
@@ -44,6 +45,7 @@ void GistEntropyUtils::searchVectorsForNearestNeighbors6D(
 # endif
   // This seems a bit hacky, but increases calculation speed by a few percent.
   // Works because, if nw_tot is zero, the arrays never get dereferenced.
+  // DRR - This is not always true - fails for GCC15+cmake, hence the 'return' above for empty arrays.
   const float* V_XYZ = &V_XYZ_vec[0];
   const float* V_Q = &V_Q_vec[0];
   for (int n1 = 0; n1 != nw_tot; ++n1)

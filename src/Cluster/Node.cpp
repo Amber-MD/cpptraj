@@ -125,8 +125,8 @@ const
   // Loop over all frames in cluster
   for (frame_iterator f = beginframe(); f != endframe(); ++f)
   {
-    if (*f > (int)pvt.Size())
-      pvt.Resize( *f, pop );
+    if (*f >= (int)pvt.Size())
+      pvt.Resize( *f + 1, pop );
     pop = pop + 1.0;
     pvt[*f] = pop;
   }

@@ -160,15 +160,16 @@ Action::RetType Action_Pucker::DoAction(int frameNum, ActionFrame& frm) {
       *ax = frm.Frm().VGeometricCenter( *MX );
   }
 
+  const double* XYZ[6];
+  XYZ[5] = 0;
+  for (unsigned int idx = 0; idx != AX_.size(); idx++)
+    XYZ[idx] = AX_[idx].Dptr();
   switch (puckerMethod_) {
     case ALTONA: 
-      pval = Pucker_AS( AX_[0].Dptr(), AX_[1].Dptr(), AX_[2].Dptr(), 
-                        AX_[3].Dptr(), AX_[4].Dptr(), aval );
+      pval = Pucker_AS( XYZ[0], XYZ[1], XYZ[2], XYZ[3], XYZ[4], aval );
       break;
     case CREMER:
-      pval = Pucker_CP( AX_[0].Dptr(), AX_[1].Dptr(), AX_[2].Dptr(), 
-                        AX_[3].Dptr(), AX_[4].Dptr(), AX_[5].Dptr(), 
-                        AX_.size(), aval, tval );
+      pval = Pucker_CP( XYZ[0], XYZ[1], XYZ[2], XYZ[3], XYZ[4], XYZ[5], AX_.size(), aval, tval );
       break;
     case UNSPECIFIED : // Sanity check
       return Action::ERR;
