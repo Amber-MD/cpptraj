@@ -16,6 +16,18 @@ DataSet_LeapOpts::DataSet_LeapOpts() :
 
 }
 
+/** Memory usage in bytes */
+size_t DataSet_LeapOpts::MemUsageInBytes() const {
+  return 
+    sizeof(Cpptraj::Parm::GB_RadiiType) +
+    sizeof(double) +
+    sizeof(double) +
+    sizeof(double) +
+    sizeof(int) +
+    sizeof(bool) +
+    sizeof(bool);
+}
+
 /** Set default GB radii from keyword. */
 int DataSet_LeapOpts::SetGbRadii(std::string const& keyword) {
   Cpptraj::Parm::GB_RadiiType radType = Cpptraj::Parm::GbTypeFromKey( keyword );

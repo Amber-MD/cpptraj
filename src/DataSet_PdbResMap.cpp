@@ -10,6 +10,14 @@ DataSet_PdbResMap::DataSet_PdbResMap() :
 
 }
 
+/** Memory usage in bytes */
+size_t DataSet_PdbResMap::MemUsageInBytes() const {
+  size_t total = (pdbResMap_.size() * NameType::DataSize()) + sizeof(MapType);
+  for (MapType::const_iterator it = pdbResMap_.begin(); it != pdbResMap_.end(); ++it)
+    total += sizeof(std::string) + (it->second.size() * sizeof(char));
+  return total;
+}
+
 /** Add a PDB residue to unit name mapping. */
 int DataSet_PdbResMap::AddPdbResMap(PdbResMapType const& prmIn) {
   MapType::iterator it = pdbResMap_.lower_bound( prmIn.PdbName() );
