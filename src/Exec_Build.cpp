@@ -1608,38 +1608,17 @@ int Exec_Build::StructurePrepAndFillTemplates(ArgList& argIn, Topology& topIn, F
   }
   t_clean_.Stop();
 
-  // All residues start unknown
-  Cpptraj::Structure::ResStatArray resStat( topIn.Nres() );
-  std::vector<BondType> DisulfideBonds;
-  std::vector<BondType> SugarBonds;
-
-  // Disulfide search
-  t_disulfide_.Start();
-  if (doDisulfide_) {
-    Cpptraj::Structure::Disulfide disulfide;
-    if (disulfide.InitDisulfide( argIn, Cpptraj::Structure::Disulfide::ADD_BONDS, debug_ )) {
-      mprinterr("Error: Could not init disulfide search.\n");
-      return 1;
-    }
-    if (disulfide.SearchForDisulfides( resStat, topIn, frameIn, DisulfideBonds ))
-    {
-      mprinterr("Error: Disulfide search failed.\n");
-      return 1;
-    }
-  } else {
-    mprintf("\tNot searching for disulfides.\n");
-  }
-  t_disulfide_.Stop();
-
-  // Handle sugars.
-  t_sugar_.Start();
+  // If preparing sugars, need to set up an atom map and potentially
+  // search for terminal sugars/missing bonds. Do this here after all atom
+  // modifications have been done.
   // TODO should be on a residue by residue basis in FillAtomsWithTemplates
+  t_sugar_.Start();
+  Cpptraj::Structure::SugarBuilder sugarBuilder(debug_);
+  std::vector<BondType> SugarBonds;
   if (!doSugar_)
     mprintf("\tNot attempting to prepare sugars.\n");
-  else
+  else {
     mprintf("\tWill attempt to prepare sugars.\n");
-  Cpptraj::Structure::SugarBuilder sugarBuilder(debug_);
-  if (doSugar_) {
     // Init options
     if (sugarBuilder.InitSugarBuilder( argIn ))
     {
@@ -1668,13 +1647,43 @@ int Exec_Build::StructurePrepAndFillTemplates(ArgList& argIn, Topology& topIn, F
       mprinterr("Error: Sugar structure modification failed.\n");
       return 1;
     }
+  }
+  t_sugar_.Stop();
+
+  // ----- Below here, no more removing/reordering atoms. ------------
+
+  // All residues start unknown
+  Cpptraj::Structure::ResStatArray resStat( topIn.Nres() );
+
+  // Disulfide search
+  t_disulfide_.Start();
+  std::vector<BondType> DisulfideBonds;
+  if (doDisulfide_) {
+    Cpptraj::Structure::Disulfide disulfide;
+    if (disulfide.InitDisulfide( argIn, Cpptraj::Structure::Disulfide::ADD_BONDS, debug_ )) {
+      mprinterr("Error: Could not init disulfide search.\n");
+      return 1;
+    }
+    if (disulfide.SearchForDisulfides( resStat, topIn, frameIn, DisulfideBonds ))
+    {
+      mprinterr("Error: Disulfide search failed.\n");
+      return 1;
+    }
+  } else {
+    mprintf("\tNot searching for disulfides.\n");
+  }
+  t_disulfide_.Stop();
+
+  // Prepare sugars.
+  if (doSugar_) {
+    t_sugar_.Start();
     if (sugarBuilder.PrepareSugars(true, resStat, topIn, frameIn, SugarBonds))
     {
       mprinterr("Error: Sugar preparation failed.\n");
       return 1;
     }
+    t_sugar_.Stop();
   }
-  t_sugar_.Stop();
 
   // Fill in atoms with templates
   mprintf("    -----===== Match residues to templates, fill missing atoms =====-----\n");
