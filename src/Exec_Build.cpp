@@ -468,9 +468,18 @@ int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
           mprinterr("Error:\t%s missing types for%s\n", topOut.TruncResNameNum(ires).c_str(), missingTypes.c_str());
       }
     }
+    if (!missing_templates.empty()) {
+      mprinterr("Error: %u residues were missing a template.\n", n_no_template_found);
+      mprinterr("Error: %zu missing residue templates:", missing_templates.size());
+      for (std::set<NameType>::const_iterator rit = missing_templates.begin();
+                                              rit != missing_templates.end(); ++rit)
+        mprinterr(" %s", *(*rit));
+      mprinterr("\n");
+    }
     mprinterr("Error: Suggestions:\n"
               "Error:   1) Load an Amber force field using 'source <leaprc file>', e.g. 'source leaprc.protein.ff19SB'\n"
-              "Error:   2) Load residue templates with atom types from library/coords files with 'readdata <file> as <type>', e.g. 'readdata amino19.lib as off'\n");
+              "Error:   2) Load residue templates with atom types from library/coords files with 'readdata <file> as <type>', e.g. 'readdata amino19.lib as off'\n"
+              "Error:   3) If the residues missing templates can be removed (e.g. extra waters), remove them with 'nowat' or 'stripmask'.\n");
     printErrMsgWebsites();
 
     return 1;
