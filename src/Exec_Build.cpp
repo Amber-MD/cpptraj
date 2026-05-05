@@ -874,7 +874,7 @@ void Exec_Build::Help() const
           "\t  setbox %s}]\n"
           "    Adding ions:\n"
           "\t[addionsrand ion1 <name1> nion1 <num1> [ion2 <name2> nion2 <num2>]\n"
-          "\t  [minsep <dist>] [ionseed <seed>]]\n"
+          "\t  [minsep <dist>] [ionseed <seed>] [ionchain <id>]]\n"
           "    'prepareforleap' options:\n"
           "%s"
           "%s"
