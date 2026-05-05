@@ -468,9 +468,18 @@ int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
           mprinterr("Error:\t%s missing types for%s\n", topOut.TruncResNameNum(ires).c_str(), missingTypes.c_str());
       }
     }
+    if (!missing_templates.empty()) {
+      mprinterr("Error: %u residues were missing a template.\n", n_no_template_found);
+      mprinterr("Error: %zu missing residue templates:", missing_templates.size());
+      for (std::set<NameType>::const_iterator rit = missing_templates.begin();
+                                              rit != missing_templates.end(); ++rit)
+        mprinterr(" %s", *(*rit));
+      mprinterr("\n");
+    }
     mprinterr("Error: Suggestions:\n"
               "Error:   1) Load an Amber force field using 'source <leaprc file>', e.g. 'source leaprc.protein.ff19SB'\n"
-              "Error:   2) Load residue templates with atom types from library/coords files with 'readdata <file> as <type>', e.g. 'readdata amino19.lib as off'\n");
+              "Error:   2) Load residue templates with atom types from library/coords files with 'readdata <file> as <type>', e.g. 'readdata amino19.lib as off'\n"
+              "Error:   3) If the residues missing templates can be removed (e.g. extra waters), remove them with 'nowat' or 'stripmask'.\n");
     printErrMsgWebsites();
 
     return 1;
@@ -865,7 +874,7 @@ void Exec_Build::Help() const
           "\t  setbox %s}]\n"
           "    Adding ions:\n"
           "\t[addionsrand ion1 <name1> nion1 <num1> [ion2 <name2> nion2 <num2>]\n"
-          "\t  [minsep <dist>] [ionseed <seed>]]\n"
+          "\t  [minsep <dist>] [ionseed <seed>] [ionchain <id>]]\n"
           "    'prepareforleap' options:\n"
           "%s"
           "%s"
@@ -1231,7 +1240,8 @@ Exec::RetType Exec_Build::BuildAndParmStructure(DataSet* inCrdPtr, std::string c
       int nion2 = argIn.getKeyInt("nion2", -1);
       double minsep = argIn.getKeyDouble("minsep", 0.0);
       int ionseed = argIn.getKeyInt("ionseed", -1);
-      if (addIons.InitAddIons(ion1name, nion1, ion2name, nion2, minsep, ionseed, debug_)) {
+      std::string ionCID = argIn.GetStringKey("ionchain");
+      if (addIons.InitAddIons(ion1name, nion1, ion2name, nion2, ionCID, minsep, ionseed, debug_)) {
         mprinterr("Error: Init addions failed.\n");
         return CpptrajState::ERR;
       }
@@ -1608,38 +1618,17 @@ int Exec_Build::StructurePrepAndFillTemplates(ArgList& argIn, Topology& topIn, F
   }
   t_clean_.Stop();
 
-  // All residues start unknown
-  Cpptraj::Structure::ResStatArray resStat( topIn.Nres() );
-  std::vector<BondType> DisulfideBonds;
-  std::vector<BondType> SugarBonds;
-
-  // Disulfide search
-  t_disulfide_.Start();
-  if (doDisulfide_) {
-    Cpptraj::Structure::Disulfide disulfide;
-    if (disulfide.InitDisulfide( argIn, Cpptraj::Structure::Disulfide::ADD_BONDS, debug_ )) {
-      mprinterr("Error: Could not init disulfide search.\n");
-      return 1;
-    }
-    if (disulfide.SearchForDisulfides( resStat, topIn, frameIn, DisulfideBonds ))
-    {
-      mprinterr("Error: Disulfide search failed.\n");
-      return 1;
-    }
-  } else {
-    mprintf("\tNot searching for disulfides.\n");
-  }
-  t_disulfide_.Stop();
-
-  // Handle sugars.
-  t_sugar_.Start();
+  // If preparing sugars, need to set up an atom map and potentially
+  // search for terminal sugars/missing bonds. Do this here after all atom
+  // modifications have been done.
   // TODO should be on a residue by residue basis in FillAtomsWithTemplates
+  t_sugar_.Start();
+  Cpptraj::Structure::SugarBuilder sugarBuilder(debug_);
+  std::vector<BondType> SugarBonds;
   if (!doSugar_)
     mprintf("\tNot attempting to prepare sugars.\n");
-  else
+  else {
     mprintf("\tWill attempt to prepare sugars.\n");
-  Cpptraj::Structure::SugarBuilder sugarBuilder(debug_);
-  if (doSugar_) {
     // Init options
     if (sugarBuilder.InitSugarBuilder( argIn ))
     {
@@ -1668,13 +1657,43 @@ int Exec_Build::StructurePrepAndFillTemplates(ArgList& argIn, Topology& topIn, F
       mprinterr("Error: Sugar structure modification failed.\n");
       return 1;
     }
+  }
+  t_sugar_.Stop();
+
+  // ----- Below here, no more removing/reordering atoms. ------------
+
+  // All residues start unknown
+  Cpptraj::Structure::ResStatArray resStat( topIn.Nres() );
+
+  // Disulfide search
+  t_disulfide_.Start();
+  std::vector<BondType> DisulfideBonds;
+  if (doDisulfide_) {
+    Cpptraj::Structure::Disulfide disulfide;
+    if (disulfide.InitDisulfide( argIn, Cpptraj::Structure::Disulfide::ADD_BONDS, debug_ )) {
+      mprinterr("Error: Could not init disulfide search.\n");
+      return 1;
+    }
+    if (disulfide.SearchForDisulfides( resStat, topIn, frameIn, DisulfideBonds ))
+    {
+      mprinterr("Error: Disulfide search failed.\n");
+      return 1;
+    }
+  } else {
+    mprintf("\tNot searching for disulfides.\n");
+  }
+  t_disulfide_.Stop();
+
+  // Prepare sugars.
+  if (doSugar_) {
+    t_sugar_.Start();
     if (sugarBuilder.PrepareSugars(true, resStat, topIn, frameIn, SugarBonds))
     {
       mprinterr("Error: Sugar preparation failed.\n");
       return 1;
     }
+    t_sugar_.Stop();
   }
-  t_sugar_.Stop();
 
   // Fill in atoms with templates
   mprintf("    -----===== Match residues to templates, fill missing atoms =====-----\n");

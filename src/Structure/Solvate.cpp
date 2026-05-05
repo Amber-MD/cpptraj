@@ -41,7 +41,7 @@ const char* Solvate::SolvateKeywords1() {
 }
 
 const char* Solvate::SolvateKeywords2() {
-  return "solventbox <unit> [closeness <closeness>] [{iso|aniso}] [nocenter]";
+  return "solventbox <unit> [closeness <closeness>] [{iso|aniso}] [nocenter] [solvchain <id>]";
 }
 
 /** Get any buffer arguments */
@@ -95,6 +95,7 @@ int Solvate::InitSolvate(ArgList& argIn, bool octIn, int debugIn) {
 
   closeness_ = argIn.getKeyDouble("closeness", 1.0);
   center_ = !argIn.hasKey("nocenter");
+  solventChainId_ = argIn.GetStringKey("solvchain");
 
   if (doTruncatedOct_ && nsolvent_ < 1) {
     if (!clip_) {
@@ -132,6 +133,8 @@ void Solvate::PrintSolvateInfo() const {
     mprintf("\t  Solvent outside the primary unit cell will be removed.\n");
   if (center_)
     mprintf("\t  Final system will be centered at box center after solvation.\n");
+  if (!solventChainId_.empty())
+    mprintf("\t  Solvent chain ID: %s\n", solventChainId_.c_str());
 } 
 
 /** Get solvent unit box from DataSetList */
@@ -1141,6 +1144,23 @@ int Solvate::SolvateBox(Topology& topOut, Frame& frameOut, Cpptraj::Parm::Parame
   }
   DataSet_Coords& SOLVENTBOX = static_cast<DataSet_Coords&>( *solventUnitBox );
 
+  // Check if topology has chain IDs
+  bool hasChainID = false;
+  for (Topology::res_iterator res = topOut.ResStart(); res != topOut.ResEnd(); ++res)
+  {
+    if (res->HasChainID()) {
+      hasChainID = true;
+      break;
+    }
+  }
+  if (hasChainID) {
+    mprintf("\t  Topology '%s' has chain IDs.\n", topOut.c_str());
+    if (solventChainId_.empty()) {
+      solventChainId_.assign("z");
+      mprintf("\t  Using default chain ID for waters: '%s'\n", solventChainId_.c_str());
+    } else
+      mprintf("\t  Using chain ID of '%s' for waters.\n", solventChainId_.c_str());
+  }
   // TODO Remove any existing box info?
   //if (frameOut.BoxCrd.HasBox())
   // TODO principal align
@@ -1516,7 +1536,7 @@ const
         currentSolventCenter[2] = dZ;
 
         // Add valid residues from solvent unit to output topology for this cube
-        topOut.AddResidues( solventTop, validSolventResidues, frameOut, solventFrame, true );
+        topOut.AddResidues( solventTop, validSolventResidues, frameOut, solventFrame, true, solventChainId_ );
         // Append solvent frame
         //frameOut.AppendFrame( solventFrame );
       } // END loop over Z

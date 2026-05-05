@@ -511,7 +511,8 @@ int Topology::addTopAtom(Atom const& atomIn, Residue const& resIn,
 
 /** Add specified residues from given topology to this topology. Mark solvent if needed. */
 int Topology::AddResidues(Topology const& solventTop, std::vector<int> const& solventResNums,
-                          Frame& frameOut, Frame const& solventFrame, bool is_solvent)
+                          Frame& frameOut, Frame const& solventFrame, bool is_solvent,
+                          std::string const& chainIDin)
 {
   std::vector<int> bondedAtoms;
   for (std::vector<int>::const_iterator ires = solventResNums.begin();
@@ -522,6 +523,8 @@ int Topology::AddResidues(Topology const& solventTop, std::vector<int> const& so
     int molnum = Nmol();
     Residue solventRes = solventTop.Res(*ires);
     solventRes.SetOriginalNum( resnum + 1 );
+    if (!chainIDin.empty())
+      solventRes.SetChainID( chainIDin );
     bondedAtoms.clear();
     for (int iat = solventRes.FirstAtom(); iat != solventRes.LastAtom(); iat++)
     {

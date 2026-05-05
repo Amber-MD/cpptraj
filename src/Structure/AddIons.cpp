@@ -24,6 +24,7 @@ AddIons::AddIons() :
 /** Initialize */
 int AddIons::InitAddIons(std::string const& ion1nameIn, int Nion1,
                          std::string const& ion2nameIn, int Nion2,
+                         std::string const& ionchainIn,
                          double separationIn, int seedIn, int debugIn)
 {
   debug_ = debugIn;
@@ -55,6 +56,7 @@ int AddIons::InitAddIons(std::string const& ion1nameIn, int Nion1,
       Nion2_ = Nion2;
   }
 
+  ionChainId_ = ionchainIn;
   separation_ = separationIn;
   if (separation_ < 0.0) {
     mprinterr("Error: Separation must be >= 0.0 (%f)\n", separation_);
@@ -80,6 +82,8 @@ void AddIons::PrintAddIonsInfo() const {
     else
       mprintf("\t  Adding %i %s ions.\n", Nion2_, ion2name_.c_str());
   }
+  if (!ionChainId_.empty())
+    mprintf("\t  Ion chain ID: %s\n", ionChainId_.c_str());
   if (separation_ > 0.0)
     mprintf("\t  Minimum ion separation is %g Ang.\n", separation_);
   mprintf("\t  Ion RNG seed: %i\n", RNG_.Seed());
@@ -152,6 +156,25 @@ int AddIons::AddIonsRand(Topology& topOut, Frame& frameOut, DataSetList const& D
 const
 {
   mprintf("\tAdding ions by randomly swapping with solvent.\n");
+  // Check if topology has chain IDs
+  std::string ionCID = ionChainId_;
+  bool hasChainID = false;
+  for (Topology::res_iterator res = topOut.ResStart(); res != topOut.ResEnd(); ++res)
+  {
+    if (res->HasChainID()) {
+      hasChainID = true;
+      break;
+    }
+  }
+  if (hasChainID) {
+    mprintf("\t  Topology '%s' has chain IDs.\n", topOut.c_str());
+    if (ionCID.empty()) {
+      ionCID.assign("z");
+      mprintf("\t  Using default chain ID for ions: '%s'\n", ionCID.c_str());
+    } else
+      mprintf("\t  Using chain ID of '%s' for ions.\n", ionCID.c_str());
+  }
+
   // Check that there are solvent molecules.
   int nsolvent = topOut.Nsolvent();
   if (nsolvent < 1) {
@@ -313,11 +336,11 @@ const
   int failCounter = 0;
   while ( iIon1 || iIon2 ) {
     if (iIon1) {
-      if (place_ion(iIon1, failCounter, ionPositions, Ion1, topOut, frameOut, solventMolNums, cut2, nIons, atomMap, molStat))
+      if (place_ion(iIon1, failCounter, ionPositions, Ion1, topOut, frameOut, solventMolNums, cut2, nIons, atomMap, molStat, ionCID))
         return 1;
     }
     if (iIon2) {
-      if (place_ion(iIon2, failCounter, ionPositions, Ion2, topOut, frameOut, solventMolNums, cut2, nIons, atomMap, molStat))
+      if (place_ion(iIon2, failCounter, ionPositions, Ion2, topOut, frameOut, solventMolNums, cut2, nIons, atomMap, molStat, ionCID))
         return 1;
     }
   }
@@ -359,7 +382,7 @@ const
 int AddIons::place_ion(int& iIon1, int& failCounter, Varray& ionPositions,
                        DataSet_Coords* ionCrd, Topology& topOut, Frame& frameOut,
                        std::vector<int>& solventMolNums, double cut2, int nIons,
-                       std::vector<int>& atomMap, VstatArray& molStat)
+                       std::vector<int>& atomMap, VstatArray& molStat, std::string const& ionCID)
 const
 {
   // Pick a random solvent molecule to replace
@@ -418,7 +441,7 @@ const
     int ionAtoms1 = ionAtoms0 + ionCrd->Top().Natom();
     for (int iat = ionAtoms0; iat != ionAtoms1; iat++)
       atomMap.push_back( iat );
-    topOut.AddResidues( ionCrd->Top(), validIonResidues, frameOut, ionFrame, false );
+    topOut.AddResidues( ionCrd->Top(), validIonResidues, frameOut, ionFrame, false, ionCID );
     --iIon1;
     // Resize the active solvent molecules array
     for (unsigned int vidx = solvIdx + 1; vidx < solventMolNums.size(); vidx++)

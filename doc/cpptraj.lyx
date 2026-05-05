@@ -7025,7 +7025,7 @@ Solvation/box:
 \end_layout
 
 \begin_layout LyX-Code
-	          solventbox <unit> [closeness <closeness>] [{iso|aniso}] [nocenter] |
+	          solventbox <unit> [closeness <closeness>] [{iso|aniso}] [nocenter] [solvchain <id>]|
 \end_layout
 
 \begin_layout LyX-Code
@@ -7043,7 +7043,7 @@ Adding ions:
 \end_layout
 
 \begin_layout LyX-Code
-	  [minsep <dist>] [ionseed <seed>]]
+	  [minsep <dist>] [ionseed <seed>] [ionchain <id>]]
 \end_layout
 
 \begin_deeper
@@ -7603,6 +7603,20 @@ iso
  do not center system in the center of the solvent box after solvating.
 \end_layout
 
+\begin_layout Description
+[solvchain
+\begin_inset space ~
+\end_inset
+
+<id>] If the original system has chain IDs,
+ added waters will receive a chain ID of 'z'.
+ Specify 
+\series bold
+solvchain
+\series default
+ to change this chain ID.
+\end_layout
+
 \end_deeper
 \begin_layout Description
 setbox
@@ -7707,7 +7721,21 @@ ion1
 \begin_inset space ~
 \end_inset
 
-<seed>]] Random number generator seed to use (default is system time).
+<seed>] Random number generator seed to use (default is system time).
+\end_layout
+
+\begin_layout Description
+[ionchain
+\begin_inset space ~
+\end_inset
+
+<id>] If the original system has chain IDs,
+ added ions will receive a chain ID of 'z'.
+ Specify 
+\series bold
+ionchain
+\series default
+ to change this chain ID.
 \end_layout
 
 \end_deeper

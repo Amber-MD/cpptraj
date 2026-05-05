@@ -8,13 +8,13 @@ class DataSet_LeapOpts : public DataSet {
     DataSet_LeapOpts();
     static DataSet* Alloc() { return (DataSet*)new DataSet_LeapOpts(); }
     // ----- DataSet functions -------------------
-    size_t Size()                                    const { return 0; }
+    size_t Size()                                    const { return 7; }
     void Info()                                      const { return; }
     int Allocate(SizeArray const&)                         { return 1; }
     void Add(size_t, const void*)                          { return; }
     void WriteBuffer(CpptrajFile&, SizeArray const&) const { return; }
     int Append(DataSet*)                                   { return 1; }
-    size_t MemUsageInBytes()                         const { return 0; }
+    size_t MemUsageInBytes()                         const;
 #   ifdef MPI
     int Sync(size_t, std::vector<int> const&, Parallel::Comm const&) { return 1; }
 #   endif
