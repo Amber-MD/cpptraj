@@ -89,6 +89,7 @@ class Solvate {
     bool center_;
     bool doTruncatedOct_;
     std::string solventBoxName_;
+    std::string solventChainId_; ///< Optional chain ID for added solvent residues
     static const double ATOM_DEFAULT_RADIUS_; ///< Atom default radius from LEaP
     static const double CLOSENESSMODIFIER_;   ///< Overlap closeness modifier from LEaP
 };

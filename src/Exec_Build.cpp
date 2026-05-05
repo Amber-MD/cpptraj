@@ -1240,7 +1240,8 @@ Exec::RetType Exec_Build::BuildAndParmStructure(DataSet* inCrdPtr, std::string c
       int nion2 = argIn.getKeyInt("nion2", -1);
       double minsep = argIn.getKeyDouble("minsep", 0.0);
       int ionseed = argIn.getKeyInt("ionseed", -1);
-      if (addIons.InitAddIons(ion1name, nion1, ion2name, nion2, minsep, ionseed, debug_)) {
+      std::string ionCID = argIn.GetStringKey("ionchain");
+      if (addIons.InitAddIons(ion1name, nion1, ion2name, nion2, ionCID, minsep, ionseed, debug_)) {
         mprinterr("Error: Init addions failed.\n");
         return CpptrajState::ERR;
       }
