@@ -105,7 +105,7 @@ int Cpptraj::Parm::GB_Params::Init_GB_Radii(ArgList& argIn, Cpptraj::Parm::GB_Ra
     } else if (leapopts != 0) {
       // Use leap options
       if (leapopts->PbRadii() != UNKNOWN_GB) {
-        mprintf("\tUsing previously set LEaP-style option for GB radii.\n");
+        mprintf("\tUsing previously set LEaP-style option for GB radii: %s\n", Cpptraj::Parm::GbTypeKey(leapopts->PbRadii()));
         gbradii_ = leapopts->PbRadii();
       }
     }
