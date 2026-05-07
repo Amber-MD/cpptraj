@@ -1270,7 +1270,7 @@ Exec::RetType Exec_Build::BuildAndParmStructure(DataSet* inCrdPtr, std::string c
 
   // GB radii set
   Cpptraj::Parm::GB_Params gbradii;
-  if (gbradii.Init_GB_Radii(argIn, gbRadIn)) return CpptrajState::ERR;
+  if (gbradii.Init_GB_Radii(argIn, gbRadIn, leapopts)) return CpptrajState::ERR;
 
   // LJ 12-6-4
   Cpptraj::Parm::LJ1264_Params lj1264;
