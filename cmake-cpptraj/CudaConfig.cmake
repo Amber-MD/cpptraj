@@ -85,15 +85,28 @@ else()
 			message(FATAL_ERROR "Error: Untested CUDA version. AMBER currently requires CUDA version >= 7.5 and < 12.9.")
 		endif()
 
-		#  check maximum GNU compiler versions wrt cuda:
+		#  Check maximum GNU compiler versions supported by cuda:
+		#  Note that this check is independent of the check(s) elsewhere
+		#  for the cuda versions supported by Amber.  And this check has
+		#  nothing specific to Amber.
 		#  PROGRAMMER WARNING:  This code is NOT trivial.  Before you
 		#  modify it, read and understand it and the stackoverflow link !
 		#  https://stackoverflow.com/questions/6622454/cuda-incompatible-with-my-gcc-version
 		#  VERSION_EQUAL 10 means 10.0, so use ranges to compare major versions.
 		if ( "${CMAKE_C_COMPILER_ID}" STREQUAL "GNU" AND (
-		       ( CMAKE_CXX_COMPILER_VERSION VERSION_LESS 13.3
+		       ( CMAKE_CXX_COMPILER_VERSION VERSION_LESS 16
+			AND CUDA_VERSION VERSION_GREATER_EQUAL 13.0
+			AND CUDA_VERSION VERSION_LESS_EQUAL 13.1 )
+		    OR ( CMAKE_CXX_COMPILER_VERSION VERSION_LESS 15
+			AND CUDA_VERSION VERSION_GREATER_EQUAL 12.8
+			AND CUDA_VERSION VERSION_LESS_EQUAL 12.9 )
+		    # 13.3 and 12.6 is a special case where stackoverflow and
+		    # nvidia disagree; allow based on Gerald Monard's testing.
+		    OR ( CMAKE_CXX_COMPILER_VERSION VERSION_EQUAL 13.3
+			AND CUDA_VERSION VERSION_EQUAL 12.6 )
+		    OR ( CMAKE_CXX_COMPILER_VERSION VERSION_LESS 13.3
 			AND CUDA_VERSION VERSION_GREATER_EQUAL 12.4
-			AND CUDA_VERSION VERSION_LESS_EQUAL 12.5 )
+			AND CUDA_VERSION VERSION_LESS_EQUAL 12.6 )
 		    OR ( CMAKE_CXX_COMPILER_VERSION VERSION_LESS 12.3
 			AND CUDA_VERSION VERSION_GREATER_EQUAL 12.1
 			AND CUDA_VERSION VERSION_LESS_EQUAL 12.3 )
@@ -127,18 +140,17 @@ else()
 		) )
 			message(STATUS "Checking CUDA and GNU versions -- compatible")
 		elseif ( "${CMAKE_C_COMPILER_ID}" STREQUAL "GNU" AND (
-		    CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 13.2
-			OR CUDA_VERSION VERSION_GREATER 12.5
+		    CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 16
+			OR CUDA_VERSION VERSION_GREATER 13.1
 		) )
 			message(STATUS "Checking CUDA and GNU versions -- compatibility unknown")
 			message(STATUS "    See https://stackoverflow.com/questions/6622454/cuda-incompatible-with-my-gcc-version")
 		elseif ( "${CMAKE_C_COMPILER_ID}" STREQUAL "GNU" )
 			message(STATUS "")
 			message("************************************************************")
-			message("Error: Incompatible CUDA and GNU versions")
-			message(" ${CMAKE_CXX_COMPILER_VERSION}")
-			message(" ${CMAKE_CXX_COMPILER_VERSION_MAJOR}")
-			message("See https://stackoverflow.com/questions/6622454/cuda-incompatible-with-my-gcc-version")
+			message("Error: Incompatible CUDA and GNU versions!")
+			message("  GNU version is ${CMAKE_CXX_COMPILER_VERSION}.")
+			message("  See https://stackoverflow.com/questions/6622454/cuda-incompatible-with-my-gcc-version")
 			message("************************************************************")
 			message(STATUS "")
 			message(FATAL_ERROR)
