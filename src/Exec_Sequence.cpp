@@ -367,9 +367,11 @@ Exec::RetType Exec_Sequence::Execute(CpptrajState& State, ArgList& argIn)
     }
   }
   std::string title = argIn.GetStringKey("title");
+  // Check if there are LEaP options
+  DataSet_LeapOpts* leapopts = (DataSet_LeapOpts*)State.DSL().FindSetOfType( "*", DataSet::LEAPOPTS );
   // GB radii set. Default to mbondi
   Cpptraj::Parm::GB_Params gbradii;
-  if (gbradii.Init_GB_Radii(argIn, Cpptraj::Parm::UNKNOWN_GB)) return CpptrajState::ERR;
+  if (gbradii.Init_GB_Radii(argIn, Cpptraj::Parm::UNKNOWN_GB, leapopts)) return CpptrajState::ERR;
 
   // Creator args
   Cpptraj::Structure::Creator creator(debug_);

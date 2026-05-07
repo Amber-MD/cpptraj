@@ -801,6 +801,16 @@ CpptrajState::RetType Command::ExecuteCommand( CpptrajState& State, ArgList cons
         break;
       case Cmd::EXE:
         ret_val = ((Exec*)obj)->Execute( State, cmdArg );
+        // FIXME - right now unfortunately some commands (trajin, trajout, readdata, crdout, etc) are
+        //         coded in such a way that they make copies of the argument list to e.g. enable the
+        //         same arguments to be used for multiple files. However this means that for these
+        //         commands we arent handling cases where we have extra unhandled input. Need to change.
+        //if (obj->Type() != DispatchObject::TRAJ && obj->Type() != DispatchObject::PARM && cmdArg.CheckForMoreArgs()) {
+        //  if (State.ExitOnError()) {
+        //    ret_val = CpptrajState::ERR;
+        //    mprinterr("Error: To ignore this error specify 'noexitonerror' prior to this command.\n");
+        //  }
+        //}
         delete obj;
         break;
       case Cmd::ACT: ret_val = State.AddToActionQueue( (Action*)obj, cmdArg ); break;

@@ -1,6 +1,7 @@
 #include "GB_Params.h"
 #include "../ArgList.h"
 #include "../CpptrajStdio.h"
+#include "../DataSet_LeapOpts.h"
 #include "../Topology.h"
 
 static const char* GB_RadiiTypeStr_[] = {
@@ -88,8 +89,8 @@ std::string Cpptraj::Parm::GB_Params::HelpText() {
   return out;
 }
 
-/** Init radii set */
-int Cpptraj::Parm::GB_Params::Init_GB_Radii(ArgList& argIn, Cpptraj::Parm::GB_RadiiType gbRadIn)
+/** Init radii set with arguments and optional LEaP options. */
+int Cpptraj::Parm::GB_Params::Init_GB_Radii(ArgList& argIn, Cpptraj::Parm::GB_RadiiType gbRadIn, DataSet_LeapOpts* leapopts)
 {
   if (gbRadIn == Cpptraj::Parm::UNKNOWN_GB) {
     // No radii set specified. Check for keyword.
@@ -101,12 +102,23 @@ int Cpptraj::Parm::GB_Params::Init_GB_Radii(ArgList& argIn, Cpptraj::Parm::GB_Ra
         mprinterr("Error: Unknown GB radii set: %s\n", gbset.c_str());
         return 1;
       }
+    } else if (leapopts != 0) {
+      // Use leap options
+      if (leapopts->PbRadii() != UNKNOWN_GB) {
+        mprintf("\tUsing previously set LEaP-style option for GB radii: %s\n", Cpptraj::Parm::GbTypeKey(leapopts->PbRadii()));
+        gbradii_ = leapopts->PbRadii();
+      }
     }
   } else {
     // Use passed-in GB radii set
     gbradii_ = gbRadIn;
   }
   return 0;
+}
+
+/** Init radii set with arguments. */
+int Cpptraj::Parm::GB_Params::Init_GB_Radii(ArgList& argIn, Cpptraj::Parm::GB_RadiiType gbRadIn) {
+  return Init_GB_Radii(argIn, gbRadIn, 0);
 }
 
 /** Init radii set - no args */

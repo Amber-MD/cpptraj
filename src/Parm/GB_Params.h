@@ -2,6 +2,7 @@
 #define INC_PARM_GBPARAMS_H
 #include <string>
 class ArgList;
+class DataSet_LeapOpts;
 class Topology;
 namespace Cpptraj {
 namespace Parm {
@@ -32,7 +33,9 @@ class GB_Params {
     GB_Params();
     /// \return recognized GB radii keywords.
     static std::string HelpText();
-    /// Initialize 
+    /// Initialize with args and optional leap options 
+    int Init_GB_Radii(ArgList&, GB_RadiiType, DataSet_LeapOpts*);
+    /// Initialize with args 
     int Init_GB_Radii(ArgList&, GB_RadiiType);
     /// Initialize  no args
     int Init_GB_Radii(GB_RadiiType);
