@@ -801,6 +801,10 @@ CpptrajState::RetType Command::ExecuteCommand( CpptrajState& State, ArgList cons
         break;
       case Cmd::EXE:
         ret_val = ((Exec*)obj)->Execute( State, cmdArg );
+        if (cmdArg.CheckForMoreArgs()) {
+          if (State.ExitOnError())
+            ret_val = CpptrajState::ERR;
+        }
         delete obj;
         break;
       case Cmd::ACT: ret_val = State.AddToActionQueue( (Action*)obj, cmdArg ); break;
