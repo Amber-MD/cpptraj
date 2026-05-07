@@ -802,8 +802,10 @@ CpptrajState::RetType Command::ExecuteCommand( CpptrajState& State, ArgList cons
       case Cmd::EXE:
         ret_val = ((Exec*)obj)->Execute( State, cmdArg );
         if (cmdArg.CheckForMoreArgs()) {
-          if (State.ExitOnError())
+          if (State.ExitOnError()) {
             ret_val = CpptrajState::ERR;
+            mprinterr("Error: To ignore this error specify 'noexitonerror' prior to this command.\n");
+          }
         }
         delete obj;
         break;
