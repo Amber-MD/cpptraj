@@ -140,10 +140,7 @@ Action::RetType Action_SetVelocity::Setup(ActionSetup& setup) {
 
 // Action_SetVelocity::DoAction()
 Action::RetType Action_SetVelocity::DoAction(int frameNum, ActionFrame& frm) {
-  std::copy( frm.Frm().xAddress(), frm.Frm().xAddress() + frm.Frm().size(), newFrame_.xAddress() );
-  if (frm.Frm().HasVelocity())
-    std::copy( frm.Frm().vAddress(), frm.Frm().vAddress() + frm.Frm().size(),
-               newFrame_.vAddress() );
+  newFrame_.SetFrame( frm.Frm() );
   if (mode_ == ZERO) {
     for (AtomMask::const_iterator atom = Mask_.begin(); atom != Mask_.end(); ++atom)
     {
