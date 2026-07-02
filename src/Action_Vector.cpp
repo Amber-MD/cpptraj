@@ -105,6 +105,10 @@ Action::RetType Action_Vector::Init(ArgList& actionArgs, ActionInit& init, int d
     mprinterr("Error: 'ptrajoutput' and 'magnitude' are incompatible.\n");
     return Action::ERR;
   }
+  if (actionArgs.hasKey("geom"))
+    useMass_ = false;
+  else
+    useMass_ = true;
   dipole_in_debye_ = actionArgs.hasKey("debye");
   needBoxInfo_ = false;
   // Deprecated: corrired, corr, ired
@@ -221,6 +225,10 @@ Action::RetType Action_Vector::Init(ArgList& actionArgs, ActionInit& init, int d
     mprintf(" %s", filename.c_str());
   }
   mprintf("\n");
+  if (useMass_)
+    mprintf("\tVectors will be mass-weighted if possible.\n");
+  else
+    mprintf("\tVectors will not be mass-weighted.\n");
   if (gridSet_ != 0)
     mprintf("\tExtracting box vectors from grid set '%s'\n", gridSet_->legend());
   if (mode_ == DIPOLE || mode_ == BONDDIPOLE) {
@@ -493,10 +501,17 @@ void Action_Vector::Dipole(Frame const& currentFrame) {
   for (AtomMask::const_iterator atom = mask_.begin();
                                 atom != mask_.end(); ++atom)
   {
-    double mass = (*CurrentParm_)[*atom].Mass();
-    total_mass += mass;
-    Vec3 XYZ = currentFrame.XYZ( *atom );
-    CXYZ += ( XYZ * mass );
+    Vec3 XYZ;
+    if (useMass_) {
+      double mass = (*CurrentParm_)[*atom].Mass();
+      total_mass += mass;
+      XYZ = currentFrame.XYZ( *atom );
+      CXYZ += ( XYZ * mass );
+    } else {
+      total_mass += 1;
+      XYZ = currentFrame.XYZ( *atom );
+      CXYZ += XYZ;
+    }
     double charge = (*CurrentParm_)[*atom].Charge();
     XYZ *= charge;
     VXYZ += ( XYZ );

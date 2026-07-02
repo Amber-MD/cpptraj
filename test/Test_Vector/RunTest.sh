@@ -3,7 +3,7 @@
 . ../MasterTest.sh
 
 CleanFiles vector.in vtest.dat.? vtest.dat.?? v8.mol2 corr.v0.v8.dat \
-           avgcoord.out res5.out V0.mol2
+           avgcoord.out res5.out V0.mol2 dipole.geom.dat
 
 INPUT="-i vector.in"
 # Test Vector mask, principle xyz, dipole, box 
@@ -18,6 +18,7 @@ vector v1 principal y @CA out vtest.dat.1 ptrajoutput
 vector v2 principal z @CA out vtest.dat.2 ptrajoutput
 vector v3 @91 @92 out vtest.dat.3 ptrajoutput
 vector v4 @91 dipole out vtest.dat.4 ptrajoutput
+vector v4g :1 dipole out dipole.geom.dat geom
 vector v5 box out vtest.dat.5 ptrajoutput
 vector v6 center out vtest.dat.6 :1
 vector v7 corrplane out vtest.dat.7 :2@CD2,CE?,CZ?,CH2
@@ -36,6 +37,7 @@ EOF
   DoTest vtest.dat.6.save vtest.dat.6
   DoTest vtest.dat.7.save vtest.dat.7
   DoTest v8.mol2.save v8.mol2
+  DoTest dipole.geom.dat.save dipole.geom.dat
 fi
 
 # Test vector center with magnitude
