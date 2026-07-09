@@ -3,7 +3,8 @@
 . ../MasterTest.sh
 
 CleanFiles cpptraj.in CrdFrcVel.nc Vel.crd Frc.crd Vel1.crd Frc1.crd \
-           CrdFrcVel.ncrst.? fromncrst.nc trpzip2.*.crd combined.nc
+           CrdFrcVel.ncrst.? fromncrst.nc trpzip2.*.crd combined.nc \
+           combined2.nc
 
 TESTNAME='Read separate velocity/force trajectory data tests'
 Requires notparallel netcdf
@@ -96,6 +97,17 @@ trajout combined.nc
 EOF
 RunCpptraj "$UNITNAME"
 NcTest combined.nc.save combined.nc
+
+UNITNAME='Trajin Tests with mixed velocity/force info'
+cat > cpptraj.in <<EOF
+parm ../tz2.parm7
+trajin run1.nc
+trajin run0.nc
+trajin run1.nc
+trajout combined2.nc
+EOF
+RunCpptraj "$UNITNAME"
+NcTest combined2.nc.save combined2.nc
 
 EndTest
 exit 0
