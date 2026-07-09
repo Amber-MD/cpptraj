@@ -4,7 +4,7 @@
 
 CleanFiles cpptraj.in CrdFrcVel.nc Vel.crd Frc.crd Vel1.crd Frc1.crd \
            CrdFrcVel.ncrst.? fromncrst.nc trpzip2.*.crd combined.nc \
-           combined2.nc
+           combined2.nc ensemble.nc.?
 
 TESTNAME='Read separate velocity/force trajectory data tests'
 Requires notparallel netcdf
@@ -108,6 +108,15 @@ trajout combined2.nc
 EOF
 RunCpptraj "$UNITNAME"
 NcTest combined2.nc.save combined2.nc
+
+UNITNAME='Ensemble Tests with mixed velocity/force info'
+cat > cpptraj.in <<EOF
+parm ../tz2.parm7
+ensemble RST/001.rst7 trajnames RST/002.rst7
+ensemble TRAJ/rem.crd.001
+trajout ensemble.nc
+EOF
+RunCpptraj "$UNITNAME"
 
 EndTest
 exit 0
