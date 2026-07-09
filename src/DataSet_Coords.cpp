@@ -10,6 +10,7 @@ Frame DataSet_Coords::AllocateFrame() const {
 void DataSet_Coords::CommonInfo() const {
   if (cInfo_.HasBox()) mprintf(" Box Coords,");
   if (cInfo_.HasVel()) mprintf(" Velocities,");
+  if (cInfo_.HasForce()) mprintf(" Forces,");
   mprintf(" %i atoms", top_.Natom());
 }
 

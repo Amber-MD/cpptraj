@@ -111,8 +111,18 @@ void DataSet_Coords_TRJ::GetFrame(int idx, Frame& fIn) {
       Traj_ = trajinList_[ IDX_.CurrentTrajNum() ];
       // NOTE: Currently enforcing all traj have same # atoms, no need to check topology.
       // See if frame needs (re-)allocation.
-      if (previousTraj == 0 || previousTraj->TrajCoordInfo() != Traj_->TrajCoordInfo())
+      if (previousTraj == 0 || previousTraj->TrajCoordInfo() != Traj_->TrajCoordInfo()) {
         readFrame_.SetupFrameV( Traj_->Traj().Parm()->Atoms(), Traj_->TrajCoordInfo() );
+        // If previously had vel/frc info but now do not, zero it out.
+        if (CoordsInfo().HasVel() && !Traj_->TrajCoordInfo().HasVel())
+          readFrame_.AddVelocities(Frame::Darray(readFrame_.size(), 0.0));
+        if (fIn.HasVelocity() && !Traj_->TrajCoordInfo().HasVel())
+          fIn.ZeroVelocities();
+        if (CoordsInfo().HasForce() && !Traj_->TrajCoordInfo().HasForce())
+          readFrame_.AddForces(Frame::Darray(readFrame_.size(), 0.0));
+        if (fIn.HasForce() && !Traj_->TrajCoordInfo().HasForce())
+          fIn.ZeroForces();
+      }
       // Open traj.
       if (Traj_->BeginTraj()) {
         mprinterr("Error: Could not open trajectory %i '%s'\n", IDX_.CurrentTrajNum(),
