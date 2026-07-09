@@ -62,6 +62,8 @@ const RPNcalc::FnIdType RPNcalc::FnIdArray_[] = {
   { FN_SIN,   4, "sin("   },
   { FN_COS,   4, "cos("   },
   { FN_TAN,   4, "tan("   },
+  { FN_SINH,  5, "sinh("  },
+  { FN_COSH,  5, "cosh("  },
   { FN_TANH,  5, "tanh("  },
   { FN_SUM,   4, "sum("   },
   { FN_AVG,   4, "avg("   },
@@ -373,6 +375,8 @@ double RPNcalc::DoOperation(double d1, double d2, TokenType op_type) {
     case FN_SIN: return sin(d1);
     case FN_COS: return cos(d1);
     case FN_TAN: return tan(d1);
+    case FN_SINH: return sinh(d1);
+    case FN_COSH: return cosh(d1);
     case FN_TANH: return tanh(d1);
     case FN_STDEV: return 0.0;
     case FN_SUM:
@@ -1144,6 +1148,8 @@ const RPNcalc::OpType RPNcalc::Token::OpArray_[] = {
   { 0, 1, NO_A,  FN,    0, "Sine"        }, // FN_SIN
   { 0, 1, NO_A,  FN,    0, "Cosine"      }, // FN_COS
   { 0, 1, NO_A,  FN,    0, "Tangent"     }, // FN_TAN
+  { 0, 1, NO_A,  FN,    0, "Hyperbolic Sine" },    // FN_SINH
+  { 0, 1, NO_A,  FN,    0, "Hyperbolic Cosine" },  // FN_COSH
   { 0, 1, NO_A,  FN,    0, "Hyperbolic Tangent" }, // FN_TANH
   { 0, 1, NO_A,  FN,    1, "Summation"   }, // FN_SUM
   { 0, 1, NO_A,  FN,    1, "Average"     }, // FN_AVG

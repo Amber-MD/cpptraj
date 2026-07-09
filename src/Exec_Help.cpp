@@ -149,6 +149,8 @@ int Exec_Help::Math(ArgList& argIn) const {
           "\tsin()   : Sine\n"
           "\tcos()   : Cosine\n"
           "\ttan()   : Tangent\n"
+          "\tsinh()  : Hyperbolic Sine\n"
+          "\tcosh()  : Hyperbolic Cosine\n"
           "\ttanh()  : Hyperbolic Tangent\n"
           "    Data set functions\n"
           "\tsum()   : Summation\n"
