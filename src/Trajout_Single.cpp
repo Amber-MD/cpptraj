@@ -12,7 +12,7 @@ Trajout_Single::~Trajout_Single() {
 }
 
 /** \return CoordinateInfo for TrajectoryIO object. Should not be called when uninitialized. */
-CoordinateInfo const& Trajout_Single::TrajoutCoordInfo() const { return trajio_->CoordInfo(); }
+CoordinateInfo const& Trajout_Single::TrajoutCoordInfo() const { return traj_.CoordInfo(); }
 
 // Trajout_Single::InitTrajWrite()
 /** Initialize output trajectory with appropriate TrajectoryIO class and 
