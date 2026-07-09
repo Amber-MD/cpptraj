@@ -90,6 +90,43 @@ int EnsembleOutList::SetupEnsembleOut(Topology* CurrentParm, CoordinateInfo cons
   return 0;
 }
 
+/** Check active output ensembles against the current coordinate info. */
+int EnsembleOutList::CheckEnsembleOutCoordInfo(CoordinateInfo const& currentCoordInfo,
+                                               FramePtrArray const& currentFrames)
+const
+{
+  for (EnsArray::const_iterator it = active_.begin(); it != active_.end(); ++it)
+  {
+    EnsembleOut* activeTraj = *it;
+    CoordinateInfo const& ensembleoutCoordInfo = activeTraj->Traj().CoordInfo();
+    // Velocities
+    if (currentCoordInfo.HasVel() != ensembleoutCoordInfo.HasVel()) {
+      if (currentCoordInfo.HasVel()) {
+        mprintf("Warning: Input ensemble has velocity information but output ensemble was set up without velocities.\n");
+        mprintf("Warning: Velocity information will not be written to output ensemble.\n");
+      } else {
+        mprintf("Warning: Input ensemble has no velocity information but output ensemble was set up with velocities.\n");
+        mprintf("Warning: All zeroes will be written for velocities.\n");
+        for (FramePtrArray::const_iterator frm = currentFrames.begin(); frm != currentFrames.end(); ++frm)
+          (*frm)->AddVelocities(Frame::Darray((*frm)->size(), 0.0));
+      }
+    }
+    // Forces
+    if (currentCoordInfo.HasForce() != ensembleoutCoordInfo.HasForce()) {
+      if (currentCoordInfo.HasForce()) {
+        mprintf("Warning: Input ensemble has force information but output ensemble was set up without forces.\n");
+        mprintf("Warning: Force information will not be written to output ensemble.\n");
+      } else {
+        mprintf("Warning: Input ensemble has no force information but output ensemble was set up with forces.\n");
+        mprintf("Warning: All zeroes will be written for forces.\n");
+        for (FramePtrArray::const_iterator frm = currentFrames.begin(); frm != currentFrames.end(); ++frm)
+          (*frm)->AddForces(Frame::Darray((*frm)->size(), 0.0));
+      }
+    }
+  }
+  return 0;
+}
+
 /** List only active output trajectories. */
 void EnsembleOutList::ListActive() const {
   if (!ensout_.empty()) {

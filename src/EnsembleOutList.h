@@ -24,6 +24,8 @@ class EnsembleOutList {
     int AddEnsembleOut(std::string const&, ArgList const&, DataSetList const&, Topology*, int);
     /// Set up ensembles for given topology.
     int SetupEnsembleOut(Topology*, CoordinateInfo const&, int); //TODO const Topology?
+    /// Check active ensembles against given CoordinateInfo
+    int CheckEnsembleOutCoordInfo(CoordinateInfo const&, FramePtrArray const&) const;
     /// Write array of Frames to ensemble
     int WriteEnsembleOut(int, FramePtrArray const&);
     /// Close all ensembles
