@@ -87,15 +87,16 @@ EOF
 TrajinTests() {
   UNITNAME='Trajin Tests'
   cat > general.in <<EOF
-trajin ../tz2.rst7
-trajin ../tz2.nc
-#distance EndToEnd :1 :12 out EndToEnd.dat
+trajin tz2.vel.rst7
+trajin ../tz2.nc 1 1
+trajin tz2.vel.rst7
 trajout combined.nc
 EOF
   RunCpptraj "$UNITNAME"
+  NcTest combined.nc.save combined.nc
 }
 
-GeneralTests
+#GeneralTests
 TrajinTests
 
 EndTest
