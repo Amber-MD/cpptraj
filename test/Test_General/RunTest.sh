@@ -5,7 +5,7 @@
 # Clean
 CleanFiles general.in distance.dat rmsd.dat rmsda.dat phi2.dat PhiPsi.dat \
            test.crd a1.dat Restart/* Restart test.nc r4.dat a2.dat.gz \
-           a3.dat.bz2 r2.dat r3-nofit.dat r5.dat
+           a3.dat.bz2 r2.dat r3-nofit.dat r5.dat combined.nc
 
 TESTNAME='General tests'
 # Required environment 
@@ -82,6 +82,16 @@ DoTest a3.dat.bz2.save a3.dat.bz2
 DoTest r2.dat.save r2.dat
 DoTest r3-nofit.dat.save r3-nofit.dat
 DoTest r5.dat.save r5.dat
+
+UNITNAME='Trajin Tests'
+cat > general.in <<EOF
+parm ../tz2.parm7
+trajin ../tz2.rst7
+trajin ../tz2.nc
+#distance EndToEnd :1 :12 out EndToEnd.dat
+trajout combined.nc
+EOF
+RunCpptraj "$UNITNAME"
 
 EndTest
 
