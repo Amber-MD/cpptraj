@@ -5,21 +5,19 @@
 # Clean
 CleanFiles general.in distance.dat rmsd.dat rmsda.dat phi2.dat PhiPsi.dat \
            test.crd a1.dat Restart/* Restart test.nc r4.dat a2.dat.gz \
-           a3.dat.bz2 r2.dat r3-nofit.dat r5.dat combined.nc
+           a3.dat.bz2 r2.dat r3-nofit.dat r5.dat
 
 TESTNAME='General tests'
 # Required environment 
 Requires notparallel netcdf zlib bzlib
 
-INPUT="general.in"
-TOP="../tz2.parm7"
 
-GeneralTests() {
-  if [ ! -e 'Restart' ] ; then
-    mkdir Restart
-  fi
 
-  cat > general.in <<EOF
+if [ ! -e 'Restart' ] ; then
+  mkdir Restart
+fi
+
+cat > general.in <<EOF
 noprogress
 distance d1 :1 :2 out distance.dat
 distance d2 :1 :22 out distance.dat
@@ -58,46 +56,32 @@ trajin ../tz2.crd   \
 rmsd r5 first out r5.dat :2-5@N,CA,C nomod
 EOF
 
-  RunCpptraj "General tests"
+INPUT="general.in"
+TOP="../tz2.parm7"
+RunCpptraj "General tests"
 
-  DoTest distance.dat.save distance.dat
-  DoTest rmsd.dat.save rmsd.dat
-  DoTest rmsda.dat.save rmsda.dat
-  DoTest phi2.dat.save phi2.dat
-  DoTest PhiPsi.dat.save PhiPsi.dat
-  DoTest test.crd.save test.crd
-  DoTest a1.dat.save a1.dat
-  DoTest test.rst7.213.save Restart/test.rst7.213
-  NcTest test.nc.save test.nc
-  DoTest r4.dat.save r4.dat
-  # NOTE: a2.dat.gz comparison allowed to fail on windows; differences caused
-  #       by different newline characters in compressed file. Macs also seem to
-  #       occasionally fail this test, even though decompressed diffs are the same
-  UNITNAME='Gzipped output data file comparison'
-  CheckFor testos Linux
-  if [ $? -eq 0 ] ; then
-    DoTest a2.dat.gz.save a2.dat.gz
-  fi
-  DoTest a3.dat.bz2.save a3.dat.bz2
-  DoTest r2.dat.save r2.dat
-  DoTest r3-nofit.dat.save r3-nofit.dat
-  DoTest r5.dat.save r5.dat
-}
-
-TrajinTests() {
-  UNITNAME='Trajin Tests'
-  cat > general.in <<EOF
-trajin tz2.vel.rst7
-trajin ../tz2.nc 1 1
-trajin tz2.vel.rst7
-trajout combined.nc
-EOF
-  RunCpptraj "$UNITNAME"
-  NcTest combined.nc.save combined.nc
-}
-
-#GeneralTests
-TrajinTests
+DoTest distance.dat.save distance.dat
+DoTest rmsd.dat.save rmsd.dat
+DoTest rmsda.dat.save rmsda.dat
+DoTest phi2.dat.save phi2.dat
+DoTest PhiPsi.dat.save PhiPsi.dat
+DoTest test.crd.save test.crd
+DoTest a1.dat.save a1.dat
+DoTest test.rst7.213.save Restart/test.rst7.213
+NcTest test.nc.save test.nc
+DoTest r4.dat.save r4.dat
+# NOTE: a2.dat.gz comparison allowed to fail on windows; differences caused
+#       by different newline characters in compressed file. Macs also seem to
+#       occasionally fail this test, even though decompressed diffs are the same
+UNITNAME='Gzipped output data file comparison'
+CheckFor testos Linux
+if [ $? -eq 0 ] ; then
+  DoTest a2.dat.gz.save a2.dat.gz
+fi
+DoTest a3.dat.bz2.save a3.dat.bz2
+DoTest r2.dat.save r2.dat
+DoTest r3-nofit.dat.save r3-nofit.dat
+DoTest r5.dat.save r5.dat
 
 EndTest
 
