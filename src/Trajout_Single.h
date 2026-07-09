@@ -41,6 +41,8 @@ class Trajout_Single {
     /// Init traj; if given, append ensemble number to name (use in Actions)
     int InitEnsembleTrajWrite(FileName const&, ArgList const&, DataSetList const&,
                               TrajectoryFile::TrajFormatType, int);
+    /// \return CoordinateInfo
+    CoordinateInfo const& TrajoutCoordInfo() const;
 #   ifdef MPI
     // Set the parallel communicator.
     int SetTrajComm(Parallel::Comm const& c) { trajComm_ = c; return 0; }

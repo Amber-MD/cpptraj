@@ -1337,6 +1337,8 @@ int CpptrajState::RunNormal() {
                                  currentSetup.Nframes() );
       lastPindex = currentSetup.Top().Pindex();
     }
+    // Check output trajectories against current coord info
+    trajoutList_.CheckTrajoutCoordInfo(currentSetup.CoordInfo(), TrajFrame);
 #   ifdef TIMER
     setup_time.Stop();
 #   endif
