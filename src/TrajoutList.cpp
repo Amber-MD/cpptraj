@@ -104,7 +104,7 @@ const
   for (ListType::const_iterator it = active_.begin(); it != active_.end(); ++it)
   {
     Trajout_Single* activeTraj = *it;
-    CoordinateInfo const& trajoutCoordInfo = activeTraj->TrajoutCoordInfo();
+    CoordinateInfo const& trajoutCoordInfo = activeTraj->Traj().CoordInfo();
     // Velocities
     if (currentCoordInfo.HasVel() != trajoutCoordInfo.HasVel()) {
       if (currentCoordInfo.HasVel()) {

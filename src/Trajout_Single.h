@@ -33,7 +33,7 @@ class Trajout_Single {
     /// Print information on trajectory to be written.
     void PrintInfo(int) const;
     // -------------------------------------------
-    OutputTrajCommon Traj() const { return traj_;        }
+    OutputTrajCommon const& Traj() const { return traj_;        }
     bool IsInitialized()    const { return trajio_ != 0; }
     /// Init and setup/open traj.
     int PrepareTrajWrite(FileName const&, ArgList const&, DataSetList const&, Topology*,
@@ -41,8 +41,6 @@ class Trajout_Single {
     /// Init traj; if given, append ensemble number to name (use in Actions)
     int InitEnsembleTrajWrite(FileName const&, ArgList const&, DataSetList const&,
                               TrajectoryFile::TrajFormatType, int);
-    /// \return CoordinateInfo
-    CoordinateInfo const& TrajoutCoordInfo() const;
 #   ifdef MPI
     // Set the parallel communicator.
     int SetTrajComm(Parallel::Comm const& c) { trajComm_ = c; return 0; }
