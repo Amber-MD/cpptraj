@@ -11,13 +11,15 @@ TESTNAME='General tests'
 # Required environment 
 Requires notparallel netcdf zlib bzlib
 
+INPUT="general.in"
+TOP="../tz2.parm7"
 
+GeneralTests() {
+  if [ ! -e 'Restart' ] ; then
+    mkdir Restart
+  fi
 
-if [ ! -e 'Restart' ] ; then
-  mkdir Restart
-fi
-
-cat > general.in <<EOF
+  cat > general.in <<EOF
 noprogress
 distance d1 :1 :2 out distance.dat
 distance d2 :1 :22 out distance.dat
@@ -56,42 +58,45 @@ trajin ../tz2.crd   \
 rmsd r5 first out r5.dat :2-5@N,CA,C nomod
 EOF
 
-INPUT="general.in"
-TOP="../tz2.parm7"
-RunCpptraj "General tests"
+  RunCpptraj "General tests"
 
-DoTest distance.dat.save distance.dat
-DoTest rmsd.dat.save rmsd.dat
-DoTest rmsda.dat.save rmsda.dat
-DoTest phi2.dat.save phi2.dat
-DoTest PhiPsi.dat.save PhiPsi.dat
-DoTest test.crd.save test.crd
-DoTest a1.dat.save a1.dat
-DoTest test.rst7.213.save Restart/test.rst7.213
-NcTest test.nc.save test.nc
-DoTest r4.dat.save r4.dat
-# NOTE: a2.dat.gz comparison allowed to fail on windows; differences caused
-#       by different newline characters in compressed file. Macs also seem to
-#       occasionally fail this test, even though decompressed diffs are the same
-UNITNAME='Gzipped output data file comparison'
-CheckFor testos Linux
-if [ $? -eq 0 ] ; then
-  DoTest a2.dat.gz.save a2.dat.gz
-fi
-DoTest a3.dat.bz2.save a3.dat.bz2
-DoTest r2.dat.save r2.dat
-DoTest r3-nofit.dat.save r3-nofit.dat
-DoTest r5.dat.save r5.dat
+  DoTest distance.dat.save distance.dat
+  DoTest rmsd.dat.save rmsd.dat
+  DoTest rmsda.dat.save rmsda.dat
+  DoTest phi2.dat.save phi2.dat
+  DoTest PhiPsi.dat.save PhiPsi.dat
+  DoTest test.crd.save test.crd
+  DoTest a1.dat.save a1.dat
+  DoTest test.rst7.213.save Restart/test.rst7.213
+  NcTest test.nc.save test.nc
+  DoTest r4.dat.save r4.dat
+  # NOTE: a2.dat.gz comparison allowed to fail on windows; differences caused
+  #       by different newline characters in compressed file. Macs also seem to
+  #       occasionally fail this test, even though decompressed diffs are the same
+  UNITNAME='Gzipped output data file comparison'
+  CheckFor testos Linux
+  if [ $? -eq 0 ] ; then
+    DoTest a2.dat.gz.save a2.dat.gz
+  fi
+  DoTest a3.dat.bz2.save a3.dat.bz2
+  DoTest r2.dat.save r2.dat
+  DoTest r3-nofit.dat.save r3-nofit.dat
+  DoTest r5.dat.save r5.dat
+}
 
-UNITNAME='Trajin Tests'
-cat > general.in <<EOF
-parm ../tz2.parm7
+TrajinTests() {
+  UNITNAME='Trajin Tests'
+  cat > general.in <<EOF
 trajin ../tz2.rst7
 trajin ../tz2.nc
 #distance EndToEnd :1 :12 out EndToEnd.dat
 trajout combined.nc
 EOF
-RunCpptraj "$UNITNAME"
+  RunCpptraj "$UNITNAME"
+}
+
+GeneralTests
+TrajinTests
 
 EndTest
 
