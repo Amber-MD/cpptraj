@@ -683,7 +683,7 @@ int CpptrajState::RunEnsemble() {
       lastPindex = currentTop->Pindex();
     }
     // Check output trajectories against current coord info
-    ensembleOut_.CheckEnsembleOutCoordInfo(currentCoordInfo, CurrentFrames);
+    ensembleOut_.CheckEnsembleOutCoordInfo(currentCoordInfo, FrameEnsemble);
 #   ifdef TIMER
     setup_time.Stop();
 #   endif

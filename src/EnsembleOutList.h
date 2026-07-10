@@ -13,6 +13,7 @@ class ArgList;
 class DataSetList;
 class Topology;
 class CoordinateInfo;
+class FrameArray;
 /// Hold output ensembles.
 class EnsembleOutList {
   public:
@@ -25,7 +26,7 @@ class EnsembleOutList {
     /// Set up ensembles for given topology.
     int SetupEnsembleOut(Topology*, CoordinateInfo const&, int); //TODO const Topology?
     /// Check active ensembles against given CoordinateInfo
-    int CheckEnsembleOutCoordInfo(CoordinateInfo const&, FramePtrArray const&) const;
+    int CheckEnsembleOutCoordInfo(CoordinateInfo const&, FrameArray&) const;
     /// Write array of Frames to ensemble
     int WriteEnsembleOut(int, FramePtrArray const&);
     /// Close all ensembles

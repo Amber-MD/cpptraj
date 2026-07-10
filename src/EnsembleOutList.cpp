@@ -4,6 +4,7 @@
 #include "EnsembleOut_Single.h"
 #include "EnsembleOut_Multi.h"
 #include "ArgList.h"
+#include "FrameArray.h"
 
 /// CONSTRUCTOR
 EnsembleOutList::EnsembleOutList() : debug_(0) {}
@@ -92,7 +93,7 @@ int EnsembleOutList::SetupEnsembleOut(Topology* CurrentParm, CoordinateInfo cons
 
 /** Check active output ensembles against the current coordinate info. */
 int EnsembleOutList::CheckEnsembleOutCoordInfo(CoordinateInfo const& currentCoordInfo,
-                                               FramePtrArray const& currentFrames)
+                                               FrameArray& FrameEnsemble)
 const
 {
   for (EnsArray::const_iterator it = active_.begin(); it != active_.end(); ++it)
@@ -107,8 +108,8 @@ const
       } else {
         mprintf("Warning: Input ensemble has no velocity information but output ensemble was set up with velocities.\n");
         mprintf("Warning: All zeroes will be written for velocities.\n");
-        for (FramePtrArray::const_iterator frm = currentFrames.begin(); frm != currentFrames.end(); ++frm)
-          (*frm)->AddVelocities(Frame::Darray((*frm)->size(), 0.0));
+        for (unsigned int idx = 0; idx < FrameEnsemble.Size(); idx++)
+          FrameEnsemble[idx].AddVelocities(Frame::Darray(FrameEnsemble[idx].size(), 0.0));
       }
     }
     // Forces
@@ -119,8 +120,8 @@ const
       } else {
         mprintf("Warning: Input ensemble has no force information but output ensemble was set up with forces.\n");
         mprintf("Warning: All zeroes will be written for forces.\n");
-        for (FramePtrArray::const_iterator frm = currentFrames.begin(); frm != currentFrames.end(); ++frm)
-          (*frm)->AddForces(Frame::Darray((*frm)->size(), 0.0));
+        for (unsigned int idx = 0; idx < FrameEnsemble.Size(); idx++)
+          FrameEnsemble[idx].AddForces(Frame::Darray(FrameEnsemble[idx].size(), 0.0));
       }
     }
   }
