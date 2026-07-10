@@ -127,7 +127,7 @@ ensemble RST/001.rst7 trajnames RST/002.rst7
 ensemble TRAJ/rem.crd.001
 trajout ensemble.nc
 EOF
-#RunCpptraj "$UNITNAME"
+RunCpptraj "$UNITNAME"
 
 EndTest
 exit 0
