@@ -1,5 +1,6 @@
 #include "EnsembleIn.h"
 #include "CpptrajStdio.h"
+#include "Constants.h" // FNE
 
 EnsembleIn::EnsembleIn() :
   targetType_(ReplicaInfo::NONE), badEnsemble_(0), debug_(0)
@@ -136,6 +137,23 @@ static inline void valprint(std::vector<double> const& VALin) {
     mprintf(" %8.3f", *dval);
 }
 
+/// Floating point not equals.
+static inline bool FNE(double v1, double v2) {
+  double delta = v1 - v2;
+  if (delta < 0.0) delta = -delta;
+  return (delta > Constants::SMALL);
+}
+
+// Compare Darrays
+static inline bool DNE(std::vector<double> const& lhs,
+                       std::vector<double> const& rhs)
+{
+  if (lhs.size() != rhs.size()) return true;
+  for (unsigned int idx = 0; idx < lhs.size(); idx++)
+    if (FNE(lhs[idx], rhs[idx])) return true;
+  return false;
+}
+
 int EnsembleIn::CheckIdxValMap(RemdIdxValMapType const& mapIn) const {
   if (mapIn.size() != RemdIdxValMap_.size()) {
     mprintf("Warning: REMD index/value map size %zu does not match previous map size %zu\n",
@@ -152,7 +170,7 @@ int EnsembleIn::CheckIdxValMap(RemdIdxValMapType const& mapIn) const {
       indexprint( it->first );
       mprintf(" for this ensemble not found in previous ensemble.\n");
       match = 1;
-    } else if (jt->second != it->second) {
+    } else if (DNE(jt->second, it->second)) {
       mprintf("Warning: Index");
       indexprint( it->first );
       mprintf(" values ");
