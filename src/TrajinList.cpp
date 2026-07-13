@@ -87,6 +87,9 @@ int TrajinList::AddEnsembleIn(std::string const& fname, Topology* topIn, ArgList
       err++;
       continue;
     }
+    if (ensemble->EnsembleCoordInfo().UseRemdValues() && !ensemble_.empty()) {
+      ensemble->CheckIdxValMap( ensemble_.back()->RemdIdxValMap() );
+    }
     if (args.CheckForMoreArgs()) {
       delete ensemble;
       return 1;

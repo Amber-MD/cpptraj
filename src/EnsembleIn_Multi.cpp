@@ -147,10 +147,14 @@ int EnsembleIn_Multi::SetupEnsembleRead(FileName const& tnameIn, ArgList& argIn,
     frameIn.SetupFrameV( Traj().Parm()->Atoms(), cInfo_ );
     std::vector<double> allTemps;
     std::vector<RemdIdxType> allIndices;
+    std::vector<Darray> allValues;
     if (targetType_ == ReplicaInfo::TEMP)
       allTemps.assign(REMDtraj_.size(), -1.0);
-    else if (targetType_ == ReplicaInfo::INDICES)
+    else if (targetType_ == ReplicaInfo::INDICES) {
       allIndices.resize( REMDtraj_.size() );
+      if (cInfo_.UseRemdValues())
+        allValues.resize( REMDtraj_.size(), Darray(cInfo_.ReplicaDimensions().Ndims(), -1.0) );
+    }
 #   ifdef MPI
     int err = 0;
     if (Parallel::TrajComm().Master()) {
@@ -205,14 +209,32 @@ int EnsembleIn_Multi::SetupEnsembleRead(FileName const& tnameIn, ArgList& argIn,
       REMDtraj_[member]->closeTraj();
       if (targetType_ == ReplicaInfo::TEMP)
         allTemps[member] = frameIn.Temperature();
-      else if (targetType_ == ReplicaInfo::INDICES)
+      else if (targetType_ == ReplicaInfo::INDICES) {
         allIndices[member] = frameIn.RemdIndices();
+        if (cInfo_.UseRemdValues()) {
+          for (int idim = 0; idim != cInfo_.ReplicaDimensions().Ndims(); idim++) {
+            double dval = -1.0;
+            switch (cInfo_.ReplicaDimensions().DimType(idim)) {
+              case ReplicaDimArray::RXSGLD      : // FIXME double check this
+              case ReplicaDimArray::TEMPERATURE : dval = frameIn.Temperature(); break;
+              case ReplicaDimArray::PH          : dval = frameIn.pH(); break;
+              case ReplicaDimArray::REDOX       : dval = frameIn.RedOx(); break;
+              // Default to replica index
+              default : dval = (double)frameIn.RemdIndices()[idim]; break;
+            }
+            allValues[member][idim] = dval;
+          }
+        } // END if UseRemdValues
+      }
     }
 #   endif /* MPI */
     if (targetType_ == ReplicaInfo::TEMP) {
       if (SetTemperatureMap(allTemps)) return 1;
     } else if (targetType_ == ReplicaInfo::INDICES) {
       if (SetIndicesMap(allIndices)) return 1;
+      if (cInfo_.UseRemdValues()) {
+        if (SetIdxValMap(allIndices, allValues)) return 1;
+      }
     }
   }  // Otherwise NONE, no sorting
 
