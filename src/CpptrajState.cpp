@@ -897,6 +897,8 @@ int CpptrajState::RunParaEnsemble() {
     return 1;
   // Allocate FrameEnsemble here in case preload is needed.
   FrameEnsemble.SetupFrames( NAV.FirstParm()->Atoms(), NAV.EnsCoordInfo() );
+  // Check output trajectories against current coord info
+  ensembleOut_.CheckEnsembleOutCoordInfo(NAV.EnsCoordInfo(), FrameEnsemble);
   // Figure out if any frames need to be preloaded on ranks
   int preload_err = 0;
   if (!TrajComm.Master()) {
