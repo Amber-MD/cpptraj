@@ -191,6 +191,10 @@ int EnsembleIn_Multi::SetupEnsembleRead(FileName const& tnameIn, ArgList& argIn,
           if (GatherIndices(frameIn.iAddress(), allIndices, cInfo_.ReplicaDimensions().Ndims(),
                             EnsembleComm()))
             err = 4;
+          if (cInfo_.UseRemdValues()) {
+            if (GatherValues(frameIn, cInfo_.ReplicaDimensions(), allValues, EnsembleComm()))
+              err = 5;
+          }
         }
       }
     }
@@ -211,6 +215,18 @@ int EnsembleIn_Multi::SetupEnsembleRead(FileName const& tnameIn, ArgList& argIn,
           else {
             it->resize( cInfo_.ReplicaDimensions().Ndims() );
             Parallel::TrajComm().MasterBcast( &((*it)[0]), it->size(), MPI_INT );
+          }
+        }
+        if (cInfo_.UseRemdValues()) {
+          for (std::vector<Darray>::iterator it = allValues.begin();
+                                             it != allValues.end(); ++it)
+          {
+            if (Parallel::TrajComm().Master())
+              Parallel::TrajComm().MasterBcast( &((*it)[0]), it->size(), MPI_DOUBLE );
+            else {
+              it->resize( cInfo_.ReplicaDimensions().Ndims() );
+              Parallel::TrajComm().MasterBcast( &((*it)[0]), it->size(), MPI_DOUBLE );
+            }
           }
         }
       }

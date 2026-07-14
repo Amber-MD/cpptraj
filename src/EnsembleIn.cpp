@@ -36,6 +36,27 @@ int EnsembleIn::GatherIndices(int* iAddress, std::vector<RemdIdxType>& allIndice
   return 0;
 }
 
+int EnsembleIn::GatherValues(Frame const& frameIn, ReplicaDimArray const& replicaDims,
+                             std::vector<Darray>& allValues,
+                             Parallel::Comm const& commIn)
+{
+  int Ndims = replicaDims.Ndims();
+  std::vector<double> all_values(allValues.size() * Ndims, 0);
+  std::vector<double> dtemp(Ndims);
+  for (int idim = 0; idim != replicaDims.Ndims(); idim++)
+    dtemp[idim] = frameIn.RemdValue(idim, replicaDims);
+  if (commIn.AllGather( &dtemp[0], Ndims, MPI_DOUBLE, &all_values[0])) {
+    rprinterr("Error: Gathering replica values.\n");
+    return 1;
+  }
+  std::vector<double>::const_iterator idx_it = all_values.begin();
+  for (std::vector<Darray>::iterator it = allValues.begin();
+                                     it != allValues.end();
+                                   ++it, idx_it += Ndims)
+    it->assign(idx_it, idx_it + Ndims);
+  return 0;
+}
+
 #ifdef TIMER
 double EnsembleIn::total_mpi_allgather_ = 0.0;
 double EnsembleIn::total_mpi_sendrecv_ = 0.0;

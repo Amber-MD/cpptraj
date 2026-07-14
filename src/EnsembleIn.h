@@ -74,6 +74,8 @@ class EnsembleIn {
     Parallel::Comm const& EnsembleComm() const { return Parallel::EnsembleComm(); }
     static int GatherTemperatures(double*, std::vector<double>&, Parallel::Comm const&);
     static int GatherIndices(int*, std::vector<RemdIdxType>&, int, Parallel::Comm const&);
+    static int GatherValues(Frame const&, ReplicaDimArray const&,
+                            std::vector<Darray>&, Parallel::Comm const&);
 #   ifdef TIMER
     Timer mpi_allgather_timer_;
     Timer mpi_sendrecv_timer_;
