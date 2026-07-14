@@ -121,15 +121,18 @@ EOF
 fi
 
 UNITNAME='Ensemble Tests with mixed velocity/force info'
-cat > cpptraj.in <<EOF
+CheckFor maxthreads 6 nthreads 2
+if [ $? -eq 0 ] ; then
+  cat > cpptraj.in <<EOF
 parm ../tz2.parm7
 ensemble RST/001.rst7 trajnames RST/002.rst7
 ensemble TRAJ/rem.crd.001
 trajout ensemble.nc
 EOF
-RunCpptraj "$UNITNAME"
-DoTest ensemble.nc.0.save ensemble.nc.0
-DoTest ensemble.nc.1.save ensemble.nc.1
+  RunCpptraj "$UNITNAME"
+  DoTest ensemble.nc.0.save ensemble.nc.0
+  DoTest ensemble.nc.1.save ensemble.nc.1
+fi
 
 EndTest
 exit 0
