@@ -937,7 +937,8 @@ int CpptrajState::RunParaEnsemble() {
     if (!NAV.CurrentEns()->BadEnsemble()) {
       // Has the ensemble changed?
       if (set != my_start && NAV.EnsembleHasChanged()) {
-        rprintf("DEBUG: Ensemble has changed at set %i\n", set);
+        if (debug_ > 0)
+          rprintf("DEBUG: Ensemble has changed at set %i\n", set);
         // Check output trajectories against current input ensemble
         ensembleOut_.CheckEnsembleOutCoordInfo(NAV.CurrentEns()->EnsembleCoordInfo(), FrameEnsemble);
       }
