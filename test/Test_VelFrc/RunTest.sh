@@ -128,6 +128,8 @@ ensemble TRAJ/rem.crd.001
 trajout ensemble.nc
 EOF
 RunCpptraj "$UNITNAME"
+DoTest ensemble.nc.0.save ensemble.nc.0
+DoTest ensemble.nc.1.save ensemble.nc.1
 
 EndTest
 exit 0
