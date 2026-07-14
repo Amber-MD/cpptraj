@@ -78,6 +78,8 @@ class Frame {
     double pH()                       const { return pH_;            }
     double RedOx()                    const { return redox_;         }
     double Time()                     const { return time_;          }
+    /// \return Replica value for specified dimension.
+    double RemdValue(int, ReplicaDimArray const&) const;
     /// \return CoordinateInfo that describes the Frame
     CoordinateInfo CoordsInfo()       const;
     /// \return pointer to start of XYZ coords for given atom.

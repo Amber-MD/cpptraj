@@ -45,6 +45,8 @@ class EnsembleIn {
     int CheckIdxValMap(RemdIdxValMapType const&) const;
     /// \return index/value map
     RemdIdxValMapType const& RemdIdxValMap() const { return RemdIdxValMap_; }
+    /// \return The sorting mode
+    ReplicaInfo::TargetType TargetMode() const { return targetType_; }
     /// Set the debug level
     void SetDebug(int d)                { debug_ = d;          }
     /// Write current replica mapping to STDOUT.

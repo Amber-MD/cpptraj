@@ -23,6 +23,7 @@ int EnsembleIn_Multi::SetupEnsembleRead(FileName const& tnameIn, ArgList& argIn,
   double remlog_ntwx      = argIn.getKeyDouble("ntwx",   1.0);
   bool no_sort = argIn.hasKey("nosort");
   bool by_crdidx = argIn.hasKey("bycrdidx");
+  bool by_temp = argIn.hasKey("bytemp");
   if (no_sort && by_crdidx) {
     mprinterr("Error: Should only specify either 'nosort' or 'bycrdidx', not both.\n");
     return 1;
@@ -34,6 +35,12 @@ int EnsembleIn_Multi::SetupEnsembleRead(FileName const& tnameIn, ArgList& argIn,
   if (by_crdidx && !remlog_name.empty()) {
     mprinterr("Error: Should only specify either 'bycrdidx' or 'remlog', not both.\n");
     return 1;
+  }
+  if (by_temp) {
+    if (by_crdidx || no_sort) {
+      mprinterr("Error: 'bycrdidx'/'nosort' should not be specified with 'bytemp'\n");
+      return 1;
+    }
   }
   // CRDIDXARG: Parse out 'crdidx <indices list>' now so it is not processed
   //            by SetupTrajIO.
@@ -127,8 +134,14 @@ int EnsembleIn_Multi::SetupEnsembleRead(FileName const& tnameIn, ArgList& argIn,
       }
     } else {
       // If dimensions are present index by replica indices, otherwise index
-      // by temperature. 
-      if (cInfo_.ReplicaDimensions().Ndims() > 0)
+      // by temperature.
+      if (by_temp) {
+        targetType_ = ReplicaInfo::TEMP;
+        if (cInfo_.ReplicaDimensions().Ndims() > 1) {
+          mprinterr("Error: 'bytemp' not compatible with multiple dimensions.\n");
+          return 1;
+        }
+      } else if (cInfo_.ReplicaDimensions().Ndims() > 0)
         targetType_ = ReplicaInfo::INDICES;
       else
         targetType_ = ReplicaInfo::TEMP;
@@ -213,15 +226,7 @@ int EnsembleIn_Multi::SetupEnsembleRead(FileName const& tnameIn, ArgList& argIn,
         allIndices[member] = frameIn.RemdIndices();
         if (cInfo_.UseRemdValues()) {
           for (int idim = 0; idim != cInfo_.ReplicaDimensions().Ndims(); idim++) {
-            double dval = -1.0;
-            switch (cInfo_.ReplicaDimensions().DimType(idim)) {
-              case ReplicaDimArray::RXSGLD      : // FIXME double check this
-              case ReplicaDimArray::TEMPERATURE : dval = frameIn.Temperature(); break;
-              case ReplicaDimArray::PH          : dval = frameIn.pH(); break;
-              case ReplicaDimArray::REDOX       : dval = frameIn.RedOx(); break;
-              // Default to replica index
-              default : dval = (double)frameIn.RemdIndices()[idim]; break;
-            }
+            double dval = frameIn.RemdValue(idim, cInfo_.ReplicaDimensions());
             allValues[member][idim] = dval;
           }
         } // END if UseRemdValues

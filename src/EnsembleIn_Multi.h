@@ -20,7 +20,6 @@ class EnsembleIn_Multi : public EnsembleIn {
     std::string FinalCrdIndices() const; // TODO Remove
     /// \return true if sorting crdidx by remlog
     bool SortingByRemlog() const;
-    ReplicaInfo::TargetType TargetMode() const { return targetType_; } // TODO Remove
   private:
     TrajIOarray REMDtraj_;
     CoordinateInfo cInfo_;
