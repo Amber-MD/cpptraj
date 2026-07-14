@@ -108,8 +108,12 @@ const
       } else {
         mprintf("Warning: Input ensemble has no velocity information but output ensemble was set up with velocities.\n");
         mprintf("Warning: All zeroes will be written for velocities.\n");
-        for (unsigned int idx = 0; idx < FrameEnsemble.Size(); idx++)
-          FrameEnsemble[idx].AddVelocities(Frame::Darray(FrameEnsemble[idx].size(), 0.0));
+        for (unsigned int idx = 0; idx < FrameEnsemble.Size(); idx++) {
+          if (FrameEnsemble[idx].HasVelocity())
+            FrameEnsemble[idx].ZeroVelocities();
+          else
+            FrameEnsemble[idx].AddVelocities(Frame::Darray(FrameEnsemble[idx].size(), 0.0));
+        }
       }
     }
     // Forces
@@ -120,8 +124,12 @@ const
       } else {
         mprintf("Warning: Input ensemble has no force information but output ensemble was set up with forces.\n");
         mprintf("Warning: All zeroes will be written for forces.\n");
-        for (unsigned int idx = 0; idx < FrameEnsemble.Size(); idx++)
-          FrameEnsemble[idx].AddForces(Frame::Darray(FrameEnsemble[idx].size(), 0.0));
+        for (unsigned int idx = 0; idx < FrameEnsemble.Size(); idx++) {
+          if (FrameEnsemble[idx].HasForce())
+            FrameEnsemble[idx].ZeroForces();
+          else
+            FrameEnsemble[idx].AddForces(Frame::Darray(FrameEnsemble[idx].size(), 0.0));
+        }
       }
     }
   }

@@ -96,7 +96,7 @@ int TrajoutList::SetupTrajout(Topology* CurrentParm, CoordinateInfo const& cInfo
   return 0;
 }
 
-/** Check active output trajectories against the current coordinate info. */
+/** Check active output trajectories against the current input coordinate info. */
 int TrajoutList::CheckTrajoutCoordInfo(CoordinateInfo const& currentCoordInfo,
                                        Frame& currentFrame)
 const
@@ -113,7 +113,10 @@ const
       } else {
         mprintf("Warning: Input trajectory has no velocity information but output trajectory was set up with velocities.\n");
         mprintf("Warning: All zeroes will be written for velocities.\n");
-        currentFrame.AddVelocities(Frame::Darray(currentFrame.size(), 0.0));
+        if (currentFrame.HasVelocity())
+          currentFrame.ZeroVelocities();
+        else
+          currentFrame.AddVelocities(Frame::Darray(currentFrame.size(), 0.0));
       }
     }
     // Forces
@@ -124,7 +127,10 @@ const
       } else {
         mprintf("Warning: Input trajectory has no force information but output trajectory was set up with forces.\n");
         mprintf("Warning: All zeroes will be written for forces.\n");
-        currentFrame.AddForces(Frame::Darray(currentFrame.size(), 0.0));
+        if (currentFrame.HasForce())
+          currentFrame.ZeroForces();
+        else
+          currentFrame.AddForces(Frame::Darray(currentFrame.size(), 0.0));
       }
     }
   }
