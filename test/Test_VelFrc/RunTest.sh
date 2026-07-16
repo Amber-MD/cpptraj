@@ -17,9 +17,11 @@ UNITNAME='Short velocity/force tests'
 CheckFor maxthreads 2
 skip_run=$?
 if [ $skip_run -eq 0 ] ; then
-  if [ ! -z "$DO_PARALLEL" -a $N_THREADS -gt 1 ] ; then
-    CheckFor pnetcdf
-    skip_run=$?
+  if [ ! -z "$DO_PARALLEL" ] ; then
+    if [ $N_THREADS -gt 1 ] ; then
+      CheckFor pnetcdf
+      skip_run=$?
+    fi
   fi
 fi
 if [ $skip_run -eq 0 ] ; then
@@ -108,9 +110,11 @@ UNITNAME='Mixed velocity/force info tests'
 CheckFor maxthreads 3
 skip_run=$?
 if [ $skip_run -eq 0 ] ; then
-  if [ ! -z "$DO_PARALLEL"  -a $N_THREADS -gt 1 ] ; then
-    CheckFor pnetcdf
-    skip_run=$?
+  if [ ! -z "$DO_PARALLEL" ] ; then
+    if [ $N_THREADS -gt 1 ] ; then
+      CheckFor pnetcdf
+      skip_run=$?
+    fi
   fi
 fi
 if [ $skip_run -eq 0 ] ; then
@@ -141,9 +145,11 @@ UNITNAME='Ensemble Tests with mixed velocity/force info'
 CheckFor maxthreads 6 nthreads 2
 skip_run=$?
 if [ $skip_run -eq 0 ] ; then
-  if [ ! -z "$DO_PARALLEL" -a $N_THREADS -gt 2 ] ; then
-    CheckFor pnetcdf
-    skip_run=$?
+  if [ ! -z "$DO_PARALLEL" ] ; then
+    if [ "$N_THREADS" -gt 2 ] ; then
+      CheckFor pnetcdf
+      skip_run=$?
+    fi
   fi
 fi
 if [ $skip_run -eq 0 ] ; then
