@@ -38,6 +38,8 @@ class RPNcalc {
                      FN_SQRT, FN_EXP, FN_LN, FN_ABS,
                      // Trig functions
                      FN_SIN, FN_COS, FN_TAN,
+                     // Hyperbolic Trig Functions
+                     FN_SINH, FN_COSH, FN_TANH,
                      // Functions that take a data set
                      FN_SUM, FN_AVG, FN_STDEV, FN_MIN, FN_MAX, 
                      // Parentheses (for infix conversion only)

@@ -25,6 +25,8 @@ class TrajoutList {
     int AddTrajout(std::string const&, ArgList const&, DataSetList const&, Topology*);
     /// Set up trajectories for given topology.
     int SetupTrajout(Topology*, CoordinateInfo const&, int);
+    /// Check active trajectories against given CoordinateInfo
+    int CheckTrajoutCoordInfo(CoordinateInfo const&, Frame&) const;
     /// Write frame to normal output trajectories.
     int WriteTrajout(int, Frame const&);
     /// Call end for all trajectories

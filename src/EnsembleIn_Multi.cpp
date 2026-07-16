@@ -23,6 +23,7 @@ int EnsembleIn_Multi::SetupEnsembleRead(FileName const& tnameIn, ArgList& argIn,
   double remlog_ntwx      = argIn.getKeyDouble("ntwx",   1.0);
   bool no_sort = argIn.hasKey("nosort");
   bool by_crdidx = argIn.hasKey("bycrdidx");
+  bool by_temp = argIn.hasKey("bytemp");
   if (no_sort && by_crdidx) {
     mprinterr("Error: Should only specify either 'nosort' or 'bycrdidx', not both.\n");
     return 1;
@@ -34,6 +35,12 @@ int EnsembleIn_Multi::SetupEnsembleRead(FileName const& tnameIn, ArgList& argIn,
   if (by_crdidx && !remlog_name.empty()) {
     mprinterr("Error: Should only specify either 'bycrdidx' or 'remlog', not both.\n");
     return 1;
+  }
+  if (by_temp) {
+    if (by_crdidx || no_sort) {
+      mprinterr("Error: 'bycrdidx'/'nosort' should not be specified with 'bytemp'\n");
+      return 1;
+    }
   }
   // CRDIDXARG: Parse out 'crdidx <indices list>' now so it is not processed
   //            by SetupTrajIO.
@@ -127,8 +134,14 @@ int EnsembleIn_Multi::SetupEnsembleRead(FileName const& tnameIn, ArgList& argIn,
       }
     } else {
       // If dimensions are present index by replica indices, otherwise index
-      // by temperature. 
-      if (cInfo_.ReplicaDimensions().Ndims() > 0)
+      // by temperature.
+      if (by_temp) {
+        targetType_ = ReplicaInfo::TEMP;
+        if (cInfo_.ReplicaDimensions().Ndims() > 1) {
+          mprinterr("Error: 'bytemp' not compatible with multiple dimensions.\n");
+          return 1;
+        }
+      } else if (cInfo_.ReplicaDimensions().Ndims() > 0)
         targetType_ = ReplicaInfo::INDICES;
       else
         targetType_ = ReplicaInfo::TEMP;
@@ -147,10 +160,14 @@ int EnsembleIn_Multi::SetupEnsembleRead(FileName const& tnameIn, ArgList& argIn,
     frameIn.SetupFrameV( Traj().Parm()->Atoms(), cInfo_ );
     std::vector<double> allTemps;
     std::vector<RemdIdxType> allIndices;
+    std::vector<Darray> allValues;
     if (targetType_ == ReplicaInfo::TEMP)
       allTemps.assign(REMDtraj_.size(), -1.0);
-    else if (targetType_ == ReplicaInfo::INDICES)
+    else if (targetType_ == ReplicaInfo::INDICES) {
       allIndices.resize( REMDtraj_.size() );
+      if (cInfo_.UseRemdValues())
+        allValues.resize( REMDtraj_.size(), Darray(cInfo_.ReplicaDimensions().Ndims(), -1.0) );
+    }
 #   ifdef MPI
     int err = 0;
     if (Parallel::TrajComm().Master()) {
@@ -174,6 +191,10 @@ int EnsembleIn_Multi::SetupEnsembleRead(FileName const& tnameIn, ArgList& argIn,
           if (GatherIndices(frameIn.iAddress(), allIndices, cInfo_.ReplicaDimensions().Ndims(),
                             EnsembleComm()))
             err = 4;
+          if (cInfo_.UseRemdValues()) {
+            if (GatherValues(frameIn, cInfo_.ReplicaDimensions(), allValues, EnsembleComm()))
+              err = 5;
+          }
         }
       }
     }
@@ -196,6 +217,18 @@ int EnsembleIn_Multi::SetupEnsembleRead(FileName const& tnameIn, ArgList& argIn,
             Parallel::TrajComm().MasterBcast( &((*it)[0]), it->size(), MPI_INT );
           }
         }
+        if (cInfo_.UseRemdValues()) {
+          for (std::vector<Darray>::iterator it = allValues.begin();
+                                             it != allValues.end(); ++it)
+          {
+            if (Parallel::TrajComm().Master())
+              Parallel::TrajComm().MasterBcast( &((*it)[0]), it->size(), MPI_DOUBLE );
+            else {
+              it->resize( cInfo_.ReplicaDimensions().Ndims() );
+              Parallel::TrajComm().MasterBcast( &((*it)[0]), it->size(), MPI_DOUBLE );
+            }
+          }
+        }
       }
     }
 #   else /* MPI */
@@ -205,14 +238,24 @@ int EnsembleIn_Multi::SetupEnsembleRead(FileName const& tnameIn, ArgList& argIn,
       REMDtraj_[member]->closeTraj();
       if (targetType_ == ReplicaInfo::TEMP)
         allTemps[member] = frameIn.Temperature();
-      else if (targetType_ == ReplicaInfo::INDICES)
+      else if (targetType_ == ReplicaInfo::INDICES) {
         allIndices[member] = frameIn.RemdIndices();
+        if (cInfo_.UseRemdValues()) {
+          for (int idim = 0; idim != cInfo_.ReplicaDimensions().Ndims(); idim++) {
+            double dval = frameIn.RemdValue(idim, cInfo_.ReplicaDimensions());
+            allValues[member][idim] = dval;
+          }
+        } // END if UseRemdValues
+      }
     }
 #   endif /* MPI */
     if (targetType_ == ReplicaInfo::TEMP) {
       if (SetTemperatureMap(allTemps)) return 1;
     } else if (targetType_ == ReplicaInfo::INDICES) {
       if (SetIndicesMap(allIndices)) return 1;
+      if (cInfo_.UseRemdValues()) {
+        if (SetIdxValMap(allIndices, allValues)) return 1;
+      }
     }
   }  // Otherwise NONE, no sorting
 

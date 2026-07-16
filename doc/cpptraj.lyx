@@ -20552,6 +20552,10 @@ ensemble <file0> {[<start>] [<stop> | last] [offset]} | lastframe
 \end_layout
 
 \begin_layout LyX-Code
+           bytemp |
+\end_layout
+
+\begin_layout LyX-Code
            remlog <remlogfile> [nstlim <nstlim> ntwx <ntwx>]}]
 \begin_inset Separator latexpar
 \end_inset
@@ -20626,6 +20630,10 @@ last] Frame to stop reading ensemble at;
 [bycrdidx] For H-REMD trajectories,
  sort by coordinate indices stored in trajectory files.
  This is preferred over sorting via 'remlog'.
+\end_layout
+
+\begin_layout Description
+[bytemp] If specified the ensemble will be sorted by temperature values instead of replica indices.
 \end_layout
 
 \begin_layout Description

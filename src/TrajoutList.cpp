@@ -96,6 +96,47 @@ int TrajoutList::SetupTrajout(Topology* CurrentParm, CoordinateInfo const& cInfo
   return 0;
 }
 
+/** Check active output trajectories against the current input coordinate info. */
+int TrajoutList::CheckTrajoutCoordInfo(CoordinateInfo const& currentCoordInfo,
+                                       Frame& currentFrame)
+const
+{
+  for (ListType::const_iterator it = active_.begin(); it != active_.end(); ++it)
+  {
+    Trajout_Single* activeTraj = *it;
+    CoordinateInfo const& trajoutCoordInfo = activeTraj->Traj().CoordInfo();
+    // Velocities
+    if (currentCoordInfo.HasVel() != trajoutCoordInfo.HasVel()) {
+      if (currentCoordInfo.HasVel()) {
+        mprintf("Warning: Input trajectory has velocity information but output trajectory was set up without velocities.\n");
+        mprintf("Warning: Velocity information will not be written to output trajectory.\n");
+      } else {
+        mprintf("Warning: Input trajectory has no velocity information but output trajectory was set up with velocities.\n");
+        mprintf("Warning: All zeroes will be written for velocities.\n");
+        if (currentFrame.HasVelocity())
+          currentFrame.ZeroVelocities();
+        else
+          currentFrame.AddVelocities(Frame::Darray(currentFrame.size(), 0.0));
+      }
+    }
+    // Forces
+    if (currentCoordInfo.HasForce() != trajoutCoordInfo.HasForce()) {
+      if (currentCoordInfo.HasForce()) {
+        mprintf("Warning: Input trajectory has force information but output trajectory was set up without forces.\n");
+        mprintf("Warning: Force information will not be written to output trajectory.\n");
+      } else {
+        mprintf("Warning: Input trajectory has no force information but output trajectory was set up with forces.\n");
+        mprintf("Warning: All zeroes will be written for forces.\n");
+        if (currentFrame.HasForce())
+          currentFrame.ZeroForces();
+        else
+          currentFrame.AddForces(Frame::Darray(currentFrame.size(), 0.0));
+      }
+    }
+  }
+  return 0;
+}
+
 /** List only active output trajectories. */
 void TrajoutList::ListActive() const {
   if (!trajout_.empty()) {

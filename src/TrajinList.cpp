@@ -87,6 +87,16 @@ int TrajinList::AddEnsembleIn(std::string const& fname, Topology* topIn, ArgList
       err++;
       continue;
     }
+    // Check that replica indices match to the same values as previous ensemble
+    if (ensemble->EnsembleCoordInfo().UseRemdValues() && !ensemble_.empty()) {
+      if (ensemble->CheckIdxValMap( ensemble_.back()->RemdIdxValMap() )) {
+        if (ensemble->TargetMode() == ReplicaInfo::INDICES) {
+          mprinterr("Error: Ensemble replica indices do not map to the same values as previous ensemble.\n"
+                    "Error: Use the 'bytemp' keyword for this ensemble.\n");
+          return 1;
+        }
+      }
+    }
     if (args.CheckForMoreArgs()) {
       delete ensemble;
       return 1;

@@ -16,7 +16,12 @@ class FrameArray;
 class CoordinateInfo;
 /// Read in an array of frames at a time.
 class EnsembleIn {
+  protected:
+    typedef Frame::RemdIdxType RemdIdxType;
+    typedef std::vector<double> Darray;
   public:
+    typedef std::map<RemdIdxType, Darray> RemdIdxValMapType;
+
     EnsembleIn();
     virtual ~EnsembleIn() {}
     virtual int SetupEnsembleRead(FileName const&, ArgList&, Topology*) = 0;
@@ -36,19 +41,28 @@ class EnsembleIn {
     InputTrajCommon const& Traj() const { return traj_;        }
     /// \return true if there was a problem reading the ensemble.
     int BadEnsemble()             const { return badEnsemble_; }
+    /// \return 1 if this index/value map does not match the given map
+    int CheckIdxValMap(RemdIdxValMapType const&) const;
+    /// \return index/value map
+    RemdIdxValMapType const& RemdIdxValMap() const { return RemdIdxValMap_; }
+    /// \return The sorting mode
+    ReplicaInfo::TargetType TargetMode() const { return targetType_; }
+    /// Set the debug level
     void SetDebug(int d)                { debug_ = d;          }
     /// Write current replica mapping to STDOUT.
     void PrintReplicaInfo() const;
   protected:
-    typedef Frame::RemdIdxType RemdIdxType;
 
     int SetTemperatureMap(std::vector<double> const&);
     int SetIndicesMap(std::vector<RemdIdxType> const&);
+    int SetIdxValMap(std::vector<RemdIdxType> const&, std::vector<Darray> const&);
     InputTrajCommon& SetTraj() { return traj_; }
     /// For converting temperature to replica index
     ReplicaInfo::Map<double> TemperatureMap_;
     /// For converting indices to replica index
     ReplicaInfo::Map<RemdIdxType> IndicesMap_;
+
+    RemdIdxValMapType RemdIdxValMap_;
     ReplicaInfo::TargetType targetType_; ///< Hold type of REMD frame being searched for.
     int badEnsemble_;         ///< Set to 1 if problem reading ensemble, 0 otherwise.
     int debug_;
@@ -60,6 +74,8 @@ class EnsembleIn {
     Parallel::Comm const& EnsembleComm() const { return Parallel::EnsembleComm(); }
     static int GatherTemperatures(double*, std::vector<double>&, Parallel::Comm const&);
     static int GatherIndices(int*, std::vector<RemdIdxType>&, int, Parallel::Comm const&);
+    static int GatherValues(Frame const&, ReplicaDimArray const&,
+                            std::vector<Darray>&, Parallel::Comm const&);
 #   ifdef TIMER
     Timer mpi_allgather_timer_;
     Timer mpi_sendrecv_timer_;
@@ -68,8 +84,8 @@ class EnsembleIn {
 #   endif
 #   endif
   private:
-    static void PrintReplicaTmap(ReplicaInfo::Map<double> const&);
-    static void PrintReplicaImap(ReplicaInfo::Map<RemdIdxType> const&);
+    //static void PrintReplicaTmap(ReplicaInfo::Map<double> const&);
+    //static void PrintReplicaImap(ReplicaInfo::Map<RemdIdxType> const&);
 
     InputTrajCommon traj_;
 #   ifdef MPI

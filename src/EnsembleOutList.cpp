@@ -4,6 +4,7 @@
 #include "EnsembleOut_Single.h"
 #include "EnsembleOut_Multi.h"
 #include "ArgList.h"
+#include "FrameArray.h"
 
 /// CONSTRUCTOR
 EnsembleOutList::EnsembleOutList() : debug_(0) {}
@@ -87,6 +88,51 @@ int EnsembleOutList::SetupEnsembleOut(Topology* CurrentParm, CoordinateInfo cons
     }
   }
   ListActive();
+  return 0;
+}
+
+/** Check active output ensembles against the current coordinate info. */
+int EnsembleOutList::CheckEnsembleOutCoordInfo(CoordinateInfo const& currentCoordInfo,
+                                               FrameArray& FrameEnsemble)
+const
+{
+  for (EnsArray::const_iterator it = active_.begin(); it != active_.end(); ++it)
+  {
+    EnsembleOut* activeTraj = *it;
+    CoordinateInfo const& ensembleoutCoordInfo = activeTraj->Traj().CoordInfo();
+    // Velocities
+    if (currentCoordInfo.HasVel() != ensembleoutCoordInfo.HasVel()) {
+      if (currentCoordInfo.HasVel()) {
+        mprintf("Warning: Input ensemble has velocity information but output ensemble was set up without velocities.\n");
+        mprintf("Warning: Velocity information will not be written to output ensemble.\n");
+      } else {
+        mprintf("Warning: Input ensemble has no velocity information but output ensemble was set up with velocities.\n");
+        mprintf("Warning: All zeroes will be written for velocities.\n");
+        for (unsigned int idx = 0; idx < FrameEnsemble.Size(); idx++) {
+          if (FrameEnsemble[idx].HasVelocity())
+            FrameEnsemble[idx].ZeroVelocities();
+          else
+            FrameEnsemble[idx].AddVelocities(Frame::Darray(FrameEnsemble[idx].size(), 0.0));
+        }
+      }
+    }
+    // Forces
+    if (currentCoordInfo.HasForce() != ensembleoutCoordInfo.HasForce()) {
+      if (currentCoordInfo.HasForce()) {
+        mprintf("Warning: Input ensemble has force information but output ensemble was set up without forces.\n");
+        mprintf("Warning: Force information will not be written to output ensemble.\n");
+      } else {
+        mprintf("Warning: Input ensemble has no force information but output ensemble was set up with forces.\n");
+        mprintf("Warning: All zeroes will be written for forces.\n");
+        for (unsigned int idx = 0; idx < FrameEnsemble.Size(); idx++) {
+          if (FrameEnsemble[idx].HasForce())
+            FrameEnsemble[idx].ZeroForces();
+          else
+            FrameEnsemble[idx].AddForces(Frame::Darray(FrameEnsemble[idx].size(), 0.0));
+        }
+      }
+    }
+  }
   return 0;
 }
 

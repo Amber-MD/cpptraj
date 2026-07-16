@@ -682,6 +682,8 @@ int CpptrajState::RunEnsemble() {
                                      EnsembleParm[0].Nframes() );
       lastPindex = currentTop->Pindex();
     }
+    // Check output trajectories against current coord info
+    ensembleOut_.CheckEnsembleOutCoordInfo(currentCoordInfo, FrameEnsemble);
 #   ifdef TIMER
     setup_time.Stop();
 #   endif
@@ -895,6 +897,8 @@ int CpptrajState::RunParaEnsemble() {
     return 1;
   // Allocate FrameEnsemble here in case preload is needed.
   FrameEnsemble.SetupFrames( NAV.FirstParm()->Atoms(), NAV.EnsCoordInfo() );
+  // Check output trajectories against current coord info
+  ensembleOut_.CheckEnsembleOutCoordInfo(NAV.EnsCoordInfo(), FrameEnsemble);
   // Figure out if any frames need to be preloaded on ranks
   int preload_err = 0;
   if (!TrajComm.Master()) {
@@ -931,6 +935,13 @@ int CpptrajState::RunParaEnsemble() {
       break;
     }
     if (!NAV.CurrentEns()->BadEnsemble()) {
+      // Has the ensemble changed?
+      if (set != my_start && NAV.EnsembleHasChanged()) {
+        if (debug_ > 0)
+          rprintf("DEBUG: Ensemble has changed at set %i\n", set);
+        // Check output trajectories against current input ensemble
+        ensembleOut_.CheckEnsembleOutCoordInfo(NAV.CurrentEns()->EnsembleCoordInfo(), FrameEnsemble);
+      }
       // Since Frame can be modified by actions, save original and use currentFrame
       ActionFrame currentFrame( SortedFrames[0], set );
       if ( currentFrame.Frm().CheckCoordsInvalid() )
@@ -1337,6 +1348,8 @@ int CpptrajState::RunNormal() {
                                  currentSetup.Nframes() );
       lastPindex = currentSetup.Top().Pindex();
     }
+    // Check output trajectories against current coord info
+    trajoutList_.CheckTrajoutCoordInfo(currentSetup.CoordInfo(), TrajFrame);
 #   ifdef TIMER
     setup_time.Stop();
 #   endif

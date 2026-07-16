@@ -262,6 +262,21 @@ Frame &Frame::operator=(Frame rhs) {
 }
 
 // ---------- ACCESS INTERNAL DATA ---------------------------------------------
+/** \return Replica value for specified dimension */
+double Frame::RemdValue(int idim, ReplicaDimArray const& repDim) const {
+  if (remd_indices_.empty()) return -1.0;
+  double dval = -1.0;
+  switch (repDim.DimType(idim)) {
+    case ReplicaDimArray::RXSGLD      : // FIXME double check this
+    case ReplicaDimArray::TEMPERATURE : dval = Temperature(); break;
+    case ReplicaDimArray::PH          : dval = pH(); break;
+    case ReplicaDimArray::REDOX       : dval = RedOx(); break;
+    // Default to replica index
+    default : dval = (double)RemdIndices()[idim]; break;
+  }
+  return dval;
+}
+
 /** \return CoordinateInfo describing the Frame. */
 CoordinateInfo Frame::CoordsInfo() const {
   // TODO no good way to tell about time yet.

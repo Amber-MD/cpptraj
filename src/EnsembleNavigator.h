@@ -9,13 +9,14 @@
   */
 class EnsembleNavigator {
   public:
-    EnsembleNavigator() : currentEns_(0), FirstParm_(0) {}
+    EnsembleNavigator() : currentEns_(0), FirstParm_(0), ensembleHasChanged_(false) {}
     int AddEnsembles(TrajinList::ensemble_it const&, TrajinList::ensemble_it const&);
     inline int GetEnsemble(int, FrameArray&, FramePtrArray&);
     EnsembleIn* CurrentEns()                   { return currentEns_;   }
     Topology* FirstParm()                      { return FirstParm_;    }
     CoordinateInfo const& EnsCoordInfo() const { return ensCoordInfo_; }
     TrajFrameIndex const& IDX()          const { return IDX_;          }
+    bool EnsembleHasChanged()            const { return ensembleHasChanged_; }
   private:
     typedef std::vector<EnsembleIn*> Earray;
     Earray Ensembles_;            ///< Array of input ensembles
@@ -23,14 +24,17 @@ class EnsembleNavigator {
     TrajFrameIndex IDX_;          ///< Used to convert global index to individual index
     EnsembleIn* currentEns_;      ///< Currently open ensemble
     Topology* FirstParm_;         ///< Topology associated with first ensemble
+    bool ensembleHasChanged_;     ///< Set to true if the last call to GetEnsemble() was the start of another ensemble.
 };
 /// Get ensemble set specified by global set index
 int EnsembleNavigator::GetEnsemble(int set, FrameArray& FrameEnsemble,
                                    FramePtrArray& SortedFrames)
 {
+  ensembleHasChanged_ = false;
   int internalIdx = IDX_.FindIndex( set );
   // If desired ensemble is different than current, open desired ensemble.
   if (IDX_.TrajHasChanged()) {
+      ensembleHasChanged_ = true;
     if (currentEns_ != 0) currentEns_->EndEnsemble();
     currentEns_ = Ensembles_[ IDX_.CurrentTrajNum() ];
     // NOTE: Need to check for reallocation? TODO better error check
