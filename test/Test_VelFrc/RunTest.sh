@@ -11,9 +11,18 @@ Requires netcdf
 
 INPUT="-i cpptraj.in"
 
+# -------------
+# These tests all depend on CrdFrcVel.nc being generated
 UNITNAME='Short velocity/force tests'
 CheckFor maxthreads 2
-if [ $? -eq 0 ] ; then
+skip_run=$?
+if [ $skip_run -eq 0 ] ; then
+  if [ ! -z "$DO_PARALLEL" -a $N_THREADS -gt 1 ] ; then
+    CheckFor pnetcdf
+    skip_run=$?
+  fi
+fi
+if [ $skip_run -eq 0 ] ; then
   cat > cpptraj.in <<EOF
 parm ../tz2.nhe.parm7
 trajin short.crd mdvel short.vel mdfrc short.frc
@@ -69,6 +78,7 @@ EOF
   RunCpptraj "Test reading combined coords/velocity/force NetCDF restart."
   NcTest CrdFrcVel.nc fromncrst.nc
 fi
+# -------------
 
 UNITNAME="Test reading coordinates, velocities, and forces from NetCDF trajectory."
 CheckFor maxthreads 100
@@ -96,7 +106,14 @@ fi
 
 UNITNAME='Mixed velocity/force info tests'
 CheckFor maxthreads 3
-if [ $? -eq 0 ] ; then
+skip_run=$?
+if [ $skip_run -eq 0 ] ; then
+  if [ ! -z "$DO_PARALLEL"  -a $N_THREADS -gt 1 ] ; then
+    CheckFor pnetcdf
+    skip_run=$?
+  fi
+fi
+if [ $skip_run -eq 0 ] ; then
   UNITNAME='Trajin Tests with mixed velocity info'
   cat > cpptraj.in <<EOF
 parm ../tz2.parm7
@@ -122,7 +139,14 @@ fi
 
 UNITNAME='Ensemble Tests with mixed velocity/force info'
 CheckFor maxthreads 6 nthreads 2
-if [ $? -eq 0 ] ; then
+skip_run=$?
+if [ $skip_run -eq 0 ] ; then
+  if [ ! -z "$DO_PARALLEL" -a $N_THREADS -gt 2 ] ; then
+    CheckFor pnetcdf
+    skip_run=$?
+  fi
+fi
+if [ $skip_run -eq 0 ] ; then
   cat > cpptraj.in <<EOF
 parm ../tz2.parm7
 ensemble RST/001.rst7 trajnames RST/002.rst7
