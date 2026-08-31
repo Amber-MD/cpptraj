@@ -14,14 +14,16 @@ Working log for the capillary-wave surface-tension Action.
 New command `surftension` added under New Commands. Internal version `V7.11.0`.
 
 ```
-surftension [<name>] <mask> temp <T>
-  [normal {x|y|z}] [interface {willard|itim}]
+surftension [<name>] <mask> [mask2 <mask2>] temp <T>
+  [normal {x|y|z}] [nsurf {1|2}] [side {upper|lower}]
+  [interface {willard|itim}]
   [gridspacing <d>] [dz <d> | dnormal <d>]
   [sigmaxy <d>] [sigmaz <d> | sigmanormal <d>]
   [bulkhalfwidth <d>] [threshold <frac>]
   [qmin <q>] [qmax <q>] [lx <Lx>] [ly <Ly>] [lz <Lz>]
-  [nblock <frames>]
+  [nblock <frames>] [dt <ps>] [blocktime <ps>]
   [spectrumout <file>] [roughout <file>] [blockout <file>]
+  [summaryout <file>]
   [spectrumagr <file>] [roughagr <file>] [blockagr <file>]
   [spectrumgnu <file>] [roughgnu <file>] [blockgnu <file>]
 ```
@@ -82,9 +84,20 @@ surftension [<name>] <mask> temp <T>
   `sigmanormal` ≡ `sigmaz` (error if both given and they differ).
   Init/Print report e.g. `Slab normal: z (interface plane x-y)`. Warns on
   non-orthogonal boxes.
-- Height-field 2-D FFT uses cpptraj `PubFFT` (row-column 1-D FFTs), then
+-   Height-field 2-D FFT uses cpptraj `PubFFT` (row-column 1-D FFTs), then
   divides by `nx*ny` (numpy `fft2` convention). Same `S(q)` as the old
   direct DFT. Per-block γ/κ print in `Print()`, not during the frame loop.
+- Default `qmin` is the smallest fundamental wavevector from the unit-cell
+  laterals, `2π/max(Lt1,Lt2)`, set on the first good frame. Both `2π/Lt1`
+  and `2π/Lt2` are printed. `summaryout` writes a parseable key/value file
+  (γ, κ, roughness, q window, box, frames). Skip-frame warnings are capped
+  at 5. `blocktime` (ps) with `dt` (analyzed-frame spacing) sets `nblock`.
+  Output directories are not created; the user must give existing paths.
+- `nsurf {1|2}` (default 2, vacuum or a second phase on both sides of the
+  film). `nsurf 1` with `side {upper|lower}` uses one interface. `mask2`
+  is a second mask for the lower surface (leaflet / liquid–liquid); the
+  upper surface then comes from `<mask>` with no mid-box split. Both
+  masks share one circular recenter so the film is not split apart.
 
 ---
 

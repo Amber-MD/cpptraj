@@ -6,7 +6,7 @@
 
 . ../MasterTest.sh
 
-CleanFiles st.in
+CleanFiles st.in st.summary.dat
 
 TESTNAME='Surface tension (surftension) tests'
 
@@ -65,6 +65,32 @@ if [ $? -eq 0 ] ; then
 parm ../tz2.ortho.parm7
 trajin ../tz2.ortho.nc 1 1
 surftension :WAT@O temp 300.0 normal y dnormal 1.0 sigmanormal 1.5
+run
+EOF
+  INPUT='-i st.in'
+  RunCpptraj "$UNITNAME"
+fi
+
+UNITNAME='surftension smoke (nsurf 1)'
+CheckFor netcdf
+if [ $? -eq 0 ] ; then
+  cat > st.in <<EOF
+parm ../tz2.ortho.parm7
+trajin ../tz2.ortho.nc 1 1
+surftension :WAT@O temp 300.0 nsurf 1 side upper
+run
+EOF
+  INPUT='-i st.in'
+  RunCpptraj "$UNITNAME"
+fi
+
+UNITNAME='surftension smoke (mask2, summaryout, blocktime)'
+CheckFor netcdf
+if [ $? -eq 0 ] ; then
+  cat > st.in <<EOF
+parm ../tz2.ortho.parm7
+trajin ../tz2.ortho.nc 1 1
+surftension :WAT@O mask2 :WAT@O temp 300.0 dt 100 blocktime 50000 summaryout st.summary.dat
 run
 EOF
   INPUT='-i st.in'

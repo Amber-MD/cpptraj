@@ -13,6 +13,7 @@
 #include "DataFile.h"
 #include "DataSet_1D.h"
 #include "DataSet_Mesh.h"
+#include "CpptrajFile.h"
 #include "Frame.h"
 #ifdef _OPENMP
 # include <omp.h>
@@ -63,26 +64,52 @@ static double ST_Wrap(double x, double L) {
   return y;
 }
 
-/** Recenter a periodic slab so its circular mean along the normal lies at L/2.
-  * Mapping n → θ = 2π n / L, then using atan2(⟨sin θ⟩, ⟨cos θ⟩), avoids
-  * failure when the slab straddles the periodic boundary.
+/** Circular-mean slab center along the normal (periodic). n2 may be 0.
+  * Mapping n → θ = 2π n / L, then atan2(⟨sin θ⟩, ⟨cos θ⟩), so a slab that
+  * straddles the periodic boundary is still recentered correctly.
   */
-static void ST_CircularRecenter(std::vector<double>& n, double L) {
-  if (n.empty() || L <= 0.0) return;
+static double ST_CircularSlabCenter(std::vector<double> const& n1, int n1n,
+                                    std::vector<double> const* n2, int n2n,
+                                    double L)
+{
+  if (L <= 0.0) return 0.0;
   double mean_sin = 0.0;
   double mean_cos = 0.0;
-  for (size_t i = 0; i < n.size(); i++) {
-    double theta = Constants::TWOPI * ST_Wrap(n[i], L) / L;
+  int ntot = 0;
+  for (int i = 0; i < n1n; i++) {
+    double theta = Constants::TWOPI * ST_Wrap(n1[i], L) / L;
     mean_sin += sin(theta);
     mean_cos += cos(theta);
+    ntot++;
   }
-  mean_sin /= (double)n.size();
-  mean_cos /= (double)n.size();
+  if (n2 != 0) {
+    for (int i = 0; i < n2n; i++) {
+      double theta = Constants::TWOPI * ST_Wrap((*n2)[i], L) / L;
+      mean_sin += sin(theta);
+      mean_cos += cos(theta);
+      ntot++;
+    }
+  }
+  if (ntot < 1) return 0.0;
+  mean_sin /= (double)ntot;
+  mean_cos /= (double)ntot;
   double angle = atan2(mean_sin, mean_cos);
   if (angle < 0.0) angle += Constants::TWOPI;
-  double slab_center = L * angle / Constants::TWOPI;
+  return L * angle / Constants::TWOPI;
+}
+
+static void ST_ApplyCircularRecenter(std::vector<double>& n, double L,
+                                     double slab_center)
+{
+  if (n.empty() || L <= 0.0) return;
   for (size_t i = 0; i < n.size(); i++)
     n[i] = ST_Wrap(n[i] - slab_center + 0.5 * L, L);
+}
+
+/** Recenter a periodic slab so its circular mean along the normal lies at L/2. */
+static void ST_CircularRecenter(std::vector<double>& n, double L) {
+  if (n.empty() || L <= 0.0) return;
+  ST_ApplyCircularRecenter(n, L, ST_CircularSlabCenter(n, (int)n.size(), 0, 0, L));
 }
 
 /// Cartesian axis name for Help / mprintf (ASCII).
@@ -286,6 +313,7 @@ static bool ST_ItimMinMax(std::vector<double> const& t1,
                           std::vector<double> const& n,
                           int natom, double Lt1, double Lt2, double Ln,
                           int nx, int ny,
+                          bool need_u, bool need_l,
                           std::vector<double>& h_upper,
                           std::vector<double>& h_lower)
 {
@@ -313,11 +341,85 @@ static bool ST_ItimMinMax(std::vector<double> const& t1,
     }
   }
   for (size_t i = 0; i < n2; i++) {
+    if (need_u && !has_u[i]) return false;
+    if (need_l && !has_l[i]) return false;
+    if (need_u) h_upper[i] = zmax[i];
+    if (need_l) h_lower[i] = zmin[i];
+  }
+  return true;
+}
+
+/** ITIM from two atom sets: upper = max n of set 1, lower = min n of set 2. */
+static bool ST_ItimTwoMasks(std::vector<double> const& t1u,
+                            std::vector<double> const& t2u,
+                            std::vector<double> const& nu,
+                            int natomu,
+                            std::vector<double> const& t1l,
+                            std::vector<double> const& t2l,
+                            std::vector<double> const& nl,
+                            int natoml,
+                            double Lt1, double Lt2,
+                            int nx, int ny,
+                            std::vector<double>& h_upper,
+                            std::vector<double>& h_lower)
+{
+  double dx = Lt1 / (double)nx;
+  double dy = Lt2 / (double)ny;
+  size_t n2 = (size_t)nx * (size_t)ny;
+  const double inf = std::numeric_limits<double>::infinity();
+  std::vector<double> zmax(n2, -inf), zmin(n2, inf);
+  std::vector<char> has_u(n2, 0), has_l(n2, 0);
+  for (int i = 0; i < natomu; i++) {
+    int ix = (int)floor(t1u[i] / dx);
+    int iy = (int)floor(t2u[i] / dy);
+    if (ix < 0) ix = 0;
+    if (iy < 0) iy = 0;
+    if (ix >= nx) ix = nx - 1;
+    if (iy >= ny) iy = ny - 1;
+    size_t idx = ST_Idx2(ix, iy, ny);
+    if (!has_u[idx] || nu[i] > zmax[idx]) zmax[idx] = nu[i];
+    has_u[idx] = 1;
+  }
+  for (int i = 0; i < natoml; i++) {
+    int ix = (int)floor(t1l[i] / dx);
+    int iy = (int)floor(t2l[i] / dy);
+    if (ix < 0) ix = 0;
+    if (iy < 0) iy = 0;
+    if (ix >= nx) ix = nx - 1;
+    if (iy >= ny) iy = ny - 1;
+    size_t idx = ST_Idx2(ix, iy, ny);
+    if (!has_l[idx] || nl[i] < zmin[idx]) zmin[idx] = nl[i];
+    has_l[idx] = 1;
+  }
+  for (size_t i = 0; i < n2; i++) {
     if (!has_u[i] || !has_l[i]) return false;
     h_upper[i] = zmax[i];
     h_lower[i] = zmin[i];
   }
   return true;
+}
+
+/** Split Cartesian coordinates into wrapped laterals and a recentered normal. */
+static void ST_SplitAtomCoords(Frame const& frm, AtomMask const& mask, int nax,
+                               double Lx, double Ly, double Lz,
+                               std::vector<double>& t1, std::vector<double>& t2,
+                               std::vector<double>& n)
+{
+  double Lt1, Lt2, Ln;
+  ST_SplitBox(nax, Lx, Ly, Lz, Lt1, Lt2, Ln);
+  int natom = mask.Nselected();
+  t1.resize((size_t)natom);
+  t2.resize((size_t)natom);
+  n.resize((size_t)natom);
+  int idx = 0;
+  for (AtomMask::const_iterator at = mask.begin(); at != mask.end(); ++at, ++idx) {
+    const double* xyz = frm.XYZ(*at);
+    double a, b, c;
+    ST_SplitXYZ(nax, xyz[0], xyz[1], xyz[2], a, b, c);
+    t1[idx] = ST_Wrap(a, Lt1);
+    t2[idx] = ST_Wrap(b, Lt2);
+    n[idx] = c;
+  }
 }
 
 /** Number density of mask atoms with |n - Ln/2| <= bulk_halfwidth (Ang^-3). */
@@ -558,11 +660,33 @@ static void ST_AddSetToFiles(DataSet* ds, DataFile* a, DataFile* b, DataFile* c)
   if (c != 0) c->AddDataSet(ds);
 }
 
+/// Write a key/value line; skip non-finite doubles.
+static void ST_SummaryD(CpptrajFile* f, const char* key, double v) {
+  if (f == 0 || !ST_Finite(v)) return;
+  f->Printf("%s %g\n", key, v);
+}
+
+static void ST_SummaryI(CpptrajFile* f, const char* key, int v) {
+  if (f == 0) return;
+  f->Printf("%s %i\n", key, v);
+}
+
+static void ST_SummaryS(CpptrajFile* f, const char* key, const char* v) {
+  if (f == 0 || v == 0) return;
+  f->Printf("%s %s\n", key, v);
+}
+
 // -----------------------------------------------------------------------------
 /// CONSTRUCTOR — defaults match the reference Python analysis.
 Action_SurfaceTension::Action_SurfaceTension() :
   iface_(WILLARD),
   normal_(AXIS_Z),
+  side_(SIDE_UPPER),
+  nsurf_(2),
+  has_mask2_(false),
+  do_upper_(true),
+  do_lower_(true),
+  qmin_specified_(false),
   temp_(-1.0),
   gridspacing_(2.5),
   dz_(1.0),
@@ -570,19 +694,24 @@ Action_SurfaceTension::Action_SurfaceTension() :
   sigma_z_(1.5),
   bulk_halfwidth_(5.0),
   threshold_frac_(0.5),
-  qmin_(0.033283),
+  qmin_(-1.0),
   qmax_(0.174649),
+  q_fundamental_(0.0),
   lx_user_(-1.0),
   ly_user_(-1.0),
   lz_user_(-1.0),
+  dt_(-1.0),
+  blocktime_(-1.0),
   nblock_(0),
   debug_(0),
+  n_skip_warn_(0),
   S_(0), S_top_(0), S_bot_(0),
   q2S_(0), q2S_top_(0), q2S_bot_(0),
   gammaq_(0), gammaq_top_(0), gammaq_bot_(0),
   kappaq_(0), kappaq_top_(0), kappaq_bot_(0),
   wtop_(0), wbot_(0), wmean_(0), rhobulk_(0),
   block_gamma_(0), block_kappa_(0), block_wmean_(0), block_wtop_(0), block_wbot_(0),
+  summaryFile_(0),
   nx_(0), ny_(0), nz_(0),
   Lt1_ref_(0.0), Lt2_ref_(0.0),
   grid_ready_(false),
@@ -593,32 +722,29 @@ Action_SurfaceTension::Action_SurfaceTension() :
 
 // Action_SurfaceTension::Help()
 void Action_SurfaceTension::Help() const {
-  mprintf("\t[<name>] <mask> temp <T>\n"
-          "\t[normal {x|y|z}] [interface {willard|itim}]\n"
+  mprintf("\t[<name>] <mask> [mask2 <mask2>] temp <T>\n"
+          "\t[normal {x|y|z}] [nsurf {1|2}] [side {upper|lower}]\n"
+          "\t[interface {willard|itim}]\n"
           "\t[gridspacing <d>] [dz <d> | dnormal <d>]\n"
           "\t[sigmaxy <d>] [sigmaz <d> | sigmanormal <d>]\n"
           "\t[bulkhalfwidth <d>] [threshold <frac>]\n"
           "\t[qmin <q>] [qmax <q>] [lx <Lx>] [ly <Ly>] [lz <Lz>]\n"
-          "\t[nblock <frames>]\n"
+          "\t[nblock <frames>] [dt <ps>] [blocktime <ps>]\n"
           "\t[spectrumout <file>] [roughout <file>] [blockout <file>]\n"
+          "\t[summaryout <file>]\n"
           "\t[spectrumagr <file>] [roughagr <file>] [blockagr <file>]\n"
           "\t[spectrumgnu <file>] [roughgnu <file>] [blockgnu <file>]\n"
-          "  Calculate capillary-wave surface tension (mN/m) for a liquid slab.\n"
-          "  normal x|y|z selects the slab normal (default z). gridspacing and\n"
-          "  sigmaxy apply in the interface plane; dz (alias dnormal) and sigmaz\n"
-          "  (alias sigmanormal) apply along the normal. <mask> should select\n"
-          "  interfacial density atoms (e.g. ':WAT@O'). Interfaces are a\n"
-          "  Willard-Chandler Gaussian density isosurface (default) or ITIM\n"
-          "  per-column min/max of <mask>, split at mid-box along the normal.\n"
-          "  Height fluctuations are Fourier transformed; gamma is the small-q\n"
-          "  plateau of q^2 <|h_q|^2>. kappa (kT) is the slope of 1/(q^2 S) vs\n"
-          "  q^2 on the same q window. lx/ly/lz optionally replace Cartesian box\n"
-          "  lengths. Lateral lengths are held fixed (NVT). Assumes an X-aligned\n"
-          "  orthogonal box. DataSets are always created; files are written only\n"
-          "  when the matching *out/*agr/*gnu keyword is given. *out format\n"
-          "  follows the extension (.agr/.xmgr = xmgrace, .gnu = gnuplot,\n"
-          "  otherwise ASCII). *agr/*gnu force Grace or gnuplot. In MPI,\n"
-          "  nblock is per-rank; spectra are summed onto the master.\n");
+          "  Capillary-wave surface tension (mN/m) for a liquid slab.\n"
+          "  Lateral box lengths come from the unit cell (NVT). lx/ly/lz only\n"
+          "  override noisy box records. Default is two interfaces (vacuum or a\n"
+          "  second phase on both sides, e.g. water slab with vacuum at +z and\n"
+          "  -z). nsurf 1 is a single interface (side upper|lower). mask2 is a\n"
+          "  second atom set for the lower surface (leaflet or second liquid);\n"
+          "  the upper surface then comes from <mask> with no mid-box split.\n"
+          "  If qmin is omitted it is 2*pi/max(Lt1,Lt2) from the first frame.\n"
+          "  blocktime (ps) with dt (analyzed-frame spacing, ps) sets nblock.\n"
+          "  Output files are written only to paths the user gives; parent\n"
+          "  directories must already exist.\n");
 }
 
 // Action_SurfaceTension::Init()
@@ -645,6 +771,7 @@ Action::RetType Action_SurfaceTension::Init(ArgList& actionArgs, ActionInit& ini
   DataFile* spectrumGnu  = init.DFL().AddDataFile(actionArgs.GetStringKey("spectrumgnu"), actionArgs, DataFile::GNUPLOT);
   DataFile* roughGnu     = init.DFL().AddDataFile(actionArgs.GetStringKey("roughgnu"), actionArgs, DataFile::GNUPLOT);
   DataFile* blockGnu     = init.DFL().AddDataFile(actionArgs.GetStringKey("blockgnu"), actionArgs, DataFile::GNUPLOT);
+  summaryFile_ = init.DFL().AddCpptrajFile(actionArgs.GetStringKey("summaryout"), "SurfTension summary");
 
   temp_ = actionArgs.getKeyDouble("temp", -1.0);
   if (temp_ <= 0.0) {
@@ -655,7 +782,8 @@ Action::RetType Action_SurfaceTension::Init(ArgList& actionArgs, ActionInit& ini
   sigma_xy_ = actionArgs.getKeyDouble("sigmaxy", 2.5);
   bulk_halfwidth_ = actionArgs.getKeyDouble("bulkhalfwidth", 5.0);
   threshold_frac_ = actionArgs.getKeyDouble("threshold", 0.5);
-  qmin_ = actionArgs.getKeyDouble("qmin", 0.033283);
+  qmin_specified_ = actionArgs.Contains("qmin");
+  qmin_ = actionArgs.getKeyDouble("qmin", -1.0);
   qmax_ = actionArgs.getKeyDouble("qmax", 0.174649);
   bool has_lx = actionArgs.Contains("lx");
   bool has_ly = actionArgs.Contains("ly");
@@ -663,7 +791,11 @@ Action::RetType Action_SurfaceTension::Init(ArgList& actionArgs, ActionInit& ini
   lx_user_ = actionArgs.getKeyDouble("lx", -1.0);
   ly_user_ = actionArgs.getKeyDouble("ly", -1.0);
   lz_user_ = actionArgs.getKeyDouble("lz", -1.0);
+  bool has_nblock = actionArgs.Contains("nblock");
+  bool has_blocktime = actionArgs.Contains("blocktime");
   nblock_ = actionArgs.getKeyInt("nblock", 0);
+  dt_ = actionArgs.getKeyDouble("dt", -1.0);
+  blocktime_ = actionArgs.getKeyDouble("blocktime", -1.0);
 
   // dz / dnormal and sigmaz / sigmanormal are aliases (normal-axis spacing / sigma).
   bool has_dz = actionArgs.Contains("dz");
@@ -720,6 +852,47 @@ Action::RetType Action_SurfaceTension::Init(ArgList& actionArgs, ActionInit& ini
     return Action::ERR;
   }
 
+  nsurf_ = actionArgs.getKeyInt("nsurf", 2);
+  if (nsurf_ != 1 && nsurf_ != 2) {
+    mprinterr("Error: nsurf must be 1 or 2.\n");
+    return Action::ERR;
+  }
+  bool has_side = actionArgs.Contains("side");
+  std::string sidestr = actionArgs.GetStringKey("side");
+  if (sidestr.empty() && has_side) {
+    mprinterr("Error: 'side' requires upper or lower.\n");
+    return Action::ERR;
+  }
+  if (sidestr.empty())
+    sidestr = "upper";
+  if (sidestr == "upper" || sidestr == "top")
+    side_ = SIDE_UPPER;
+  else if (sidestr == "lower" || sidestr == "bot" || sidestr == "bottom")
+    side_ = SIDE_LOWER;
+  else {
+    mprinterr("Error: side must be 'upper' or 'lower'.\n");
+    return Action::ERR;
+  }
+  if (nsurf_ == 2) {
+    do_upper_ = true;
+    do_lower_ = true;
+    if (has_side)
+      mprintf("Warning: 'side' is ignored when nsurf is 2.\n");
+  } else {
+    do_upper_ = (side_ == SIDE_UPPER);
+    do_lower_ = (side_ == SIDE_LOWER);
+  }
+
+  std::string mask2exp = actionArgs.GetStringKey("mask2");
+  has_mask2_ = !mask2exp.empty();
+  if (has_mask2_) {
+    if (nsurf_ != 2) {
+      mprinterr("Error: mask2 requires nsurf 2 (upper from <mask>, lower from mask2).\n");
+      return Action::ERR;
+    }
+    if (Mask2_.SetMaskString(mask2exp)) return Action::ERR;
+  }
+
   if (has_lx && lx_user_ <= 0.0) {
     mprinterr("Error: lx must be > 0.\n");
     return Action::ERR;
@@ -755,16 +928,47 @@ Action::RetType Action_SurfaceTension::Init(ArgList& actionArgs, ActionInit& ini
     mprinterr("Error: bulkhalfwidth must be > 0.\n");
     return Action::ERR;
   }
-  if (qmax_ <= qmin_) {
-    mprinterr("Error: qmax must be greater than qmin.\n");
+  if (qmax_ <= 0.0) {
+    mprinterr("Error: qmax must be > 0.\n");
     return Action::ERR;
+  }
+  if (qmin_specified_) {
+    if (qmin_ <= 0.0) {
+      mprinterr("Error: qmin must be > 0.\n");
+      return Action::ERR;
+    }
+    if (qmax_ <= qmin_) {
+      mprinterr("Error: qmax must be greater than qmin.\n");
+      return Action::ERR;
+    }
+  }
+  if (has_blocktime) {
+    if (dt_ <= 0.0) {
+      mprinterr("Error: 'blocktime' requires 'dt <ps>' (time between analyzed frames).\n");
+      return Action::ERR;
+    }
+    if (blocktime_ <= 0.0) {
+      mprinterr("Error: blocktime must be > 0.\n");
+      return Action::ERR;
+    }
+    int nfromtime = ST_IRound(blocktime_ / dt_);
+    if (nfromtime < 1) {
+      mprinterr("Error: blocktime / dt is less than one frame.\n");
+      return Action::ERR;
+    }
+    if (has_nblock && nblock_ != nfromtime) {
+      mprinterr("Error: nblock (%i) does not match blocktime/dt (%i frames).\n",
+                nblock_, nfromtime);
+      return Action::ERR;
+    }
+    nblock_ = nfromtime;
   }
   if (nblock_ < 0) {
     mprinterr("Error: nblock must be >= 0.\n");
     return Action::ERR;
   }
   if ((blockFile != 0 || blockAgr != 0 || blockGnu != 0) && nblock_ < 1) {
-    mprinterr("Error: 'blockout'/'blockagr'/'blockgnu' require 'nblock <frames>'.\n");
+    mprinterr("Error: 'blockout'/'blockagr'/'blockgnu' require 'nblock' or 'blocktime'.\n");
     return Action::ERR;
   }
 
@@ -859,6 +1063,8 @@ Action::RetType Action_SurfaceTension::Init(ArgList& actionArgs, ActionInit& ini
 
   mprintf("    SURFTENSION: Capillary-wave surface tension.\n");
   mprintf("\tMask: '%s'\n", Mask_.MaskString());
+  if (has_mask2_)
+    mprintf("\tMask2 (lower surface): '%s'\n", Mask2_.MaskString());
   {
     const char* t1 = 0;
     const char* t2 = 0;
@@ -866,12 +1072,22 @@ Action::RetType Action_SurfaceTension::Init(ArgList& actionArgs, ActionInit& ini
     mprintf("\tSlab normal: %s (interface plane %s-%s)\n",
             ST_AxisName((int)normal_), t1, t2);
   }
+  if (nsurf_ == 2)
+    mprintf("\tSurfaces: 2 (upper and lower; vacuum/second phase on both sides).\n");
+  else
+    mprintf("\tSurfaces: 1 (%s only).\n", (side_ == SIDE_UPPER) ? "upper" : "lower");
   if (iface_ == WILLARD)
     mprintf("\tInterface: Willard-Chandler density isosurface.\n");
+  else if (has_mask2_)
+    mprintf("\tInterface: ITIM (upper = max of mask, lower = min of mask2).\n");
   else
     mprintf("\tInterface: ITIM min/max (per-column, split at mid-box along %s).\n",
             ST_AxisName((int)normal_));
   mprintf("\tTemperature= %g K\n", temp_);
+  mprintf("\tLateral box lengths: from the unit cell");
+  if (lx_user_ > 0.0 || ly_user_ > 0.0 || lz_user_ > 0.0)
+    mprintf(" (some Cartesian lengths overridden)");
+  mprintf(".\n");
   mprintf("\tInterface-plane grid spacing= %g Ang\n", gridspacing_);
   if (iface_ == WILLARD) {
     mprintf("\tNormal-axis bin spacing (dz)= %g Ang\n", dz_);
@@ -882,7 +1098,11 @@ Action::RetType Action_SurfaceTension::Init(ArgList& actionArgs, ActionInit& ini
   } else {
     mprintf("\tBulk half-width (rho_bulk only)= %g Ang\n", bulk_halfwidth_);
   }
-  mprintf("\tFit q range= %g to %g Ang^-1\n", qmin_, qmax_);
+  if (qmin_specified_)
+    mprintf("\tFit q range= %g to %g Ang^-1\n", qmin_, qmax_);
+  else
+    mprintf("\tFit qmin: 2*pi/max(Lt1,Lt2) from the first frame; qmax= %g Ang^-1\n",
+            qmax_);
   mprintf("\tHelfrich kappa: linear fit of 1/(q^2 S) vs q^2 on that window.\n");
   mprintf("\tHeight-field 2-D FFT: PubFFT (numpy fft2 / (nx*ny)).\n");
   if (lx_user_ > 0.0)
@@ -896,6 +1116,8 @@ Action::RetType Action_SurfaceTension::Init(ArgList& actionArgs, ActionInit& ini
             (normal_ == AXIS_Z) ? "normal" : "lateral");
   if (nblock_ > 0) {
     mprintf("\tBlock averaging every %i analyzed frames", nblock_);
+    if (blocktime_ > 0.0 && dt_ > 0.0)
+      mprintf(" (blocktime %g ps, dt %g ps)", blocktime_, dt_);
 #   ifdef MPI
     if (trajComm_.Size() > 1)
       mprintf(" (per rank)");
@@ -929,6 +1151,8 @@ Action::RetType Action_SurfaceTension::Init(ArgList& actionArgs, ActionInit& ini
     mprintf("\tBlock Grace output to '%s'\n", blockAgr->DataFilename().full());
   if (blockGnu != 0)
     mprintf("\tBlock gnuplot output to '%s'\n", blockGnu->DataFilename().full());
+  if (summaryFile_ != 0)
+    mprintf("\tSummary output to '%s'\n", summaryFile_->Filename().full());
 # ifdef _OPENMP
   {
     int nthreads = 1;
@@ -968,6 +1192,14 @@ Action::RetType Action_SurfaceTension::Setup(ActionSetup& setup)
     mprintf("Warning: Mask '%s' selects no atoms.\n", Mask_.MaskString());
     return Action::SKIP;
   }
+  if (has_mask2_) {
+    if (setup.Top().SetupIntegerMask(Mask2_)) return Action::ERR;
+    Mask2_.MaskInfo();
+    if (Mask2_.None()) {
+      mprintf("Warning: Mask2 '%s' selects no atoms.\n", Mask2_.MaskString());
+      return Action::SKIP;
+    }
+  }
   return Action::OK;
 }
 
@@ -982,6 +1214,10 @@ int Action_SurfaceTension::AllocateGrid(int nx, int ny, int nz) {
     density_.assign(n3, 0.0);
   else
     density_.clear();
+  if (nz > 0 && has_mask2_)
+    density2_.assign(n3, 0.0);
+  else
+    density2_.clear();
   h_upper_.assign(n2, 0.0);
   h_lower_.assign(n2, 0.0);
   total_power_.assign(n2, 0.0);
@@ -996,7 +1232,6 @@ int Action_SurfaceTension::AllocateGrid(int nx, int ny, int nz) {
   fft_row_.Allocate(ny_);
   fft_col_.Allocate(nx_);
   ST_MakeQGrid(nx_, ny_, Lt1_ref_, Lt2_ref_, q_grid_);
-  grid_ready_ = true;
   double qmin_acc = 0.0;
   bool haveq = false;
   for (size_t i = 0; i < q_grid_.size(); i++) {
@@ -1016,8 +1251,139 @@ int Action_SurfaceTension::AllocateGrid(int nx, int ny, int nz) {
     mprintf(", %s", ST_AxisName((int)normal_));
   mprintf("\n");
   mprintf("\tL(%s) = %g Ang, L(%s) = %g Ang\n", t1, Lt1_ref_, t2, Lt2_ref_);
+  {
+    double q1 = Constants::TWOPI / Lt1_ref_;
+    double q2 = Constants::TWOPI / Lt2_ref_;
+    q_fundamental_ = (q1 < q2) ? q1 : q2;
+    mprintf("\tFundamental q: 2*pi/L(%s) = %g, 2*pi/L(%s) = %g Ang^-1\n",
+            t1, q1, t2, q2);
+    mprintf("\tSmallest fundamental |q| = %g Ang^-1\n", q_fundamental_);
+    if (!qmin_specified_) {
+      qmin_ = q_fundamental_;
+      mprintf("\tFit qmin set from the box = %g Ang^-1\n", qmin_);
+    }
+    if (qmax_ <= qmin_) {
+      mprinterr("Error: qmax (%g) must be greater than qmin (%g).\n", qmax_, qmin_);
+      return 1;
+    }
+  }
   if (haveq)
-    mprintf("\tSmallest accessible q = %g Ang^-1\n", qmin_acc);
+    mprintf("\tSmallest accessible q (FFT grid) = %g Ang^-1\n", qmin_acc);
+  grid_ready_ = true;
+  return 0;
+}
+
+void Action_SurfaceTension::SkipWarn(const char* msg)
+{
+  const int maxw = 5;
+  if (n_skip_warn_ < maxw)
+    mprintf("Warning: %s\n", msg);
+  else if (n_skip_warn_ == maxw)
+    mprintf("Warning: Further skip-frame messages suppressed.\n");
+  n_skip_warn_++;
+}
+
+// Action_SurfaceTension::WillardHeights()
+int Action_SurfaceTension::WillardHeights(std::vector<double> const& t1,
+                                          std::vector<double> const& t2,
+                                          std::vector<double> const& ncoord,
+                                          int natom,
+                                          double Lt1, double Lt2, double Ln,
+                                          std::vector<double>& density,
+                                          bool want_u, bool want_l,
+                                          double& rho_bulk)
+{
+  double dx = Lt1 / (double)nx_;
+  double dy = Lt2 / (double)ny_;
+  double dz = Ln / (double)nz_;
+  double voxel = dx * dy * dz;
+  std::fill(density.begin(), density.end(), 0.0);
+  for (int i = 0; i < natom; i++) {
+    int ix = (int)floor(t1[i] / dx);
+    int iy = (int)floor(t2[i] / dy);
+    int iz = (int)floor(ncoord[i] / dz);
+    if (ix < 0) ix = 0;
+    if (iy < 0) iy = 0;
+    if (iz < 0) iz = 0;
+    if (ix >= nx_) ix = nx_ - 1;
+    if (iy >= ny_) iy = ny_ - 1;
+    if (iz >= nz_) iz = nz_ - 1;
+    density[ST_Idx3(ix, iy, iz, ny_, nz_)] += 1.0;
+  }
+  if (voxel > 0.0) {
+    for (size_t i = 0; i < density.size(); i++)
+      density[i] /= voxel;
+  }
+  ST_GaussianFilter3D(density, nx_, ny_, nz_,
+                      sigma_xy_ / dx, sigma_xy_ / dy, sigma_z_ / dz);
+
+  std::vector<double> n_grid((size_t)nz_);
+  for (int iz = 0; iz < nz_; iz++)
+    n_grid[iz] = ((double)iz + 0.5) * dz;
+  double slab_center = 0.5 * Ln;
+  int center_index = 0;
+  double best = fabs(n_grid[0] - slab_center);
+  for (int iz = 1; iz < nz_; iz++) {
+    double d = fabs(n_grid[iz] - slab_center);
+    if (d < best) {
+      best = d;
+      center_index = iz;
+    }
+  }
+
+  std::vector<double> rho_n((size_t)nz_, 0.0);
+  double nxy = (double)(nx_ * ny_);
+  for (int ix = 0; ix < nx_; ix++) {
+    for (int iy = 0; iy < ny_; iy++) {
+      for (int iz = 0; iz < nz_; iz++)
+        rho_n[iz] += density[ST_Idx3(ix, iy, iz, ny_, nz_)];
+    }
+  }
+  for (int iz = 0; iz < nz_; iz++)
+    rho_n[iz] /= nxy;
+
+  double rho_bulk_acc = 0.0;
+  int nbulk = 0;
+  for (int iz = 0; iz < nz_; iz++) {
+    if (fabs(n_grid[iz] - slab_center) <= bulk_halfwidth_) {
+      rho_bulk_acc += rho_n[iz];
+      nbulk++;
+    }
+  }
+  if (nbulk < 1) {
+    SkipWarn("No bins along the normal fall within the bulk region; skipping frame.");
+    return 1;
+  }
+  rho_bulk = rho_bulk_acc / (double)nbulk;
+  if (rho_bulk <= 0.0) {
+    SkipWarn("Bulk density is non-positive; skipping frame.");
+    return 1;
+  }
+  double threshold = threshold_frac_ * rho_bulk;
+
+  std::vector<double> col((size_t)nz_);
+  for (int ix = 0; ix < nx_; ix++) {
+    for (int iy = 0; iy < ny_; iy++) {
+      for (int iz = 0; iz < nz_; iz++)
+        col[iz] = density[ST_Idx3(ix, iy, iz, ny_, nz_)];
+      if (want_u) {
+        double hu = ST_FindCrossing(n_grid, col, threshold, center_index, true);
+        if (!ST_Finite(hu)) {
+          SkipWarn("Could not identify a local interface; skipping frame.");
+          return 1;
+        }
+        h_upper_[ST_Idx2(ix, iy, ny_)] = hu;
+      }
+      if (want_l) {
+        double hl = ST_FindCrossing(n_grid, col, threshold, center_index, false);
+        if (!ST_Finite(hl)) {
+          SkipWarn("Could not identify a local interface; skipping frame.");
+          return 1;
+        }
+        h_lower_[ST_Idx2(ix, iy, ny_)] = hl;
+      }
+    }
+  }
   return 0;
 }
 
@@ -1096,21 +1462,22 @@ int Action_SurfaceTension::ProcessFrame(Frame const& frm, double Lx, double Ly, 
   double Lt1, Lt2, Ln;
   ST_SplitBox(nax, Lx, Ly, Lz, Lt1, Lt2, Ln);
 
+  std::vector<double> t1, t2, n;
+  ST_SplitAtomCoords(frm, Mask_, nax, Lx, Ly, Lz, t1, t2, n);
   int natom = Mask_.Nselected();
-  std::vector<double> t1((size_t)natom), t2((size_t)natom), n((size_t)natom);
-  int idx = 0;
-  for (AtomMask::const_iterator at = Mask_.begin(); at != Mask_.end(); ++at, ++idx) {
-    const double* xyz = frm.XYZ(*at);
-    double a, b, c;
-    ST_SplitXYZ(nax, xyz[0], xyz[1], xyz[2], a, b, c);
-    t1[idx] = ST_Wrap(a, Lt1);
-    t2[idx] = ST_Wrap(b, Lt2);
-    n[idx] = c;
-  }
-  ST_CircularRecenter(n, Ln);
 
-  // Same bin counts as the reference Python: max(8, round(L/spacing)) in the
-  // interface plane, max(32, round(Ln/dz)) along the normal (Willard only).
+  std::vector<double> t1b, t2b, nb;
+  int natom2 = 0;
+  if (has_mask2_) {
+    ST_SplitAtomCoords(frm, Mask2_, nax, Lx, Ly, Lz, t1b, t2b, nb);
+    natom2 = Mask2_.Nselected();
+    double slab_center = ST_CircularSlabCenter(n, natom, &nb, natom2, Ln);
+    ST_ApplyCircularRecenter(n, Ln, slab_center);
+    ST_ApplyCircularRecenter(nb, Ln, slab_center);
+  } else {
+    ST_CircularRecenter(n, Ln);
+  }
+
   int nx = std::max(8, ST_IRound(Lt1 / gridspacing_));
   int ny = std::max(8, ST_IRound(Lt2 / gridspacing_));
   int nz = 0;
@@ -1130,134 +1497,73 @@ int Action_SurfaceTension::ProcessFrame(Frame const& frm, double Lx, double Ly, 
       mprinterr("Error: Lateral box dimensions changed. surftension assumes a fixed interface plane (NVT).\n");
       return 2;
     }
-    if (iface_ == WILLARD && nz != nz_) {
-      // Normal-axis length may jitter slightly; keep the first-frame nz.
+    if (iface_ == WILLARD && nz != nz_)
       nz = nz_;
-    }
   }
 
   double rho_bulk = 0.0;
   if (iface_ == ITIM) {
-    rho_bulk = ST_RhoBulkFromAtoms(n, natom, Lt1, Lt2, Ln, bulk_halfwidth_);
-    if (!ST_ItimMinMax(t1, t2, n, natom, Lt1, Lt2, Ln, nx_, ny_, h_upper_, h_lower_)) {
-      mprintf("Warning: Empty ITIM column; skipping frame.\n");
-      return 1;
+    if (has_mask2_) {
+      rho_bulk = ST_RhoBulkFromAtoms(n, natom, Lt1, Lt2, Ln, bulk_halfwidth_);
+      if (!ST_ItimTwoMasks(t1, t2, n, natom, t1b, t2b, nb, natom2,
+                           Lt1, Lt2, nx_, ny_, h_upper_, h_lower_)) {
+        SkipWarn("Empty ITIM column; skipping frame.");
+        return 1;
+      }
+    } else {
+      rho_bulk = ST_RhoBulkFromAtoms(n, natom, Lt1, Lt2, Ln, bulk_halfwidth_);
+      if (!ST_ItimMinMax(t1, t2, n, natom, Lt1, Lt2, Ln, nx_, ny_,
+                         do_upper_, do_lower_, h_upper_, h_lower_)) {
+        SkipWarn("Empty ITIM column; skipping frame.");
+        return 1;
+      }
     }
+  } else if (has_mask2_) {
+    double rho1 = 0.0, rho2 = 0.0;
+    if (WillardHeights(t1, t2, n, natom, Lt1, Lt2, Ln, density_, true, false, rho1))
+      return 1;
+    if (WillardHeights(t1b, t2b, nb, natom2, Lt1, Lt2, Ln, density2_, false, true, rho2))
+      return 1;
+    rho_bulk = 0.5 * (rho1 + rho2);
   } else {
-    double dx = Lt1 / (double)nx_;
-    double dy = Lt2 / (double)ny_;
-    double dz = Ln / (double)nz_;
-    double voxel = dx * dy * dz;
-    // Histogram counts, then convert to number density (Ang^-3).
-    std::fill(density_.begin(), density_.end(), 0.0);
-    for (int i = 0; i < natom; i++) {
-      int ix = (int)floor(t1[i] / dx);
-      int iy = (int)floor(t2[i] / dy);
-      int iz = (int)floor(n[i] / dz);
-      if (ix < 0) ix = 0;
-      if (iy < 0) iy = 0;
-      if (iz < 0) iz = 0;
-      if (ix >= nx_) ix = nx_ - 1;
-      if (iy >= ny_) iy = ny_ - 1;
-      if (iz >= nz_) iz = nz_ - 1;
-      density_[ST_Idx3(ix, iy, iz, ny_, nz_)] += 1.0;
-    }
-    if (voxel > 0.0) {
-      for (size_t i = 0; i < density_.size(); i++)
-        density_[i] /= voxel;
-    }
-
-    ST_GaussianFilter3D(density_, nx_, ny_, nz_,
-                        sigma_xy_ / dx, sigma_xy_ / dy, sigma_z_ / dz);
-
-    // Bin centers, matching 0.5 * (edges[:-1] + edges[1:]) of numpy.histogramdd.
-    std::vector<double> n_grid((size_t)nz_);
-    for (int iz = 0; iz < nz_; iz++)
-      n_grid[iz] = ((double)iz + 0.5) * dz;
-    double slab_center = 0.5 * Ln;
-    int center_index = 0;
-    double best = fabs(n_grid[0] - slab_center);
-    for (int iz = 1; iz < nz_; iz++) {
-      double d = fabs(n_grid[iz] - slab_center);
-      if (d < best) {
-        best = d;
-        center_index = iz;
-      }
-    }
-
-    std::vector<double> rho_n((size_t)nz_, 0.0);
-    double nxy = (double)(nx_ * ny_);
-    for (int ix = 0; ix < nx_; ix++) {
-      for (int iy = 0; iy < ny_; iy++) {
-        for (int iz = 0; iz < nz_; iz++)
-          rho_n[iz] += density_[ST_Idx3(ix, iy, iz, ny_, nz_)];
-      }
-    }
-    for (int iz = 0; iz < nz_; iz++)
-      rho_n[iz] /= nxy;
-
-    // rho_bulk is the laterally averaged density within +/- bulk_halfwidth of Ln/2.
-    double rho_bulk_acc = 0.0;
-    int nbulk = 0;
-    for (int iz = 0; iz < nz_; iz++) {
-      if (fabs(n_grid[iz] - slab_center) <= bulk_halfwidth_) {
-        rho_bulk_acc += rho_n[iz];
-        nbulk++;
-      }
-    }
-    if (nbulk < 1) {
-      mprintf("Warning: No bins along the normal fall within the bulk region; skipping frame.\n");
+    if (WillardHeights(t1, t2, n, natom, Lt1, Lt2, Ln, density_,
+                       do_upper_, do_lower_, rho_bulk))
       return 1;
-    }
-    rho_bulk = rho_bulk_acc / (double)nbulk;
-    if (rho_bulk <= 0.0) {
-      mprintf("Warning: Bulk density is non-positive; skipping frame.\n");
-      return 1;
-    }
-    double threshold = threshold_frac_ * rho_bulk;
-
-    // One height pair per lateral column. Any missing crossing skips the frame.
-    std::vector<double> col((size_t)nz_);
-    bool ok = true;
-    for (int ix = 0; ix < nx_ && ok; ix++) {
-      for (int iy = 0; iy < ny_; iy++) {
-        for (int iz = 0; iz < nz_; iz++)
-          col[iz] = density_[ST_Idx3(ix, iy, iz, ny_, nz_)];
-        double hu = ST_FindCrossing(n_grid, col, threshold, center_index, true);
-        double hl = ST_FindCrossing(n_grid, col, threshold, center_index, false);
-        if (!ST_Finite(hu) || !ST_Finite(hl)) {
-          ok = false;
-          break;
-        }
-        h_upper_[ST_Idx2(ix, iy, ny_)] = hu;
-        h_lower_[ST_Idx2(ix, iy, ny_)] = hl;
-      }
-    }
-    if (!ok) {
-      mprintf("Warning: Could not identify a local interface; skipping frame.\n");
-      return 1;
-    }
   }
 
-  double w_top = ST_RMS(h_upper_);
-  double w_bot = ST_RMS(h_lower_);
-  double w_mean = 0.5 * (w_top + w_bot);
+  double w_top = do_upper_ ? ST_RMS(h_upper_) : ST_NaN();
+  double w_bot = do_lower_ ? ST_RMS(h_lower_) : ST_NaN();
+  double w_mean;
+  if (do_upper_ && do_lower_)
+    w_mean = 0.5 * (w_top + w_bot);
+  else
+    w_mean = do_upper_ ? w_top : w_bot;
 
-  // Combined spectrum averages both surfaces (n_surfaces_ = 2 n_frames_).
   std::vector<double> p_upper, p_lower;
-  HeightPower(h_upper_, p_upper);
-  HeightPower(h_lower_, p_lower);
+  int nsurf_this = 0;
+  if (do_upper_) {
+    HeightPower(h_upper_, p_upper);
+    nsurf_this++;
+  } else {
+    p_upper.assign(top_power_.size(), 0.0);
+  }
+  if (do_lower_) {
+    HeightPower(h_lower_, p_lower);
+    nsurf_this++;
+  } else {
+    p_lower.assign(bottom_power_.size(), 0.0);
+  }
 
   for (size_t i = 0; i < top_power_.size(); i++) {
-    top_power_[i] += p_upper[i];
-    bottom_power_[i] += p_lower[i];
+    if (do_upper_) top_power_[i] += p_upper[i];
+    if (do_lower_) bottom_power_[i] += p_lower[i];
     total_power_[i] += p_upper[i] + p_lower[i];
     block_power_[i] += p_upper[i] + p_lower[i];
   }
 
   n_frames_++;
-  n_surfaces_ += 2;
-  block_surface_count_ += 2;
+  n_surfaces_ += nsurf_this;
+  block_surface_count_ += nsurf_this;
   block_frame_count_++;
   block_w_sum_ += w_mean;
   block_wtop_sum_ += w_top;
@@ -1318,7 +1624,7 @@ int Action_SurfaceTension::FinishBlock() {
 Action::RetType Action_SurfaceTension::DoAction(int, ActionFrame& frm)
 {
   if (!frm.Frm().BoxCrd().HasBox()) {
-    mprintf("Warning: Frame has no box; skipping.\n");
+    SkipWarn("Frame has no box; skipping.");
     n_skipped_++;
     return Action::OK;
   }
@@ -1328,7 +1634,7 @@ Action::RetType Action_SurfaceTension::DoAction(int, ActionFrame& frm)
   double Ly = (ly_user_ > 0.0) ? ly_user_ : lengths[1];
   double Lz = (lz_user_ > 0.0) ? lz_user_ : lengths[2];
   if (Lx <= 0.0 || Ly <= 0.0 || Lz <= 0.0) {
-    mprintf("Warning: Invalid box lengths; skipping frame.\n");
+    SkipWarn("Invalid box lengths; skipping frame.");
     n_skipped_++;
     return Action::OK;
   }
@@ -1364,10 +1670,12 @@ int Action_SurfaceTension::SyncAction() {
   int n2max = imax[0];
   nx_ = imax[1];
   ny_ = imax[2];
-  double box[2] = { Lt1_ref_, Lt2_ref_ };
-  trajComm_.AllReduce(box, 2, MPI_DOUBLE, MPI_MAX);
+  double box[4] = { Lt1_ref_, Lt2_ref_, qmin_, q_fundamental_ };
+  trajComm_.AllReduce(box, 4, MPI_DOUBLE, MPI_MAX);
   Lt1_ref_ = box[0];
   Lt2_ref_ = box[1];
+  qmin_ = box[2];
+  q_fundamental_ = box[3];
 
   if (n2max < 1) return 0;
   if (n2 != 0 && n2 != n2max) {
@@ -1426,6 +1734,12 @@ void Action_SurfaceTension::Print()
     mprintf("\tInterface: Willard-Chandler density isosurface.\n");
   else
     mprintf("\tInterface: ITIM min/max.\n");
+  mprintf("\tSurfaces: %i", nsurf_);
+  if (nsurf_ == 1)
+    mprintf(" (%s)", (side_ == SIDE_UPPER) ? "upper" : "lower");
+  mprintf("\n");
+  if (has_mask2_)
+    mprintf("\tMask2 (lower): '%s'\n", Mask2_.MaskString());
   if (nblock_ > 0 && block_frame_count_ > 0) {
     mprintf("\tNOTE: Incomplete nblock window (%i frames) excluded from blockout.\n",
             block_frame_count_);
@@ -1435,6 +1749,11 @@ void Action_SurfaceTension::Print()
     if (n_skipped_ > 0)
       mprinterr(" (%i skipped)", n_skipped_);
     mprinterr(".\n");
+    if (summaryFile_ != 0) {
+      summaryFile_->Printf("# surftension summary\n");
+      ST_SummaryI(summaryFile_, "frames", 0);
+      ST_SummaryI(summaryFile_, "skipped", n_skipped_);
+    }
     return;
   }
 
@@ -1461,14 +1780,20 @@ void Action_SurfaceTension::Print()
     bot_only[i].S = shells[i].Sbot;
   }
   int err_full = ST_CalcGamma(shells, temp_, area, qmin_, qmax_, gamma_full, plateau);
-  int err_top  = ST_CalcGamma(top_only, temp_, area, qmin_, qmax_, gamma_top, plateau_top);
-  int err_bot  = ST_CalcGamma(bot_only, temp_, area, qmin_, qmax_, gamma_bot, plateau_bot);
+  int err_top = 1, err_bot = 1;
+  if (do_upper_)
+    err_top = ST_CalcGamma(top_only, temp_, area, qmin_, qmax_, gamma_top, plateau_top);
+  if (do_lower_)
+    err_bot = ST_CalcGamma(bot_only, temp_, area, qmin_, qmax_, gamma_bot, plateau_bot);
   (void)plateau_top;
   (void)plateau_bot;
   double gamma_h, kappa_h, gamma_h_top, kappa_h_top, gamma_h_bot, kappa_h_bot;
   int err_kh     = ST_CalcKappa(shells, temp_, area, qmin_, qmax_, gamma_h, kappa_h);
-  int err_kh_top = ST_CalcKappa(top_only, temp_, area, qmin_, qmax_, gamma_h_top, kappa_h_top);
-  int err_kh_bot = ST_CalcKappa(bot_only, temp_, area, qmin_, qmax_, gamma_h_bot, kappa_h_bot);
+  int err_kh_top = 1, err_kh_bot = 1;
+  if (do_upper_)
+    err_kh_top = ST_CalcKappa(top_only, temp_, area, qmin_, qmax_, gamma_h_top, kappa_h_top);
+  if (do_lower_)
+    err_kh_bot = ST_CalcKappa(bot_only, temp_, area, qmin_, qmax_, gamma_h_bot, kappa_h_bot);
   double gamma_for_kappaq = err_kh ? gamma_full : gamma_h;
 
   double slope     = ST_LogSlope(shells, qmin_, qmax_, &ST_Shell::S);
@@ -1495,14 +1820,21 @@ void Action_SurfaceTension::Print()
 
   double mean_w = 0.0, mean_wt = 0.0, mean_wb = 0.0;
   if (wmean_->Size() > 0) {
+    int nu = 0, nl = 0;
     for (size_t i = 0; i < wmean_->Size(); i++) {
-      mean_w  += ((DataSet_1D*)wmean_)->Dval(i);
-      mean_wt += ((DataSet_1D*)wtop_)->Dval(i);
-      mean_wb += ((DataSet_1D*)wbot_)->Dval(i);
+      mean_w += ((DataSet_1D*)wmean_)->Dval(i);
+      if (do_upper_) {
+        mean_wt += ((DataSet_1D*)wtop_)->Dval(i);
+        nu++;
+      }
+      if (do_lower_) {
+        mean_wb += ((DataSet_1D*)wbot_)->Dval(i);
+        nl++;
+      }
     }
-    mean_w  /= (double)wmean_->Size();
-    mean_wt /= (double)wtop_->Size();
-    mean_wb /= (double)wbot_->Size();
+    mean_w /= (double)wmean_->Size();
+    if (nu > 0) mean_wt /= (double)nu;
+    if (nl > 0) mean_wb /= (double)nl;
   }
 
   mprintf("\tT = %g K\n", temp_);
@@ -1510,8 +1842,11 @@ void Action_SurfaceTension::Print()
   if (n_skipped_ > 0)
     mprintf(" (%i skipped)", n_skipped_);
   mprintf("\n");
-  mprintf("\tL(%s) = %g Ang, L(%s) = %g Ang\n", t1, Lt1_ref_, t2, Lt2_ref_);
+  mprintf("\tL(%s) = %g Ang, L(%s) = %g Ang (from unit cell unless lx/ly/lz set)\n",
+          t1, Lt1_ref_, t2, Lt2_ref_);
   mprintf("\tArea = %g Ang^2\n", area);
+  if (q_fundamental_ > 0.0)
+    mprintf("\tFundamental |q| = %g Ang^-1\n", q_fundamental_);
   mprintf("\tFit q range = %g to %g Ang^-1\n", qmin_, qmax_);
   if (ST_Finite(slope))
     mprintf("\tLow-q log-log slope = %g (ideal capillary-wave slope is about -2)\n", slope);
@@ -1534,9 +1869,14 @@ void Action_SurfaceTension::Print()
     mprintf("\tkappa, upper surface = %g kT\n", kappa_h_top);
   if (!err_kh_bot)
     mprintf("\tkappa, lower surface = %g kT\n", kappa_h_bot);
-  if (ST_Finite(slope_top) && ST_Finite(slope_bot))
+  if (do_upper_ && do_lower_ && ST_Finite(slope_top) && ST_Finite(slope_bot))
     mprintf("\tLow-q slope upper/lower = %g / %g\n", slope_top, slope_bot);
-  mprintf("\tMean roughness = %g Ang (upper %g, lower %g)\n", mean_w, mean_wt, mean_wb);
+  if (do_upper_ && do_lower_)
+    mprintf("\tMean roughness = %g Ang (upper %g, lower %g)\n", mean_w, mean_wt, mean_wb);
+  else if (do_upper_)
+    mprintf("\tMean roughness (upper) = %g Ang\n", mean_wt);
+  else
+    mprintf("\tMean roughness (lower) = %g Ang\n", mean_wb);
 
   if (block_gamma_ != 0 && block_gamma_->Size() > 0) {
     mprintf("\tCompleted blocks = %zu (nblock = %i frames)\n",
@@ -1555,6 +1895,8 @@ void Action_SurfaceTension::Print()
                 i + 1, g, w);
     }
   }
+  double block_gmean = ST_NaN(), block_gsd = ST_NaN(), block_gsem = ST_NaN();
+  double block_kmean = ST_NaN(), block_ksd = ST_NaN(), block_ksem = ST_NaN();
   if (block_gamma_ != 0 && block_gamma_->Size() > 1) {
     double gmean = 0.0, g2 = 0.0;
     for (size_t i = 0; i < block_gamma_->Size(); i++) {
@@ -1567,6 +1909,9 @@ void Action_SurfaceTension::Print()
                  (double)(block_gamma_->Size() - 1);
     double sd = (var > 0.0) ? sqrt(var) : 0.0;
     double sem = sd / sqrt((double)block_gamma_->Size());
+    block_gmean = gmean;
+    block_gsd = sd;
+    block_gsem = sem;
     mprintf("\tBlock mean gamma = %g mN/m\n", gmean);
     mprintf("\tBlock SD gamma = %g mN/m\n", sd);
     mprintf("\tBlock SEM gamma = %g mN/m\n", sem);
@@ -1587,10 +1932,51 @@ void Action_SurfaceTension::Print()
       double var = (k2 - (double)nk * kmean * kmean) / (double)(nk - 1);
       double sd = (var > 0.0) ? sqrt(var) : 0.0;
       double sem = sd / sqrt((double)nk);
+      block_kmean = kmean;
+      block_ksd = sd;
+      block_ksem = sem;
       mprintf("\tBlock mean kappa = %g kT\n", kmean);
       mprintf("\tBlock SD kappa = %g kT\n", sd);
       mprintf("\tBlock SEM kappa = %g kT\n", sem);
       mprintf("\tkappa +/- 2 SEM = %g kT\n", 2.0 * sem);
     }
+  }
+
+  if (summaryFile_ != 0) {
+    summaryFile_->Printf("# surftension summary\n");
+    ST_SummaryD(summaryFile_, "temperature", temp_);
+    ST_SummaryI(summaryFile_, "nsurf", nsurf_);
+    ST_SummaryS(summaryFile_, "normal", ST_AxisName((int)normal_));
+    ST_SummaryS(summaryFile_, "interface", (iface_ == WILLARD) ? "willard" : "itim");
+    ST_SummaryS(summaryFile_, "mask", Mask_.MaskString());
+    if (has_mask2_)
+      ST_SummaryS(summaryFile_, "mask2", Mask2_.MaskString());
+    ST_SummaryD(summaryFile_, "L_t1", Lt1_ref_);
+    ST_SummaryD(summaryFile_, "L_t2", Lt2_ref_);
+    ST_SummaryD(summaryFile_, "area", area);
+    ST_SummaryD(summaryFile_, "q_fundamental", q_fundamental_);
+    ST_SummaryD(summaryFile_, "qmin", qmin_);
+    ST_SummaryD(summaryFile_, "qmax", qmax_);
+    ST_SummaryI(summaryFile_, "frames", n_frames_);
+    ST_SummaryI(summaryFile_, "skipped", n_skipped_);
+    if (!err_full)
+      ST_SummaryD(summaryFile_, "gamma", gamma_full);
+    if (do_upper_ && !err_top)
+      ST_SummaryD(summaryFile_, "gamma_upper", gamma_top);
+    if (do_lower_ && !err_bot)
+      ST_SummaryD(summaryFile_, "gamma_lower", gamma_bot);
+    if (!err_kh)
+      ST_SummaryD(summaryFile_, "kappa", kappa_h);
+    ST_SummaryD(summaryFile_, "roughness", mean_w);
+    if (do_upper_)
+      ST_SummaryD(summaryFile_, "roughness_upper", mean_wt);
+    if (do_lower_)
+      ST_SummaryD(summaryFile_, "roughness_lower", mean_wb);
+    ST_SummaryD(summaryFile_, "block_mean_gamma", block_gmean);
+    ST_SummaryD(summaryFile_, "block_sd_gamma", block_gsd);
+    ST_SummaryD(summaryFile_, "block_sem_gamma", block_gsem);
+    ST_SummaryD(summaryFile_, "block_mean_kappa", block_kmean);
+    ST_SummaryD(summaryFile_, "block_sd_kappa", block_ksd);
+    ST_SummaryD(summaryFile_, "block_sem_kappa", block_ksem);
   }
 }
