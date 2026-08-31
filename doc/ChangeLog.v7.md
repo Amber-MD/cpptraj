@@ -39,7 +39,7 @@ surftension [<name>] <mask> [mask2 <mask2>] temp <T>
   [bulkhalfwidth <d>] [threshold <frac>]
   [qmin <q>] [qmax <q>] [lx <Lx>] [ly <Ly>] [lz <Lz>]
   [nblock <frames>] [dt <ps>] [blocktime <ps>]
-  [spectrumout <file>] [roughout <file>] [blockout <file>]
+  [out <file> | spectrumout <file>] [roughout <file>] [blockout <file>]
   [summaryout <file>]
   [spectrumagr <file>] [roughagr <file>] [blockagr <file>]
   [spectrumgnu <file>] [roughgnu <file>] [blockgnu <file>]

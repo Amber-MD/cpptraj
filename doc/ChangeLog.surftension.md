@@ -22,7 +22,7 @@ surftension [<name>] <mask> [mask2 <mask2>] temp <T>
   [bulkhalfwidth <d>] [threshold <frac>]
   [qmin <q>] [qmax <q>] [lx <Lx>] [ly <Ly>] [lz <Lz>]
   [nblock <frames>] [dt <ps>] [blocktime <ps>]
-  [spectrumout <file>] [roughout <file>] [blockout <file>]
+  [out <file> | spectrumout <file>] [roughout <file>] [blockout <file>]
   [summaryout <file>]
   [spectrumagr <file>] [roughagr <file>] [blockagr <file>]
   [spectrumgnu <file>] [roughgnu <file>] [blockgnu <file>]
@@ -98,6 +98,9 @@ surftension [<name>] <mask> [mask2 <mask2>] temp <T>
   is a second mask for the lower surface (leaflet / liquid–liquid); the
   upper surface then comes from `<mask>` with no mid-box split. Both
   masks share one circular recenter so the film is not split apart.
+- `out` is an alias for `spectrumout`. Init now errors if an `*out` path
+  names a directory that does not exist (DataFiles are opened only after
+  `run`, which previously lost a full trajectory write).
 
 ---
 
