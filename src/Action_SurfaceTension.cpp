@@ -1049,11 +1049,11 @@ int Action_SurfaceTension::AllocateGrid(int nx, int ny, int nz) {
   mprintf("\tInterface grid = %i x %i", nx_, ny_);
   if (nz_ > 0)
     mprintf(" x %i", nz_);
-  mprintf(" (%s x %s", t1, t2);
+  mprintf(" bins along %s, %s", t1, t2);
   if (nz_ > 0)
-    mprintf(" x %s", ST_AxisName((int)normal_));
-  mprintf(")\n");
-  mprintf("\t%s x %s = %g x %g Ang\n", t1, t2, Lt1_ref_, Lt2_ref_);
+    mprintf(", %s", ST_AxisName((int)normal_));
+  mprintf("\n");
+  mprintf("\tL(%s) = %g Ang, L(%s) = %g Ang\n", t1, Lt1_ref_, t2, Lt2_ref_);
   if (haveq)
     mprintf("\tSmallest accessible q = %g Ang^-1\n", qmin_acc);
   return 0;
@@ -1264,6 +1264,7 @@ int Action_SurfaceTension::FinishBlock() {
   int err_g = ST_CalcGamma(shells, temp_, Lt1_ref_ * Lt2_ref_, qmin_, qmax_, gamma, plateau);
   int err_k = ST_CalcKappa(shells, temp_, Lt1_ref_ * Lt2_ref_, qmin_, qmax_, gamma_k, kappa_kT);
   (void)gamma_k;
+  (void)err_k;
   if (err_g) {
     mprintf("Warning: Block %i: fewer than two q shells in the fit range; skipping block gamma.\n",
             n_blocks_ + 1);
@@ -1279,12 +1280,6 @@ int Action_SurfaceTension::FinishBlock() {
       block_wtop_->Add(n_blocks_, &wtop);
       block_wbot_->Add(n_blocks_, &wbot);
     }
-    if (err_k)
-      mprintf("\tBlock %i: gamma = %g mN/m, roughness = %g Ang\n",
-              n_blocks_ + 1, gamma, wmean);
-    else
-      mprintf("\tBlock %i: gamma = %g mN/m, kappa = %g kT, roughness = %g Ang\n",
-              n_blocks_ + 1, gamma, kappa_kT, wmean);
     n_blocks_++;
   }
   std::fill(block_power_.begin(), block_power_.end(), 0.0);
@@ -1490,7 +1485,7 @@ void Action_SurfaceTension::Print()
   if (n_skipped_ > 0)
     mprintf(" (%i skipped)", n_skipped_);
   mprintf("\n");
-  mprintf("\t%s x %s = %g x %g Ang\n", t1, t2, Lt1_ref_, Lt2_ref_);
+  mprintf("\tL(%s) = %g Ang, L(%s) = %g Ang\n", t1, Lt1_ref_, t2, Lt2_ref_);
   mprintf("\tArea = %g Ang^2\n", area);
   mprintf("\tFit q range = %g to %g Ang^-1\n", qmin_, qmax_);
   if (ST_Finite(slope))
@@ -1518,6 +1513,23 @@ void Action_SurfaceTension::Print()
     mprintf("\tLow-q slope upper/lower = %g / %g\n", slope_top, slope_bot);
   mprintf("\tMean roughness = %g Ang (upper %g, lower %g)\n", mean_w, mean_wt, mean_wb);
 
+  if (block_gamma_ != 0 && block_gamma_->Size() > 0) {
+    mprintf("\tCompleted blocks = %zu (nblock = %i frames)\n",
+            block_gamma_->Size(), nblock_);
+    for (size_t i = 0; i < block_gamma_->Size(); i++) {
+      double g = ((DataSet_1D*)block_gamma_)->Dval(i);
+      double w = (block_wmean_ != 0) ? ((DataSet_1D*)block_wmean_)->Dval(i) : ST_NaN();
+      double k = ST_NaN();
+      if (block_kappa_ != 0 && i < block_kappa_->Size())
+        k = ((DataSet_1D*)block_kappa_)->Dval(i);
+      if (ST_Finite(k))
+        mprintf("\tBlock %zu: gamma = %g mN/m, kappa = %g kT, roughness = %g Ang\n",
+                i + 1, g, k, w);
+      else
+        mprintf("\tBlock %zu: gamma = %g mN/m, roughness = %g Ang\n",
+                i + 1, g, w);
+    }
+  }
   if (block_gamma_ != 0 && block_gamma_->Size() > 1) {
     double gmean = 0.0, g2 = 0.0;
     for (size_t i = 0; i < block_gamma_->Size(); i++) {
