@@ -105,7 +105,7 @@ class Action_SurfaceTension : public Action {
     double threshold_frac_;
     double qmin_;
     double qmax_;
-    double q_fund_;            ///< min(2π/Lt1, 2π/Lt2) from the first good frame
+    double q_fundamental_;            ///< 2π / max(L₁, L₂) from the first good frame
     double lx_user_;
     double ly_user_;
     double lz_user_;
