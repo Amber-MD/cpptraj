@@ -7,18 +7,51 @@
 class DataSet_Mesh;
 class CpptrajFile;
 /// Capillary-wave surface tension of a liquid slab (Cartesian normal).
-/** Instantaneous interfaces are a Willard-Chandler isosurface of a
+/** Instantaneous interfaces are a Willard–Chandler isosurface of a
   * Gaussian-smoothed number-density field (default) or ITIM min/max.
   * Default is a two-interface slab (vacuum or a second phase on both
   * sides of the film). nsurf 1 is a single interface. An optional
-  * second mask supplies the lower surface (leaflet / liquid-liquid).
-  * Lateral box lengths come from the unit cell unless lx/ly/lz are set.
-  * Height fluctuations are Fourier transformed with cpptraj PubFFT
-  * (row-column 1-D FFTs) using the numpy convention
-  *   h_q = (1 / N₁N₂) FFT2(h − ⟨h⟩)
-  * γ (mN/m) from the small-q plateau of q² S(q); κ (kT) from the slope
-  * of 1/(q² S) vs q². If qmin is omitted it is 2π / max(Lt1, Lt2).
-  * \author Nathan D Levinzon <ndlevinzon@gmail.com>
+  * second mask supplies the lower surface (leaflet / liquid–liquid).
+  * Lateral lengths L₁, L₂ come from the unit cell unless lx/ly/lz are
+  * set. Area A = L₁ L₂.
+  *
+  * Discrete Fourier modes of the height (FFTW / numpy unnormalized
+  * transform, then divide by N):
+  *   h_q = (1/(N₁ N₂)) Σ_{n₁,n₂} (h − ⟨h⟩) exp(−i q · r)
+  *   q = (2π n₁/L₁, 2π n₂/L₂),   S(q) ≡ ⟨|h_q|²⟩
+  *
+  * Capillary-wave theory (Helfrich):
+  *   S(q) = k_B T / [A (γ q² + κ q⁴)]
+  * Small-q (κ → 0):  q² S(q) → k_B T / (A γ), so
+  *   γ = k_B T / (A ⟨q² S(q)⟩)     on [q_min, q_max]
+  * reported in mN/m (×1000 from N/m). If q_min is omitted it is the
+  * fundamental wavevector 2π / max(L₁, L₂).
+  *
+  * Bending modulus from the linear form
+  *   1/(q² S) = (A / k_B T) (γ + κ q²)
+  * intercept → γ, slope → κ / k_B T.
+  *
+  * \author Nathan D. Levinzon <ndlevinzon@gmail.com>
+  *
+  * References (for interested parties or lowly PhD students like me):
+  *   Willard–Chandler instantaneous interface
+  *     A. P. Willard and D. Chandler, J. Phys. Chem. B 114, 1954 (2010).
+  *     https://doi.org/10.1021/jp909219k
+  *   ITIM (Identification of Truly Interfacial Molecules)
+  *     L. B. Pártay, G. Hantal, P. Jedlovszky, Á. Vincze, and G. Horvai,
+  *     J. Comput. Chem. 29, 945 (2008).
+  *     https://doi.org/10.1002/jcc.20852
+  *   Capillary-wave theory
+  *     F. P. Buff, R. A. Lovett, and F. H. Stillinger,
+  *     Phys. Rev. Lett. 15, 621 (1965).
+  *     https://doi.org/10.1103/PhysRevLett.15.621
+  *   Height-fluctuation surface tension in MD
+  *     S. W. Sides, G. S. Grest, and M.-D. Lacasse,
+  *     Phys. Rev. E 60, 6708 (1999).
+  *     https://doi.org/10.1103/PhysRevE.60.6708
+  *   Helfrich bending energy
+  *     W. Helfrich, Z. Naturforsch. C 28, 693 (1973).
+  *     https://doi.org/10.1515/znc-1973-11-1209
   */
 class Action_SurfaceTension : public Action {
   public:
@@ -40,7 +73,7 @@ class Action_SurfaceTension : public Action {
     int ProcessFrame(Frame const&, double, double, double);
     int FinishBlock();
     void HeightPower(std::vector<double> const&, std::vector<double>&);
-    /// Willard-Chandler heights from one atom set into the given density buffer.
+    /// Willard–Chandler heights from one atom set into the given density buffer.
     /** \return 0 OK, 1 skip. */
     int WillardHeights(std::vector<double> const&, std::vector<double> const&,
                        std::vector<double> const&, int,

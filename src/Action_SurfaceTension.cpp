@@ -1,7 +1,7 @@
 // Action_SurfaceTension
 // Capillary-wave surface tension of a liquid slab (Cartesian normal x, y, or z).
 // See Action_SurfaceTension.h for the physical formulae.
-// \author Nathan D Levinzon <ndlevinzon@gmail.com>
+// \author Nathan D. Levinzon <ndlevinzon@gmail.com>
 #include <algorithm>
 #include <cmath>
 #include <limits>
@@ -270,7 +270,7 @@ static void ST_GaussianFilter3D(std::vector<double>& rho, int nx, int ny, int nz
 }
 
 /** Locate the instantaneous interface along one lateral column.
-  * Walks from the slab center toward +n (upper) or -n (lower) and returns the
+  * Walks from the slab center toward +n (upper) or −n (lower) and returns the
   * linearly interpolated normal coordinate where rho crosses the bulk-density
   * threshold. \return NaN if no crossing is found.
   */
@@ -306,7 +306,7 @@ static double ST_FindCrossing(std::vector<double> const& z_grid,
 }
 
 /** ITIM-style slab interfaces after circular recentering at Ln/2.
-  * In each lateral column: upper = max n of atoms with n >= Ln/2, lower = min n
+  * In each lateral column: upper = max n of atoms with n ≥ Ln/2, lower = min n
   * of atoms with n < Ln/2. Empty half-columns return false.
   * t1/t2/n are lateral 1, lateral 2, and the slab normal.
   */
@@ -424,7 +424,7 @@ static void ST_SplitAtomCoords(Frame const& frm, AtomMask const& mask, int nax,
   }
 }
 
-/** Number density of mask atoms with |n - Ln/2| <= bulk_halfwidth (Ang^-3). */
+/** Number density of mask atoms with |n − Ln/2| ≤ bulk_halfwidth (Å⁻³). */
 static double ST_RhoBulkFromAtoms(std::vector<double> const& ncoord, int natom,
                                   double Lt1, double Lt2, double Ln,
                                   double bulk_halfwidth)
@@ -455,8 +455,8 @@ static double ST_RMS(std::vector<double> const& h) {
   return sqrt(acc / (double)h.size());
 }
 
-/** Sample frequencies, identical to numpy.fft.fftfreq(n, d)[k].
-  * d is the real-space sample spacing (Å). Result is in Å⁻¹.
+/** Wrapped mode index of bin k on an N-point grid of spacing Δ (Å).
+  * n ∈ (−N/2, N/2]; frequency is n / (N Δ). Used as q_α = 2π n_α / L_α.
   */
 static double ST_FftFreq(int k, int n, double d) {
   int p;
@@ -467,7 +467,7 @@ static double ST_FftFreq(int k, int n, double d) {
   return (double)p / ((double)n * d);
 }
 
-/** |q| = √(qx² + qy²) for each Fourier mode, qx = 2π fftfreq(nx, Lx/nx). */
+/** |q| = √(q₁² + q₂²) with q₁ = 2π n₁ / L₁, q₂ = 2π n₂ / L₂. */
 static void ST_MakeQGrid(int nx, int ny, double Lx, double Ly, std::vector<double>& q) {
   q.resize((size_t)nx * (size_t)ny);
   double dx = Lx / (double)nx;
@@ -536,11 +536,13 @@ static void ST_ShellAverage(std::vector<double> const& q,
   std::sort(shells.begin(), shells.end(), ST_ShellQCmp);
 }
 
-/** Capillary-wave γ from the mean q² S(q) plateau on [qmin, qmax].
-  *   plateau = ⟨ q² S(q) ⟩_shells
-  *   γ (N/m) = k_B T / (A plateau), then ×1000 → mN/m
-  * Equal weight per q-shell. Needs at least two shells.
-  * \return 0 on success, 1 on failure (γ/plateau set to NaN).
+/** Capillary-wave γ from the small-q plateau of q² S(q).
+  *   S(q) = k_B T / (A γ q²)                 (κ → 0)
+  *   γ    = k_B T / (A ⟨q² S(q)⟩)
+  * ⟨…⟩ is an equal-weight mean over shells on [q_min, q_max].
+  * A is converted Å² → m²; γ is then ×1000 → mN/m.
+  * Needs at least two shells.
+  * \return 0 on success, 1 on failure (γ / ⟨q² S⟩ set to NaN).
   */
 static int ST_CalcGamma(std::vector<ST_Shell> const& shells, double temperature,
                         double area_A2, double qmin, double qmax,
@@ -564,12 +566,12 @@ static int ST_CalcGamma(std::vector<ST_Shell> const& shells, double temperature,
   return 0;
 }
 
-/** Helfrich fit on [qmin, qmax]:
-  *   1 / (q² S) = a + b q²
-  * q in Å⁻¹, S in Å², so q² S is dimensionless.
-  *   γ (mN/m) = 1000 k_B T a / A_m²     (intercept)
-  *   κ / kT   = b / A_Å²                 (slope)
-  * Equal weight per shell. Needs at least three shells with S > 0.
+/** Helfrich inversion of S(q) = k_B T / [A (γ q² + κ q⁴)]:
+  *   1/(q² S) = (A / k_B T) (γ + κ q²) = a + b q²
+  *   γ         = k_B T a / A            (N/m, then ×1000 → mN/m)
+  *   κ / k_B T = b / A                  (A in Å²)
+  * q in Å⁻¹, S in Å²; q² S is dimensionless. Equal weight per shell.
+  * Needs at least three shells with S > 0.
   * \return 0 on success, 1 on failure (outputs set to NaN).
   */
 static int ST_CalcKappa(std::vector<ST_Shell> const& shells, double temperature,
@@ -605,7 +607,7 @@ static int ST_CalcKappa(std::vector<ST_Shell> const& shells, double temperature,
   return 0;
 }
 
-/** Apparent κ(q)/kT given γ (mN/m): invert γ q² + κ q⁴ at one shell. */
+/** Apparent κ(q)/k_B T at one shell: invert S = k_B T / [A (γ q² + κ q⁴)]. */
 static double ST_ShellKappa(double q, double S, double temperature, double area_A2,
                             double gamma_mNm)
 {
@@ -620,7 +622,7 @@ static double ST_ShellKappa(double q, double S, double temperature, double area_
   return b / area_A2;
 }
 
-/** Apparent γ(q) = k_B T / (A q² S(q)) in mN/m. */
+/** Apparent γ(q) = k_B T / (A q² S(q)), reported in mN/m. */
 static double ST_ShellGamma(double q, double S, double temperature, double area_A2) {
   double q2S = q * q * S;
   if (q2S <= 0.0) return ST_NaN();
@@ -1062,7 +1064,7 @@ Action::RetType Action_SurfaceTension::Init(ArgList& actionArgs, ActionInit& ini
   kappaq_top_->SetDim(Dimension::X, qdim);
   kappaq_bot_->SetDim(Dimension::X, qdim);
   // Print() fills these from the accumulated spectra; they are not time series.
-  // MPI: SyncAction reduces |h_q|^2; skip DataSet concat of empty meshes.
+  // MPI: SyncAction reduces |h_q|²; skip DataSet concat of empty meshes.
 # ifdef MPI
   S_->SetNeedsSync(false); S_top_->SetNeedsSync(false); S_bot_->SetNeedsSync(false);
   q2S_->SetNeedsSync(false); q2S_top_->SetNeedsSync(false); q2S_bot_->SetNeedsSync(false);
@@ -1435,10 +1437,10 @@ int Action_SurfaceTension::WillardHeights(std::vector<double> const& t1,
 }
 
 // Action_SurfaceTension::HeightPower()
-/** 2-D FFT of h − ⟨h⟩ via row-column PubFFT 1-D transforms, then
-  *   h_q = FFT2 / (nx ny)
-  * matching numpy.fft.fft2(h) / h.size. Power is |h_q|² (Ang^2).
-  * fft_n2_ transforms along iy (contiguous); fft_n1_ along ix.
+/** Discrete Fourier transform of h − ⟨h⟩ (row–column 1-D PubFFTs).
+  *   h_q = (1/(N₁ N₂)) Σ (h − ⟨h⟩) exp(−i q · r)
+  * implemented as unnormalized FFTW / numpy fft2, then ÷ (N₁ N₂).
+  * Power is |h_q|² (Å²). fft_n2_ along n₂; fft_n1_ along n₁.
   */
 void Action_SurfaceTension::HeightPower(std::vector<double> const& h,
                                         std::vector<double>& power)
@@ -1499,8 +1501,8 @@ void Action_SurfaceTension::HeightPower(std::vector<double> const& h,
 
 // Action_SurfaceTension::ProcessFrame()
 /** Wrap laterals, recenter along the normal, build instantaneous interfaces,
-  * then accumulate roughness and |h_q|^2. First good frame freezes nx, ny,
-  * Lt1, Lt2 (and nz for Willard-Chandler). Cartesian Lx/Ly/Lz are permuted
+  * then accumulate roughness and |h_q|². First good frame freezes nx, ny,
+  * Lt1, Lt2 (and nz for Willard–Chandler). Cartesian Lx/Ly/Lz are permuted
   * into (Lt1, Lt2, Ln) according to normal_.
   */
 int Action_SurfaceTension::ProcessFrame(Frame const& frm, double Lx, double Ly, double Lz)
@@ -1697,7 +1699,7 @@ Action::RetType Action_SurfaceTension::DoAction(int, ActionFrame& frm)
 #ifdef MPI
 // Action_SurfaceTension::SyncAction()
 /** Radial-style reduction. Three small AllReduces (counts SUM, grid MAX, lateral
-  * box MAX) then one packed ReduceMaster SUM of combined/upper/lower |h_q|^2 onto
+  * box MAX) then one packed ReduceMaster SUM of combined/upper/lower |h_q|² onto
   * the master. |q| uses a separate MAX (different MPI_Op). Print() is master
   * only. Roughness / block series use DataSet::Sync (concat by rank).
   */
