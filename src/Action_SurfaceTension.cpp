@@ -1902,9 +1902,9 @@ void Action_SurfaceTension::Print()
 
   // Fit γ on the combined, upper-only, and lower-only shells.
   double area = Lt1_ref_ * Lt2_ref_;
-  double gamma_full, plateau;
-  double gamma_top, plateau_top;
-  double gamma_bot, plateau_bot;
+  double gamma_full = ST_NaN(), plateau = ST_NaN();
+  double gamma_top = ST_NaN(), plateau_top = ST_NaN();
+  double gamma_bot = ST_NaN(), plateau_bot = ST_NaN();
   std::vector<ST_Shell> top_only = shells;
   std::vector<ST_Shell> bot_only = shells;
   for (size_t i = 0; i < shells.size(); i++) {
@@ -1919,7 +1919,9 @@ void Action_SurfaceTension::Print()
     err_bot = ST_CalcGamma(bot_only, temp_, area, qmin_, qmax_, gamma_bot, plateau_bot);
   (void)plateau_top;
   (void)plateau_bot;
-  double gamma_h, kappa_h, gamma_h_top, kappa_h_top, gamma_h_bot, kappa_h_bot;
+  double gamma_h = ST_NaN(), kappa_h = ST_NaN();
+  double gamma_h_top = ST_NaN(), kappa_h_top = ST_NaN();
+  double gamma_h_bot = ST_NaN(), kappa_h_bot = ST_NaN();
   int err_kh     = ST_CalcKappa(shells, temp_, area, qmin_, qmax_, gamma_h, kappa_h);
   int err_kh_top = 1, err_kh_bot = 1;
   if (do_upper_)
