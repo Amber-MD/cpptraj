@@ -1113,7 +1113,7 @@ void Action_SurfaceTension::Help() const {
   * Spectrum / roughness DataSets always exist so writedata can dump them.
   * Files are written only if the matching *out / *agr / *gnu keyword is given.
   * *out uses the DataFile writer for the filename extension (canonical
-  * cpptraj: .agr/.xmgr = Grace/xmgrace, .gnu = gnuplot). *agr/*gnu force
+  * cpptraj: .agr/.xmgr = Grace/xmgrace, .gnu = gnuplot). agr/gnu keywords force
   * DataFile::XMGRACE / GNUPLOT even when the extension is not recognized.
 >>>>>>> c51400c7 (Add 'surftension' command to calculate capillary-wave surface tension of a liquid slab)
   */
