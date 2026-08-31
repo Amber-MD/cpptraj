@@ -1,4 +1,5 @@
 #!/bin/bash
+<<<<<<< HEAD
 # surftension tests.
 # slab.pdb is a 20 A cubic lattice of O atoms with a small z-corrugation
 # so ITIM min/max is not flat. Stretching one box length creates vacuum
@@ -95,6 +96,79 @@ run
 EOF
 RunCpptraj "$UNITNAME"
 DoTest st2_summary.dat.save st2_summary.dat -a 0.001
+=======
+# Smoke tests for the surftension Action.
+# tz2.ortho is a solvated protein box, not a liquid slab, so the 1-frame run
+# only checks that Init/Setup do not crash. Numeric γ comparison needs a
+# dedicated slab trajectory.
+
+. ../MasterTest.sh
+
+CleanFiles st.in
+
+TESTNAME='Surface tension (surftension) tests'
+
+# Command is registered and Help() prints.
+UNITNAME='surftension help'
+cat > st.in <<EOF
+help surftension
+EOF
+INPUT='-i st.in'
+RunCpptraj "$UNITNAME"
+
+# One ortho frame: parse keywords, bind :WAT@O, require a box.
+UNITNAME='surftension smoke (Init/Setup)'
+CheckFor netcdf
+if [ $? -eq 0 ] ; then
+  cat > st.in <<EOF
+parm ../tz2.ortho.parm7
+trajin ../tz2.ortho.nc 1 1
+surftension :WAT@O temp 300.0
+run
+EOF
+  INPUT='-i st.in'
+  RunCpptraj "$UNITNAME"
+fi
+
+UNITNAME='surftension smoke (interface itim)'
+CheckFor netcdf
+if [ $? -eq 0 ] ; then
+  cat > st.in <<EOF
+parm ../tz2.ortho.parm7
+trajin ../tz2.ortho.nc 1 1
+surftension :WAT@O temp 300.0 interface itim
+run
+EOF
+  INPUT='-i st.in'
+  RunCpptraj "$UNITNAME"
+fi
+
+UNITNAME='surftension smoke (normal x)'
+CheckFor netcdf
+if [ $? -eq 0 ] ; then
+  cat > st.in <<EOF
+parm ../tz2.ortho.parm7
+trajin ../tz2.ortho.nc 1 1
+surftension :WAT@O temp 300.0 normal x
+run
+EOF
+  INPUT='-i st.in'
+  RunCpptraj "$UNITNAME"
+fi
+
+UNITNAME='surftension smoke (normal y, dnormal alias)'
+CheckFor netcdf
+if [ $? -eq 0 ] ; then
+  cat > st.in <<EOF
+parm ../tz2.ortho.parm7
+trajin ../tz2.ortho.nc 1 1
+surftension :WAT@O temp 300.0 normal y dnormal 1.0 sigmanormal 1.5
+run
+EOF
+  INPUT='-i st.in'
+  RunCpptraj "$UNITNAME"
+fi
+>>>>>>> c51400c7 (Add 'surftension' command to calculate capillary-wave surface tension of a liquid slab)
 
 EndTest
 exit 0

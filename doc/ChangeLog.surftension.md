@@ -14,16 +14,26 @@ Working log for the capillary-wave surface-tension Action.
 New command `surftension` added under New Commands. Internal version `V7.11.0`.
 
 ```
+<<<<<<< HEAD
 surftension [<name>] <mask> [mask2 <mask2>] temp <T>
   [normal {x|y|z}] [nsurf {1|2}] [side {upper|lower}]
   [interface {willard|itim}]
+=======
+surftension [<name>] <mask> temp <T>
+  [normal {x|y|z}] [interface {willard|itim}]
+>>>>>>> c51400c7 (Add 'surftension' command to calculate capillary-wave surface tension of a liquid slab)
   [gridspacing <d>] [dz <d> | dnormal <d>]
   [sigmaxy <d>] [sigmaz <d> | sigmanormal <d>]
   [bulkhalfwidth <d>] [threshold <frac>]
   [qmin <q>] [qmax <q>] [lx <Lx>] [ly <Ly>] [lz <Lz>]
+<<<<<<< HEAD
   [nblock <frames>] [dt <ps>] [blocktime <ps>]
   [out <file> | spectrumout <file>] [roughout <file>] [blockout <file>]
   [summaryout <file>]
+=======
+  [nblock <frames>]
+  [spectrumout <file>] [roughout <file>] [blockout <file>]
+>>>>>>> c51400c7 (Add 'surftension' command to calculate capillary-wave surface tension of a liquid slab)
   [spectrumagr <file>] [roughagr <file>] [blockagr <file>]
   [spectrumgnu <file>] [roughgnu <file>] [blockgnu <file>]
 ```
@@ -84,6 +94,7 @@ surftension [<name>] <mask> [mask2 <mask2>] temp <T>
   `sigmanormal` ≡ `sigmaz` (error if both given and they differ).
   Init/Print report e.g. `Slab normal: z (interface plane x-y)`. Warns on
   non-orthogonal boxes.
+<<<<<<< HEAD
 -   Height-field 2-D FFT uses cpptraj `PubFFT` (row-column 1-D FFTs), then
   divides by `nx*ny` (numpy `fft2` convention). Same `S(q)` as the old
   direct DFT. Per-block γ/κ print in `Print()`, not during the frame loop.
@@ -101,6 +112,8 @@ surftension [<name>] <mask> [mask2 <mask2>] temp <T>
 - `out` is an alias for `spectrumout`. Init now errors if an `*out` path
   names a directory that does not exist (DataFiles are opened only after
   `run`, which previously lost a full trajectory write).
+=======
+>>>>>>> c51400c7 (Add 'surftension' command to calculate capillary-wave surface tension of a liquid slab)
 
 ---
 

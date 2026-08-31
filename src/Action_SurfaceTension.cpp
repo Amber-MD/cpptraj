@@ -1,5 +1,6 @@
 // Action_SurfaceTension
 // Capillary-wave surface tension of a liquid slab (Cartesian normal x, y, or z).
+<<<<<<< HEAD
 // Formulae, units, and references: Action_SurfaceTension.h
 //
 // Per-frame pipeline (after Init / Setup):
@@ -14,11 +15,18 @@
 //
 // NVT: first good frame freezes N₁, N₂, L₁, L₂ (and N_n for Willard).
 // \author Nathan D. Levinzon <ndlevinzon@gmail.com>
+=======
+// See Action_SurfaceTension.h for the physical formulae.
+// \author Nathan D Levinzon <ndlevinzon@gmail.com>
+>>>>>>> c51400c7 (Add 'surftension' command to calculate capillary-wave surface tension of a liquid slab)
 #include <algorithm>
 #include <cmath>
 #include <limits>
 #include <map>
+<<<<<<< HEAD
 #include <sys/stat.h>
+=======
+>>>>>>> c51400c7 (Add 'surftension' command to calculate capillary-wave surface tension of a liquid slab)
 #include <vector>
 #include "Action_SurfaceTension.h"
 #include "Constants.h"
@@ -26,8 +34,11 @@
 #include "DataFile.h"
 #include "DataSet_1D.h"
 #include "DataSet_Mesh.h"
+<<<<<<< HEAD
 #include "CpptrajFile.h"
 #include "FileName.h"
+=======
+>>>>>>> c51400c7 (Add 'surftension' command to calculate capillary-wave surface tension of a liquid slab)
 #include "Frame.h"
 #ifdef _OPENMP
 # include <omp.h>
@@ -36,6 +47,7 @@
 // File-local helpers. Names are prefixed ST_ so they do not collide with
 // other Action translation units.
 
+<<<<<<< HEAD
 /// k_B (J/K), CODATA 2018. γ uses SI: k_B T / (A_m² ⟨q² S⟩), then ×1000 → mN/m.
 static const double ST_KB = 1.380649e-23;
 /// Å² → m² so A in the CWT formula is consistent with γ in N/m.
@@ -44,6 +56,16 @@ static const double ST_ANG2_TO_M2 = 1.0e-20;
 static const double ST_GAUSS_TRUNCATE = 4.0;
 
 /// \return true if x is finite (not NaN or ±Inf). Used to reject failed crossings.
+=======
+/// Boltzmann constant (J/K); SI, matching the reference Python analysis.
+static const double ST_KB = 1.380649e-23;
+/// Convert Å² → m².
+static const double ST_ANG2_TO_M2 = 1.0e-20;
+/// scipy.ndimage.gaussian_filter default truncate (kernel radius = truncate × σ).
+static const double ST_GAUSS_TRUNCATE = 4.0;
+
+/// \return true if x is finite (not NaN or ±Inf).
+>>>>>>> c51400c7 (Add 'surftension' command to calculate capillary-wave surface tension of a liquid slab)
 static inline bool ST_Finite(double x) {
   return (x == x) &&
          (x <  std::numeric_limits<double>::infinity()) &&
@@ -54,12 +76,20 @@ static inline double ST_NaN() {
   return std::numeric_limits<double>::quiet_NaN();
 }
 
+<<<<<<< HEAD
 /// Linear index of ρ(i₁, i₂, i_n) with the normal the fastest dimension.
+=======
+/// Linear index of density_(ix, iy, iz) with z the fastest dimension.
+>>>>>>> c51400c7 (Add 'surftension' command to calculate capillary-wave surface tension of a liquid slab)
 static inline size_t ST_Idx3(int ix, int iy, int iz, int ny, int nz) {
   return ((size_t)ix * (size_t)ny + (size_t)iy) * (size_t)nz + (size_t)iz;
 }
 
+<<<<<<< HEAD
 /// Linear index of an N₁×N₂ field, row-major in the first lateral index.
+=======
+/// Linear index of an nx×ny field stored row-major in x, then y.
+>>>>>>> c51400c7 (Add 'surftension' command to calculate capillary-wave surface tension of a liquid slab)
 static inline size_t ST_Idx2(int ix, int iy, int ny) {
   return (size_t)ix * (size_t)ny + (size_t)iy;
 }
@@ -69,10 +99,14 @@ static inline int ST_IRound(double x) {
   return (int)floor(x + 0.5);
 }
 
+<<<<<<< HEAD
 /** Minimum-image wrap of a Cartesian coordinate into [0, L).
   * fmod of a negative argument is negative on IEEE-754; that case is lifted
   * back into the interval. x == L maps to 0 so the last bin is not empty.
   */
+=======
+/** Wrap x into [0, L). Handles negative values; maps x == L back to 0. */
+>>>>>>> c51400c7 (Add 'surftension' command to calculate capillary-wave surface tension of a liquid slab)
 static double ST_Wrap(double x, double L) {
   if (L <= 0.0) return x;
   double y = fmod(x, L);
@@ -81,6 +115,7 @@ static double ST_Wrap(double x, double L) {
   return y;
 }
 
+<<<<<<< HEAD
 /** Circular mean of the film along the periodic normal, in Å.
   * Map n → θ = 2π n / L_n and take atan2(⟨sin θ⟩, ⟨cos θ⟩). A slab that
   * straddles n = 0 is then a single cluster on the circle. n2 may be 0;
@@ -123,10 +158,31 @@ static void ST_ApplyCircularRecenter(std::vector<double>& n, double L,
                                      double slab_center)
 {
   if (n.empty() || L <= 0.0) return;
+=======
+/** Recenter a periodic slab so its circular mean along the normal lies at L/2.
+  * Mapping n → θ = 2π n / L, then using atan2(⟨sin θ⟩, ⟨cos θ⟩), avoids
+  * failure when the slab straddles the periodic boundary.
+  */
+static void ST_CircularRecenter(std::vector<double>& n, double L) {
+  if (n.empty() || L <= 0.0) return;
+  double mean_sin = 0.0;
+  double mean_cos = 0.0;
+  for (size_t i = 0; i < n.size(); i++) {
+    double theta = Constants::TWOPI * ST_Wrap(n[i], L) / L;
+    mean_sin += sin(theta);
+    mean_cos += cos(theta);
+  }
+  mean_sin /= (double)n.size();
+  mean_cos /= (double)n.size();
+  double angle = atan2(mean_sin, mean_cos);
+  if (angle < 0.0) angle += Constants::TWOPI;
+  double slab_center = L * angle / Constants::TWOPI;
+>>>>>>> c51400c7 (Add 'surftension' command to calculate capillary-wave surface tension of a liquid slab)
   for (size_t i = 0; i < n.size(); i++)
     n[i] = ST_Wrap(n[i] - slab_center + 0.5 * L, L);
 }
 
+<<<<<<< HEAD
 /** Recenter one atom set so its circular mean along the normal lies at L_n/2. */
 static void ST_CircularRecenter(std::vector<double>& n, double L) {
   if (n.empty() || L <= 0.0) return;
@@ -134,24 +190,35 @@ static void ST_CircularRecenter(std::vector<double>& n, double L) {
 }
 
 /// ASCII name of a Cartesian axis for Help / mprintf (terminals are not UTF-8).
+=======
+/// Cartesian axis name for Help / mprintf (ASCII).
+>>>>>>> c51400c7 (Add 'surftension' command to calculate capillary-wave surface tension of a liquid slab)
 static const char* ST_AxisName(int axis) {
   if (axis == 0) return "x";
   if (axis == 1) return "y";
   return "z";
 }
 
+<<<<<<< HEAD
 /// Names of the two lateral axes for Cartesian normal ∈ {0,1,2} = {x,y,z}.
+=======
+/// Lateral axis names for a given Cartesian normal.
+>>>>>>> c51400c7 (Add 'surftension' command to calculate capillary-wave surface tension of a liquid slab)
 static void ST_PlaneAxes(int normal, const char*& t1, const char*& t2) {
   if (normal == 0) { t1 = "y"; t2 = "z"; }
   else if (normal == 1) { t1 = "x"; t2 = "z"; }
   else { t1 = "x"; t2 = "y"; }
 }
 
+<<<<<<< HEAD
 /** Permute (L_x, L_y, L_z) into (L₁, L₂, L_n).
   *   n = z:  L₁ = L_x, L₂ = L_y, L_n = L_z
   *   n = y:  L₁ = L_x, L₂ = L_z, L_n = L_y
   *   n = x:  L₁ = L_y, L₂ = L_z, L_n = L_x
   */
+=======
+/// Split Cartesian box lengths into lateral 1, lateral 2, and normal.
+>>>>>>> c51400c7 (Add 'surftension' command to calculate capillary-wave surface tension of a liquid slab)
 static void ST_SplitBox(int normal, double Lx, double Ly, double Lz,
                         double& Lt1, double& Lt2, double& Ln)
 {
@@ -160,7 +227,11 @@ static void ST_SplitBox(int normal, double Lx, double Ly, double Lz,
   else { Lt1 = Lx; Lt2 = Ly; Ln = Lz; }
 }
 
+<<<<<<< HEAD
 /// Same permutation as ST_SplitBox, applied to one Cartesian point.
+=======
+/// Split a Cartesian point into lateral 1, lateral 2, and normal.
+>>>>>>> c51400c7 (Add 'surftension' command to calculate capillary-wave surface tension of a liquid slab)
 static void ST_SplitXYZ(int normal, double x, double y, double z,
                         double& t1, double& t2, double& n)
 {
@@ -169,10 +240,15 @@ static void ST_SplitXYZ(int normal, double x, double y, double z,
   else { t1 = x; t2 = y; n = z; }
 }
 
+<<<<<<< HEAD
 /** Normalized 1-D Gaussian matching scipy.ndimage._gaussian_kernel1d.
   * σ is in pixels (Å / bin width). Radius = round(4 σ). Weights are
   *   K_i = exp(−i² / (2 σ²)) / Σ_j K_j ,   i ∈ [−R, R]
   * An empty kernel (σ ≤ 0) means that axis is left unfiltered.
+=======
+/** Normalized 1-D Gaussian kernel matching scipy.ndimage._gaussian_kernel1d.
+  * σ is in pixels. Radius = round(4 σ). Empty kernel means “do not filter”.
+>>>>>>> c51400c7 (Add 'surftension' command to calculate capillary-wave surface tension of a liquid slab)
   */
 static void ST_GaussianKernel(double sigma, std::vector<double>& kernel) {
   kernel.clear();
@@ -193,8 +269,13 @@ static void ST_GaussianKernel(double sigma, std::vector<double>& kernel) {
   }
 }
 
+<<<<<<< HEAD
 /** Periodic 1-D convolution, out[i] = Σ_k K_k in[(i+k) mod N].
   * The Gaussian is even, so convolution and correlation are identical.
+=======
+/** 1-D convolution with periodic (wrap) boundaries.
+  * The Gaussian kernel is symmetric, so correlate and convolve agree.
+>>>>>>> c51400c7 (Add 'surftension' command to calculate capillary-wave surface tension of a liquid slab)
   */
 static void ST_ConvolveWrap(std::vector<double> const& in, std::vector<double> const& kernel,
                             std::vector<double>& out)
@@ -220,10 +301,17 @@ static void ST_ConvolveWrap(std::vector<double> const& in, std::vector<double> c
   }
 }
 
+<<<<<<< HEAD
 /** Separable periodic Gaussian on ρ(i₁, i₂, i_n), Willard–Chandler coarse-graining.
   * σ_α in pixels (Å / Δ_α), same as scipy.ndimage.gaussian_filter. Three
   * 1-D passes (n, then t2, then t1). OpenMP: each line in a pass is
   * independent; one parallel region reuses thread-local buffers.
+=======
+/** Separable Gaussian smooth of ρ(ix,iy,iz) with periodic boundaries on every axis.
+  * σx, σy, σz are in pixels (Å / bin width), as in scipy.ndimage.gaussian_filter.
+  * OpenMP: each 1-D line in a pass is independent. One parallel region covers
+  * the z, y, and x passes so thread-local line buffers are reused.
+>>>>>>> c51400c7 (Add 'surftension' command to calculate capillary-wave surface tension of a liquid slab)
   */
 static void ST_GaussianFilter3D(std::vector<double>& rho, int nx, int ny, int nz,
                                 double sigma_x, double sigma_y, double sigma_z)
@@ -294,12 +382,19 @@ static void ST_GaussianFilter3D(std::vector<double>& rho, int nx, int ny, int nz
   }
 }
 
+<<<<<<< HEAD
 /** Willard–Chandler crossing along one lateral column.
   * Walk from the slab mid-plane toward +n (upper) or −n (lower). The
   * interface is the first point where ρ drops through θ ρ_bulk, with θ
   * the threshold fraction. Linear interpolation between the two bins:
   *   n* = n_k + (θ ρ_bulk − ρ_k) (n_{k±1} − n_k) / (ρ_{k±1} − ρ_k)
   * \return NaN if no crossing exists (caller skips the frame).
+=======
+/** Locate the instantaneous interface along one lateral column.
+  * Walks from the slab center toward +n (upper) or -n (lower) and returns the
+  * linearly interpolated normal coordinate where rho crosses the bulk-density
+  * threshold. \return NaN if no crossing is found.
+>>>>>>> c51400c7 (Add 'surftension' command to calculate capillary-wave surface tension of a liquid slab)
   */
 static double ST_FindCrossing(std::vector<double> const& z_grid,
                               std::vector<double> const& density,
@@ -332,19 +427,29 @@ static double ST_FindCrossing(std::vector<double> const& z_grid,
   return ST_NaN();
 }
 
+<<<<<<< HEAD
 /** ITIM in the probe → 0 limit, after the film has been recentered at L_n/2.
   * Each lateral column is split at mid-box:
   *   h_upper = max { n_i | n_i ≥ L_n/2 }     (need_u)
   *   h_lower = min { n_i | n_i <  L_n/2 }     (need_l)
   * An empty required half-column returns false (skip the frame). This is
   * not a finite-radius ITIM probe; it is the min/max of the mask.
+=======
+/** ITIM-style slab interfaces after circular recentering at Ln/2.
+  * In each lateral column: upper = max n of atoms with n >= Ln/2, lower = min n
+  * of atoms with n < Ln/2. Empty half-columns return false.
+  * t1/t2/n are lateral 1, lateral 2, and the slab normal.
+>>>>>>> c51400c7 (Add 'surftension' command to calculate capillary-wave surface tension of a liquid slab)
   */
 static bool ST_ItimMinMax(std::vector<double> const& t1,
                           std::vector<double> const& t2,
                           std::vector<double> const& n,
                           int natom, double Lt1, double Lt2, double Ln,
                           int nx, int ny,
+<<<<<<< HEAD
                           bool need_u, bool need_l,
+=======
+>>>>>>> c51400c7 (Add 'surftension' command to calculate capillary-wave surface tension of a liquid slab)
                           std::vector<double>& h_upper,
                           std::vector<double>& h_lower)
 {
@@ -372,6 +477,7 @@ static bool ST_ItimMinMax(std::vector<double> const& t1,
     }
   }
   for (size_t i = 0; i < n2; i++) {
+<<<<<<< HEAD
     if (need_u && !has_u[i]) return false;
     if (need_l && !has_l[i]) return false;
     if (need_u) h_upper[i] = zmax[i];
@@ -427,6 +533,8 @@ static bool ST_ItimTwoMasks(std::vector<double> const& t1u,
     has_l[idx] = 1;
   }
   for (size_t i = 0; i < n2; i++) {
+=======
+>>>>>>> c51400c7 (Add 'surftension' command to calculate capillary-wave surface tension of a liquid slab)
     if (!has_u[i] || !has_l[i]) return false;
     h_upper[i] = zmax[i];
     h_lower[i] = zmin[i];
@@ -434,6 +542,7 @@ static bool ST_ItimTwoMasks(std::vector<double> const& t1u,
   return true;
 }
 
+<<<<<<< HEAD
 /** Extract (t1, t2, n) for one mask. Laterals are wrapped into [0, L_α);
   * the normal is left unshifted. Recenter is applied afterwards so two
   * masks can share one circular mean.
@@ -464,6 +573,9 @@ static void ST_SplitAtomCoords(Frame const& frm, AtomMask const& mask, int nax,
   * Volume is L₁ L₂ (2w). Used for the rhobulk DataSet on the ITIM path;
   * Willard–Chandler ρ_bulk is the laterally averaged coarse-grained field.
   */
+=======
+/** Number density of mask atoms with |n - Ln/2| <= bulk_halfwidth (Ang^-3). */
+>>>>>>> c51400c7 (Add 'surftension' command to calculate capillary-wave surface tension of a liquid slab)
 static double ST_RhoBulkFromAtoms(std::vector<double> const& ncoord, int natom,
                                   double Lt1, double Lt2, double Ln,
                                   double bulk_halfwidth)
@@ -479,10 +591,14 @@ static double ST_RhoBulkFromAtoms(std::vector<double> const& ncoord, int natom,
   return (double)nbulk / vol;
 }
 
+<<<<<<< HEAD
 /** Capillary roughness of one instantaneous surface, in Å:
   *   w = √⟨ (h − ⟨h⟩)² ⟩_{i₁,i₂}
   * the RMS of the same field whose DFT gives S(q).
   */
+=======
+/** RMS height fluctuation w = √⟨(h − ⟨h⟩)²⟩_xy  (Å). */
+>>>>>>> c51400c7 (Add 'surftension' command to calculate capillary-wave surface tension of a liquid slab)
 static double ST_RMS(std::vector<double> const& h) {
   if (h.empty()) return ST_NaN();
   double mean = 0.0;
@@ -497,9 +613,14 @@ static double ST_RMS(std::vector<double> const& h) {
   return sqrt(acc / (double)h.size());
 }
 
+<<<<<<< HEAD
 /** Cyclic frequency of DFT bin k on an N-point grid of spacing Δ (Å).
   * Mode index n ∈ (−N/2, N/2]; frequency is n / (N Δ) = n / L_α.
   * Wavevector component is then q_α = 2π n / L_α (Å⁻¹).
+=======
+/** Sample frequencies, identical to numpy.fft.fftfreq(n, d)[k].
+  * d is the real-space sample spacing (Å). Result is in Å⁻¹.
+>>>>>>> c51400c7 (Add 'surftension' command to calculate capillary-wave surface tension of a liquid slab)
   */
 static double ST_FftFreq(int k, int n, double d) {
   int p;
@@ -510,7 +631,55 @@ static double ST_FftFreq(int k, int n, double d) {
   return (double)p / ((double)n * d);
 }
 
+<<<<<<< HEAD
 /** |q| = √(q₁² + q₂²) on the N₁×N₂ Fourier mesh, q_α = 2π n_α / L_α. */
+=======
+/** 2-D power spectrum of a height field.
+  * Subtract ⟨h⟩ (q = 0 translation), then
+  *   h_q = (1 / N) Σ h(x,y) exp(−i q · r)     N = nx ny
+  * which matches numpy.fft.fft2(h) / h.size. Power is |h_q|² (Å²).
+  * Direct DFT is used so nx, ny need not be powers of two.
+  * OpenMP: each (kx, ky) mode is independent; the loop is flattened so it
+  * does not need collapse() (OpenMP 3.0), matching other cpptraj Actions.
+  */
+static void ST_HeightPower(std::vector<double> const& h, int nx, int ny,
+                           std::vector<double>& power)
+{
+  int nxy = nx * ny;
+  power.assign((size_t)nxy, 0.0);
+  if (nxy == 0) return;
+  double mean = 0.0;
+  for (int i = 0; i < nxy; i++)
+    mean += h[i];
+  mean /= (double)nxy;
+  double Ninv = 1.0 / (double)nxy;
+  int k;
+# ifdef _OPENMP
+# pragma omp parallel for schedule(dynamic)
+# endif
+  for (k = 0; k < nxy; k++) {
+    int kx = k / ny;
+    int ky = k - kx * ny;
+    double re = 0.0;
+    double im = 0.0;
+    for (int ix = 0; ix < nx; ix++) {
+      for (int iy = 0; iy < ny; iy++) {
+        double hv = h[ST_Idx2(ix, iy, ny)] - mean;
+        double ang = Constants::TWOPI *
+                     ((double)kx * (double)ix / (double)nx +
+                      (double)ky * (double)iy / (double)ny);
+        re += hv * cos(ang);
+        im -= hv * sin(ang);
+      }
+    }
+    re *= Ninv;
+    im *= Ninv;
+    power[k] = re * re + im * im;
+  }
+}
+
+/** |q| = √(qx² + qy²) for each Fourier mode, qx = 2π fftfreq(nx, Lx/nx). */
+>>>>>>> c51400c7 (Add 'surftension' command to calculate capillary-wave surface tension of a liquid slab)
 static void ST_MakeQGrid(int nx, int ny, double Lx, double Ly, std::vector<double>& q) {
   q.resize((size_t)nx * (size_t)ny);
   double dx = Lx / (double)nx;
@@ -524,6 +693,7 @@ static void ST_MakeQGrid(int nx, int ny, double Lx, double Ly, std::vector<doubl
   }
 }
 
+<<<<<<< HEAD
 /// One isotropic |q| shell: all modes with the same rounded q².
 struct ST_Shell {
   double q;     ///< Mean |q| of modes in this shell (Å⁻¹)
@@ -531,6 +701,15 @@ struct ST_Shell {
   double Stop;  ///< Upper-interface S(q)
   double Sbot;  ///< Lower-interface S(q)
   int n;        ///< Number of Fourier modes averaged into this shell
+=======
+/// One isotropic |q| shell after averaging degenerate Fourier modes.
+struct ST_Shell {
+  double q;     ///< Mean |q| of modes in this shell (Å⁻¹)
+  double S;     ///< Combined ⟨|h_q|²⟩ (Å²)
+  double Stop;  ///< Upper-interface ⟨|h_q|²⟩
+  double Sbot;  ///< Lower-interface ⟨|h_q|²⟩
+  int n;        ///< Number of modes averaged into this shell
+>>>>>>> c51400c7 (Add 'surftension' command to calculate capillary-wave surface tension of a liquid slab)
 };
 
 /// Sort shells by increasing |q|.
@@ -538,10 +717,15 @@ static bool ST_ShellQCmp(ST_Shell const& a, ST_Shell const& b) {
   return a.q < b.q;
 }
 
+<<<<<<< HEAD
 /** Isotropic shell average of the 2-D spectrum.
   * Modes with the same q² rounded to 10 decimal places (numpy / pandas
   * round(q², 10)) are one shell. The q = 0 (mean-height) mode is dropped.
   * Each shell stores the mean |q| and the mean of S, S_upper, S_lower.
+=======
+/** Isotropic shell average: group modes with the same q² (10 decimal places),
+  * as in pandas round(q², decimals=10). q = 0 is dropped.
+>>>>>>> c51400c7 (Add 'surftension' command to calculate capillary-wave surface tension of a liquid slab)
   */
 static void ST_ShellAverage(std::vector<double> const& q,
                             std::vector<double> const& combined,
@@ -581,6 +765,7 @@ static void ST_ShellAverage(std::vector<double> const& q,
   std::sort(shells.begin(), shells.end(), ST_ShellQCmp);
 }
 
+<<<<<<< HEAD
 /** Capillary-wave γ from the small-q plateau of q² S(q).
   *   S(q) = k_B T / (A γ q²)                 (κ → 0)
   *   γ    = k_B T / (A ⟨q² S(q)⟩)
@@ -588,6 +773,13 @@ static void ST_ShellAverage(std::vector<double> const& q,
   * A is converted Å² → m²; γ is then ×1000 → mN/m.
   * Needs at least two shells.
   * \return 0 on success, 1 on failure (γ / ⟨q² S⟩ set to NaN).
+=======
+/** Capillary-wave γ from the mean q² S(q) plateau on [qmin, qmax].
+  *   plateau = ⟨ q² S(q) ⟩_shells
+  *   γ (N/m) = k_B T / (A plateau), then ×1000 → mN/m
+  * Equal weight per q-shell. Needs at least two shells.
+  * \return 0 on success, 1 on failure (γ/plateau set to NaN).
+>>>>>>> c51400c7 (Add 'surftension' command to calculate capillary-wave surface tension of a liquid slab)
   */
 static int ST_CalcGamma(std::vector<ST_Shell> const& shells, double temperature,
                         double area_A2, double qmin, double qmax,
@@ -611,12 +803,21 @@ static int ST_CalcGamma(std::vector<ST_Shell> const& shells, double temperature,
   return 0;
 }
 
+<<<<<<< HEAD
 /** Helfrich inversion of S(q) = k_B T / [A (γ q² + κ q⁴)]:
   *   1/(q² S) = (A / k_B T) (γ + κ q²) = a + b q²
   *   γ         = k_B T a / A            (N/m, then ×1000 → mN/m)
   *   κ / k_B T = b / A                  (A in Å²)
   * q in Å⁻¹, S in Å²; q² S is dimensionless. Equal weight per shell.
   * Needs at least three shells with S > 0.
+=======
+/** Helfrich fit on [qmin, qmax]:
+  *   1 / (q² S) = a + b q²
+  * q in Å⁻¹, S in Å², so q² S is dimensionless.
+  *   γ (mN/m) = 1000 k_B T a / A_m²     (intercept)
+  *   κ / kT   = b / A_Å²                 (slope)
+  * Equal weight per shell. Needs at least three shells with S > 0.
+>>>>>>> c51400c7 (Add 'surftension' command to calculate capillary-wave surface tension of a liquid slab)
   * \return 0 on success, 1 on failure (outputs set to NaN).
   */
 static int ST_CalcKappa(std::vector<ST_Shell> const& shells, double temperature,
@@ -652,10 +853,14 @@ static int ST_CalcKappa(std::vector<ST_Shell> const& shells, double temperature,
   return 0;
 }
 
+<<<<<<< HEAD
 /** Apparent κ(q)/k_B T at one shell, given a reference γ (mN/m).
   * Invert S = k_B T / [A (γ q² + κ q⁴)] → κ / k_B T = [1/(q² S) − A γ / k_B T] / (A q²).
   * Negative κ is allowed (the linear Helfrich slope may change sign).
   */
+=======
+/** Apparent κ(q)/kT given γ (mN/m): invert γ q² + κ q⁴ at one shell. */
+>>>>>>> c51400c7 (Add 'surftension' command to calculate capillary-wave surface tension of a liquid slab)
 static double ST_ShellKappa(double q, double S, double temperature, double area_A2,
                             double gamma_mNm)
 {
@@ -670,9 +875,13 @@ static double ST_ShellKappa(double q, double S, double temperature, double area_
   return b / area_A2;
 }
 
+<<<<<<< HEAD
 /** Apparent γ(q) = k_B T / (A q² S(q)) from one shell, in mN/m.
   * Equals the plateau γ only where q² S is flat (κ → 0).
   */
+=======
+/** Apparent γ(q) = k_B T / (A q² S(q)) in mN/m. */
+>>>>>>> c51400c7 (Add 'surftension' command to calculate capillary-wave surface tension of a liquid slab)
 static double ST_ShellGamma(double q, double S, double temperature, double area_A2) {
   double q2S = q * q * S;
   if (q2S <= 0.0) return ST_NaN();
@@ -680,9 +889,14 @@ static double ST_ShellGamma(double q, double S, double temperature, double area_
   return 1000.0 * ST_KB * temperature / (area_m2 * q2S);
 }
 
+<<<<<<< HEAD
 /** OLS slope of ln S vs ln q on [q_min, q_max].
   * Pure capillary waves have S(q) ∝ q⁻², so the slope is −2. A slope
   * near −4 is Helfrich-dominated. Sfield selects S / S_upper / S_lower.
+=======
+/** Ordinary least-squares slope of log S vs log q on [qmin, qmax].
+  * Ideal capillary waves give slope ≈ −2. Sfield selects S / Stop / Sbot.
+>>>>>>> c51400c7 (Add 'surftension' command to calculate capillary-wave surface tension of a liquid slab)
   */
 static double ST_LogSlope(std::vector<ST_Shell> const& shells, double qmin, double qmax,
                           double ST_Shell::* Sfield)
@@ -715,6 +929,7 @@ static void ST_AddSetToFiles(DataSet* ds, DataFile* a, DataFile* b, DataFile* c)
   if (c != 0) c->AddDataSet(ds);
 }
 
+<<<<<<< HEAD
 /// Write a key/value line; skip non-finite doubles.
 static void ST_SummaryD(CpptrajFile* f, const char* key, double v) {
   if (f == 0 || !ST_Finite(v)) return;
@@ -772,6 +987,13 @@ Action_SurfaceTension::Action_SurfaceTension() :
   do_upper_(true),
   do_lower_(true),
   qmin_specified_(false),
+=======
+// -----------------------------------------------------------------------------
+/// CONSTRUCTOR — defaults match the reference Python analysis.
+Action_SurfaceTension::Action_SurfaceTension() :
+  iface_(WILLARD),
+  normal_(AXIS_Z),
+>>>>>>> c51400c7 (Add 'surftension' command to calculate capillary-wave surface tension of a liquid slab)
   temp_(-1.0),
   gridspacing_(2.5),
   dz_(1.0),
@@ -779,6 +1001,7 @@ Action_SurfaceTension::Action_SurfaceTension() :
   sigma_z_(1.5),
   bulk_halfwidth_(5.0),
   threshold_frac_(0.5),
+<<<<<<< HEAD
   qmin_(-1.0),
   qmax_(0.174649),
   q_fundamental_(0.0),
@@ -790,13 +1013,25 @@ Action_SurfaceTension::Action_SurfaceTension() :
   nblock_(0),
   debug_(0),
   n_skip_warn_(0),
+=======
+  qmin_(0.033283),
+  qmax_(0.174649),
+  lx_user_(-1.0),
+  ly_user_(-1.0),
+  lz_user_(-1.0),
+  nblock_(0),
+  debug_(0),
+>>>>>>> c51400c7 (Add 'surftension' command to calculate capillary-wave surface tension of a liquid slab)
   S_(0), S_top_(0), S_bot_(0),
   q2S_(0), q2S_top_(0), q2S_bot_(0),
   gammaq_(0), gammaq_top_(0), gammaq_bot_(0),
   kappaq_(0), kappaq_top_(0), kappaq_bot_(0),
   wtop_(0), wbot_(0), wmean_(0), rhobulk_(0),
   block_gamma_(0), block_kappa_(0), block_wmean_(0), block_wtop_(0), block_wbot_(0),
+<<<<<<< HEAD
   summaryFile_(0),
+=======
+>>>>>>> c51400c7 (Add 'surftension' command to calculate capillary-wave surface tension of a liquid slab)
   nx_(0), ny_(0), nz_(0),
   Lt1_ref_(0.0), Lt2_ref_(0.0),
   grid_ready_(false),
@@ -806,15 +1041,22 @@ Action_SurfaceTension::Action_SurfaceTension() :
 {}
 
 // Action_SurfaceTension::Help()
+<<<<<<< HEAD
 /** ASCII-only (terminals). Formulae live in the class header, not here. */
 void Action_SurfaceTension::Help() const {
   mprintf("\t[<name>] <mask> [mask2 <mask2>] temp <T>\n"
           "\t[normal {x|y|z}] [nsurf {1|2}] [side {upper|lower}]\n"
           "\t[interface {willard|itim}]\n"
+=======
+void Action_SurfaceTension::Help() const {
+  mprintf("\t[<name>] <mask> temp <T>\n"
+          "\t[normal {x|y|z}] [interface {willard|itim}]\n"
+>>>>>>> c51400c7 (Add 'surftension' command to calculate capillary-wave surface tension of a liquid slab)
           "\t[gridspacing <d>] [dz <d> | dnormal <d>]\n"
           "\t[sigmaxy <d>] [sigmaz <d> | sigmanormal <d>]\n"
           "\t[bulkhalfwidth <d>] [threshold <frac>]\n"
           "\t[qmin <q>] [qmax <q>] [lx <Lx>] [ly <Ly>] [lz <Lz>]\n"
+<<<<<<< HEAD
           "\t[nblock <frames>] [dt <ps>] [blocktime <ps>] [fprefix <prefix>]\n"
           "\t[out <file> | spectrumout <file>] [roughout <file>] [blockout <file>]\n"
           "\t[summaryout <file>]\n"
@@ -834,16 +1076,46 @@ void Action_SurfaceTension::Help() const {
           "  fprefix is prepended to each of those file names (directory unchanged),\n"
           "  e.g. fprefix 150K_ spectrumout spec.dat writes 150K_spec.dat.\n"
           "  A directory in the name must already exist; it is not created.\n");
+=======
+          "\t[nblock <frames>]\n"
+          "\t[spectrumout <file>] [roughout <file>] [blockout <file>]\n"
+          "\t[spectrumagr <file>] [roughagr <file>] [blockagr <file>]\n"
+          "\t[spectrumgnu <file>] [roughgnu <file>] [blockgnu <file>]\n"
+          "  Calculate capillary-wave surface tension (mN/m) for a liquid slab.\n"
+          "  normal x|y|z selects the slab normal (default z). gridspacing and\n"
+          "  sigmaxy apply in the interface plane; dz (alias dnormal) and sigmaz\n"
+          "  (alias sigmanormal) apply along the normal. <mask> should select\n"
+          "  interfacial density atoms (e.g. ':WAT@O'). Interfaces are a\n"
+          "  Willard-Chandler Gaussian density isosurface (default) or ITIM\n"
+          "  per-column min/max of <mask>, split at mid-box along the normal.\n"
+          "  Height fluctuations are Fourier transformed; gamma is the small-q\n"
+          "  plateau of q^2 <|h_q|^2>. kappa (kT) is the slope of 1/(q^2 S) vs\n"
+          "  q^2 on the same q window. lx/ly/lz optionally replace Cartesian box\n"
+          "  lengths. Lateral lengths are held fixed (NVT). Assumes an X-aligned\n"
+          "  orthogonal box. DataSets are always created; files are written only\n"
+          "  when the matching *out/*agr/*gnu keyword is given. *out format\n"
+          "  follows the extension (.agr/.xmgr = xmgrace, .gnu = gnuplot,\n"
+          "  otherwise ASCII). *agr/*gnu force Grace or gnuplot. In MPI,\n"
+          "  nblock is per-rank; spectra are summed onto the master.\n");
+>>>>>>> c51400c7 (Add 'surftension' command to calculate capillary-wave surface tension of a liquid slab)
 }
 
 // Action_SurfaceTension::Init()
 /** Parse keywords, allocate DataSets, attach optional output files.
+<<<<<<< HEAD
   * Spectrum / roughness meshes always exist so writedata can dump them after
   * Print() fills S(q). Files are written only if the matching *out / *agr /
   * *gnu keyword is given. Parent directories are checked here: DataFiles
   * open only after run, so a missing path would otherwise lose the write.
   * out is an alias for spectrumout. agr/gnu force Grace / gnuplot.
   * Contains() is called before getKey* so flags are not already consumed.
+=======
+  * Spectrum / roughness DataSets always exist so writedata can dump them.
+  * Files are written only if the matching *out / *agr / *gnu keyword is given.
+  * *out uses the DataFile writer for the filename extension (canonical
+  * cpptraj: .agr/.xmgr = Grace/xmgrace, .gnu = gnuplot). *agr/*gnu force
+  * DataFile::XMGRACE / GNUPLOT even when the extension is not recognized.
+>>>>>>> c51400c7 (Add 'surftension' command to calculate capillary-wave surface tension of a liquid slab)
   */
 Action::RetType Action_SurfaceTension::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
@@ -852,6 +1124,7 @@ Action::RetType Action_SurfaceTension::Init(ArgList& actionArgs, ActionInit& ini
 # endif
   debug_ = debugIn;
   // Optional output files. AddDataFile returns 0 if the keyword is absent.
+<<<<<<< HEAD
   // out == spectrumout (usual cpptraj keyword for the main result file).
   // fprefix is prepended to each basename so multiple runs can share a directory.
   std::string fprefix = actionArgs.GetStringKey("fprefix");
@@ -902,6 +1175,17 @@ Action::RetType Action_SurfaceTension::Init(ArgList& actionArgs, ActionInit& ini
       ST_CheckParentDir(roughGnu, "roughgnu") ||
       ST_CheckParentDir(blockGnu, "blockgnu"))
     return Action::ERR;
+=======
+  DataFile* spectrumFile = init.DFL().AddDataFile(actionArgs.GetStringKey("spectrumout"), actionArgs);
+  DataFile* roughFile    = init.DFL().AddDataFile(actionArgs.GetStringKey("roughout"), actionArgs);
+  DataFile* blockFile    = init.DFL().AddDataFile(actionArgs.GetStringKey("blockout"), actionArgs);
+  DataFile* spectrumAgr  = init.DFL().AddDataFile(actionArgs.GetStringKey("spectrumagr"), actionArgs, DataFile::XMGRACE);
+  DataFile* roughAgr     = init.DFL().AddDataFile(actionArgs.GetStringKey("roughagr"), actionArgs, DataFile::XMGRACE);
+  DataFile* blockAgr     = init.DFL().AddDataFile(actionArgs.GetStringKey("blockagr"), actionArgs, DataFile::XMGRACE);
+  DataFile* spectrumGnu  = init.DFL().AddDataFile(actionArgs.GetStringKey("spectrumgnu"), actionArgs, DataFile::GNUPLOT);
+  DataFile* roughGnu     = init.DFL().AddDataFile(actionArgs.GetStringKey("roughgnu"), actionArgs, DataFile::GNUPLOT);
+  DataFile* blockGnu     = init.DFL().AddDataFile(actionArgs.GetStringKey("blockgnu"), actionArgs, DataFile::GNUPLOT);
+>>>>>>> c51400c7 (Add 'surftension' command to calculate capillary-wave surface tension of a liquid slab)
 
   temp_ = actionArgs.getKeyDouble("temp", -1.0);
   if (temp_ <= 0.0) {
@@ -912,8 +1196,12 @@ Action::RetType Action_SurfaceTension::Init(ArgList& actionArgs, ActionInit& ini
   sigma_xy_ = actionArgs.getKeyDouble("sigmaxy", 2.5);
   bulk_halfwidth_ = actionArgs.getKeyDouble("bulkhalfwidth", 5.0);
   threshold_frac_ = actionArgs.getKeyDouble("threshold", 0.5);
+<<<<<<< HEAD
   qmin_specified_ = actionArgs.Contains("qmin");
   qmin_ = actionArgs.getKeyDouble("qmin", -1.0);
+=======
+  qmin_ = actionArgs.getKeyDouble("qmin", 0.033283);
+>>>>>>> c51400c7 (Add 'surftension' command to calculate capillary-wave surface tension of a liquid slab)
   qmax_ = actionArgs.getKeyDouble("qmax", 0.174649);
   bool has_lx = actionArgs.Contains("lx");
   bool has_ly = actionArgs.Contains("ly");
@@ -921,11 +1209,15 @@ Action::RetType Action_SurfaceTension::Init(ArgList& actionArgs, ActionInit& ini
   lx_user_ = actionArgs.getKeyDouble("lx", -1.0);
   ly_user_ = actionArgs.getKeyDouble("ly", -1.0);
   lz_user_ = actionArgs.getKeyDouble("lz", -1.0);
+<<<<<<< HEAD
   bool has_nblock = actionArgs.Contains("nblock");
   bool has_blocktime = actionArgs.Contains("blocktime");
   nblock_ = actionArgs.getKeyInt("nblock", 0);
   dt_ = actionArgs.getKeyDouble("dt", -1.0);
   blocktime_ = actionArgs.getKeyDouble("blocktime", -1.0);
+=======
+  nblock_ = actionArgs.getKeyInt("nblock", 0);
+>>>>>>> c51400c7 (Add 'surftension' command to calculate capillary-wave surface tension of a liquid slab)
 
   // dz / dnormal and sigmaz / sigmanormal are aliases (normal-axis spacing / sigma).
   bool has_dz = actionArgs.Contains("dz");
@@ -982,6 +1274,7 @@ Action::RetType Action_SurfaceTension::Init(ArgList& actionArgs, ActionInit& ini
     return Action::ERR;
   }
 
+<<<<<<< HEAD
   nsurf_ = actionArgs.getKeyInt("nsurf", 2);
   if (nsurf_ != 1 && nsurf_ != 2) {
     mprinterr("Error: nsurf must be 1 or 2.\n");
@@ -1023,6 +1316,8 @@ Action::RetType Action_SurfaceTension::Init(ArgList& actionArgs, ActionInit& ini
     if (Mask2_.SetMaskString(mask2exp)) return Action::ERR;
   }
 
+=======
+>>>>>>> c51400c7 (Add 'surftension' command to calculate capillary-wave surface tension of a liquid slab)
   if (has_lx && lx_user_ <= 0.0) {
     mprinterr("Error: lx must be > 0.\n");
     return Action::ERR;
@@ -1058,6 +1353,7 @@ Action::RetType Action_SurfaceTension::Init(ArgList& actionArgs, ActionInit& ini
     mprinterr("Error: bulkhalfwidth must be > 0.\n");
     return Action::ERR;
   }
+<<<<<<< HEAD
   if (qmax_ <= 0.0) {
     mprinterr("Error: qmax must be > 0.\n");
     return Action::ERR;
@@ -1093,12 +1389,22 @@ Action::RetType Action_SurfaceTension::Init(ArgList& actionArgs, ActionInit& ini
     }
     nblock_ = nfromtime;
   }
+=======
+  if (qmax_ <= qmin_) {
+    mprinterr("Error: qmax must be greater than qmin.\n");
+    return Action::ERR;
+  }
+>>>>>>> c51400c7 (Add 'surftension' command to calculate capillary-wave surface tension of a liquid slab)
   if (nblock_ < 0) {
     mprinterr("Error: nblock must be >= 0.\n");
     return Action::ERR;
   }
   if ((blockFile != 0 || blockAgr != 0 || blockGnu != 0) && nblock_ < 1) {
+<<<<<<< HEAD
     mprinterr("Error: 'blockout'/'blockagr'/'blockgnu' require 'nblock' or 'blocktime'.\n");
+=======
+    mprinterr("Error: 'blockout'/'blockagr'/'blockgnu' require 'nblock <frames>'.\n");
+>>>>>>> c51400c7 (Add 'surftension' command to calculate capillary-wave surface tension of a liquid slab)
     return Action::ERR;
   }
 
@@ -1145,7 +1451,11 @@ Action::RetType Action_SurfaceTension::Init(ArgList& actionArgs, ActionInit& ini
   kappaq_top_->SetDim(Dimension::X, qdim);
   kappaq_bot_->SetDim(Dimension::X, qdim);
   // Print() fills these from the accumulated spectra; they are not time series.
+<<<<<<< HEAD
   // MPI: SyncAction reduces |h_q|²; skip DataSet concat of empty meshes.
+=======
+  // MPI: SyncAction reduces |h_q|^2; skip DataSet concat of empty meshes.
+>>>>>>> c51400c7 (Add 'surftension' command to calculate capillary-wave surface tension of a liquid slab)
 # ifdef MPI
   S_->SetNeedsSync(false); S_top_->SetNeedsSync(false); S_bot_->SetNeedsSync(false);
   q2S_->SetNeedsSync(false); q2S_top_->SetNeedsSync(false); q2S_bot_->SetNeedsSync(false);
@@ -1193,8 +1503,11 @@ Action::RetType Action_SurfaceTension::Init(ArgList& actionArgs, ActionInit& ini
 
   mprintf("    SURFTENSION: Capillary-wave surface tension.\n");
   mprintf("\tMask: '%s'\n", Mask_.MaskString());
+<<<<<<< HEAD
   if (has_mask2_)
     mprintf("\tMask2 (lower surface): '%s'\n", Mask2_.MaskString());
+=======
+>>>>>>> c51400c7 (Add 'surftension' command to calculate capillary-wave surface tension of a liquid slab)
   {
     const char* t1 = 0;
     const char* t2 = 0;
@@ -1202,6 +1515,7 @@ Action::RetType Action_SurfaceTension::Init(ArgList& actionArgs, ActionInit& ini
     mprintf("\tSlab normal: %s (interface plane %s-%s)\n",
             ST_AxisName((int)normal_), t1, t2);
   }
+<<<<<<< HEAD
   if (nsurf_ == 2)
     mprintf("\tSurfaces: 2 (upper and lower; vacuum/second phase on both sides).\n");
   else
@@ -1210,14 +1524,21 @@ Action::RetType Action_SurfaceTension::Init(ArgList& actionArgs, ActionInit& ini
     mprintf("\tInterface: Willard-Chandler density isosurface.\n");
   else if (has_mask2_)
     mprintf("\tInterface: ITIM (upper = max of mask, lower = min of mask2).\n");
+=======
+  if (iface_ == WILLARD)
+    mprintf("\tInterface: Willard-Chandler density isosurface.\n");
+>>>>>>> c51400c7 (Add 'surftension' command to calculate capillary-wave surface tension of a liquid slab)
   else
     mprintf("\tInterface: ITIM min/max (per-column, split at mid-box along %s).\n",
             ST_AxisName((int)normal_));
   mprintf("\tTemperature= %g K\n", temp_);
+<<<<<<< HEAD
   mprintf("\tLateral box lengths: from the unit cell");
   if (lx_user_ > 0.0 || ly_user_ > 0.0 || lz_user_ > 0.0)
     mprintf(" (some Cartesian lengths overridden)");
   mprintf(".\n");
+=======
+>>>>>>> c51400c7 (Add 'surftension' command to calculate capillary-wave surface tension of a liquid slab)
   mprintf("\tInterface-plane grid spacing= %g Ang\n", gridspacing_);
   if (iface_ == WILLARD) {
     mprintf("\tNormal-axis bin spacing (dz)= %g Ang\n", dz_);
@@ -1228,6 +1549,7 @@ Action::RetType Action_SurfaceTension::Init(ArgList& actionArgs, ActionInit& ini
   } else {
     mprintf("\tBulk half-width (rho_bulk only)= %g Ang\n", bulk_halfwidth_);
   }
+<<<<<<< HEAD
   if (qmin_specified_)
     mprintf("\tFit q range= %g to %g Ang^-1\n", qmin_, qmax_);
   else
@@ -1237,6 +1559,10 @@ Action::RetType Action_SurfaceTension::Init(ArgList& actionArgs, ActionInit& ini
   mprintf("\tHeight-field 2-D FFT: PubFFT (numpy fft2 / (nx*ny)).\n");
   if (!fprefix.empty())
     mprintf("\tOutput file prefix: '%s'\n", fprefix.c_str());
+=======
+  mprintf("\tFit q range= %g to %g Ang^-1\n", qmin_, qmax_);
+  mprintf("\tHelfrich kappa: linear fit of 1/(q^2 S) vs q^2 on that window.\n");
+>>>>>>> c51400c7 (Add 'surftension' command to calculate capillary-wave surface tension of a liquid slab)
   if (lx_user_ > 0.0)
     mprintf("\tUsing fixed Lx= %g Ang (%s)\n", lx_user_,
             (normal_ == AXIS_X) ? "normal" : "lateral");
@@ -1248,8 +1574,11 @@ Action::RetType Action_SurfaceTension::Init(ArgList& actionArgs, ActionInit& ini
             (normal_ == AXIS_Z) ? "normal" : "lateral");
   if (nblock_ > 0) {
     mprintf("\tBlock averaging every %i analyzed frames", nblock_);
+<<<<<<< HEAD
     if (blocktime_ > 0.0 && dt_ > 0.0)
       mprintf(" (blocktime %g ps, dt %g ps)", blocktime_, dt_);
+=======
+>>>>>>> c51400c7 (Add 'surftension' command to calculate capillary-wave surface tension of a liquid slab)
 #   ifdef MPI
     if (trajComm_.Size() > 1)
       mprintf(" (per rank)");
@@ -1283,8 +1612,11 @@ Action::RetType Action_SurfaceTension::Init(ArgList& actionArgs, ActionInit& ini
     mprintf("\tBlock Grace output to '%s'\n", blockAgr->DataFilename().full());
   if (blockGnu != 0)
     mprintf("\tBlock gnuplot output to '%s'\n", blockGnu->DataFilename().full());
+<<<<<<< HEAD
   if (summaryFile_ != 0)
     mprintf("\tSummary output to '%s'\n", summaryFile_->Filename().full());
+=======
+>>>>>>> c51400c7 (Add 'surftension' command to calculate capillary-wave surface tension of a liquid slab)
 # ifdef _OPENMP
   {
     int nthreads = 1;
@@ -1294,8 +1626,15 @@ Action::RetType Action_SurfaceTension::Init(ArgList& actionArgs, ActionInit& ini
       nthreads = omp_get_num_threads();
     }
     if (nthreads > 1) {
+<<<<<<< HEAD
       if (iface_ == WILLARD)
         mprintf("\tOpenMP: 3-D Gaussian filter parallelized with %i threads.\n", nthreads);
+=======
+      mprintf("\tOpenMP: 2-D DFT");
+      if (iface_ == WILLARD)
+        mprintf(" and 3-D Gaussian filter");
+      mprintf(" parallelized with %i threads.\n", nthreads);
+>>>>>>> c51400c7 (Add 'surftension' command to calculate capillary-wave surface tension of a liquid slab)
     }
   }
 # endif
@@ -1307,9 +1646,12 @@ Action::RetType Action_SurfaceTension::Init(ArgList& actionArgs, ActionInit& ini
 }
 
 // Action_SurfaceTension::Setup()
+<<<<<<< HEAD
 /** Require an orthorhombic unit cell (L₁, L₂, L_n) and bind the mask(s).
   * Non-X-aligned boxes are warned: laterals are wrapped independently.
   */
+=======
+>>>>>>> c51400c7 (Add 'surftension' command to calculate capillary-wave surface tension of a liquid slab)
 Action::RetType Action_SurfaceTension::Setup(ActionSetup& setup)
 {
   if (!setup.CoordInfo().HasBox()) {
@@ -1327,6 +1669,7 @@ Action::RetType Action_SurfaceTension::Setup(ActionSetup& setup)
     mprintf("Warning: Mask '%s' selects no atoms.\n", Mask_.MaskString());
     return Action::SKIP;
   }
+<<<<<<< HEAD
   if (has_mask2_) {
     if (setup.Top().SetupIntegerMask(Mask2_)) return Action::ERR;
     Mask2_.MaskInfo();
@@ -1335,15 +1678,20 @@ Action::RetType Action_SurfaceTension::Setup(ActionSetup& setup)
       return Action::SKIP;
     }
   }
+=======
+>>>>>>> c51400c7 (Add 'surftension' command to calculate capillary-wave surface tension of a liquid slab)
   return Action::OK;
 }
 
 // Action_SurfaceTension::AllocateGrid()
+<<<<<<< HEAD
 /** First good frame: freeze N₁, N₂, L₁, L₂ and (Willard) N_n.
   * Allocates ρ, h, |h_q|² accumulators, PubFFT plans, and q_α = 2π n_α / L_α.
   * If q_min was omitted it is set to 2π / max(L₁, L₂).
   * \return 0 OK, 1 fatal (FFT setup or q_max ≤ q_min).
   */
+=======
+>>>>>>> c51400c7 (Add 'surftension' command to calculate capillary-wave surface tension of a liquid slab)
 int Action_SurfaceTension::AllocateGrid(int nx, int ny, int nz) {
   nx_ = nx;
   ny_ = ny;
@@ -1354,16 +1702,20 @@ int Action_SurfaceTension::AllocateGrid(int nx, int ny, int nz) {
     density_.assign(n3, 0.0);
   else
     density_.clear();
+<<<<<<< HEAD
   if (nz > 0 && has_mask2_)
     density2_.assign(n3, 0.0);
   else
     density2_.clear();
+=======
+>>>>>>> c51400c7 (Add 'surftension' command to calculate capillary-wave surface tension of a liquid slab)
   h_upper_.assign(n2, 0.0);
   h_lower_.assign(n2, 0.0);
   total_power_.assign(n2, 0.0);
   top_power_.assign(n2, 0.0);
   bottom_power_.assign(n2, 0.0);
   block_power_.assign(n2, 0.0);
+<<<<<<< HEAD
   if (fft_n1_.SetupFFTforN(nx_) || fft_n2_.SetupFFTforN(ny_)) {
     mprinterr("Error: Could not set up 2-D FFT (nx = %i, ny = %i).\n", nx_, ny_);
     return 1;
@@ -1372,6 +1724,10 @@ int Action_SurfaceTension::AllocateGrid(int nx, int ny, int nz) {
   fft_row_.Allocate(ny_);
   fft_col_.Allocate(nx_);
   ST_MakeQGrid(nx_, ny_, Lt1_ref_, Lt2_ref_, q_grid_);
+=======
+  ST_MakeQGrid(nx_, ny_, Lt1_ref_, Lt2_ref_, q_grid_);
+  grid_ready_ = true;
+>>>>>>> c51400c7 (Add 'surftension' command to calculate capillary-wave surface tension of a liquid slab)
   double qmin_acc = 0.0;
   bool haveq = false;
   for (size_t i = 0; i < q_grid_.size(); i++) {
@@ -1386,6 +1742,7 @@ int Action_SurfaceTension::AllocateGrid(int nx, int ny, int nz) {
   mprintf("\tInterface grid = %i x %i", nx_, ny_);
   if (nz_ > 0)
     mprintf(" x %i", nz_);
+<<<<<<< HEAD
   mprintf(" bins along %s, %s", t1, t2);
   if (nz_ > 0)
     mprintf(", %s", ST_AxisName((int)normal_));
@@ -1603,6 +1960,23 @@ void Action_SurfaceTension::HeightPower(std::vector<double> const& h,
   * frames must keep the same lateral box (NVT). Combined power is summed
   * over the surfaces actually used (nsurf 1 or 2).
   * \return 0 OK, 1 skip frame, 2 fatal (grid or L₁, L₂ changed).
+=======
+  mprintf(" (%s x %s", t1, t2);
+  if (nz_ > 0)
+    mprintf(" x %s", ST_AxisName((int)normal_));
+  mprintf(")\n");
+  mprintf("\t%s x %s = %g x %g Ang\n", t1, t2, Lt1_ref_, Lt2_ref_);
+  if (haveq)
+    mprintf("\tSmallest accessible q = %g Ang^-1\n", qmin_acc);
+  return 0;
+}
+
+// Action_SurfaceTension::ProcessFrame()
+/** Wrap laterals, recenter along the normal, build instantaneous interfaces,
+  * then accumulate roughness and |h_q|^2. First good frame freezes nx, ny,
+  * Lt1, Lt2 (and nz for Willard-Chandler). Cartesian Lx/Ly/Lz are permuted
+  * into (Lt1, Lt2, Ln) according to normal_.
+>>>>>>> c51400c7 (Add 'surftension' command to calculate capillary-wave surface tension of a liquid slab)
   */
 int Action_SurfaceTension::ProcessFrame(Frame const& frm, double Lx, double Ly, double Lz)
 {
@@ -1610,6 +1984,7 @@ int Action_SurfaceTension::ProcessFrame(Frame const& frm, double Lx, double Ly, 
   double Lt1, Lt2, Ln;
   ST_SplitBox(nax, Lx, Ly, Lz, Lt1, Lt2, Ln);
 
+<<<<<<< HEAD
   std::vector<double> t1, t2, n;
   ST_SplitAtomCoords(frm, Mask_, nax, Lx, Ly, Lz, t1, t2, n);
   int natom = Mask_.Nselected();
@@ -1626,6 +2001,23 @@ int Action_SurfaceTension::ProcessFrame(Frame const& frm, double Lx, double Ly, 
     ST_CircularRecenter(n, Ln);
   }
 
+=======
+  int natom = Mask_.Nselected();
+  std::vector<double> t1((size_t)natom), t2((size_t)natom), n((size_t)natom);
+  int idx = 0;
+  for (AtomMask::const_iterator at = Mask_.begin(); at != Mask_.end(); ++at, ++idx) {
+    const double* xyz = frm.XYZ(*at);
+    double a, b, c;
+    ST_SplitXYZ(nax, xyz[0], xyz[1], xyz[2], a, b, c);
+    t1[idx] = ST_Wrap(a, Lt1);
+    t2[idx] = ST_Wrap(b, Lt2);
+    n[idx] = c;
+  }
+  ST_CircularRecenter(n, Ln);
+
+  // Same bin counts as the reference Python: max(8, round(L/spacing)) in the
+  // interface plane, max(32, round(Ln/dz)) along the normal (Willard only).
+>>>>>>> c51400c7 (Add 'surftension' command to calculate capillary-wave surface tension of a liquid slab)
   int nx = std::max(8, ST_IRound(Lt1 / gridspacing_));
   int ny = std::max(8, ST_IRound(Lt2 / gridspacing_));
   int nz = 0;
@@ -1635,7 +2027,11 @@ int Action_SurfaceTension::ProcessFrame(Frame const& frm, double Lx, double Ly, 
   if (!grid_ready_) {
     Lt1_ref_ = Lt1;
     Lt2_ref_ = Lt2;
+<<<<<<< HEAD
     if (AllocateGrid(nx, ny, nz)) return 2;
+=======
+    AllocateGrid(nx, ny, nz);
+>>>>>>> c51400c7 (Add 'surftension' command to calculate capillary-wave surface tension of a liquid slab)
   } else {
     if (nx != nx_ || ny != ny_) {
       mprinterr("Error: Interface grid dimensions changed during the trajectory.\n");
@@ -1645,12 +2041,20 @@ int Action_SurfaceTension::ProcessFrame(Frame const& frm, double Lx, double Ly, 
       mprinterr("Error: Lateral box dimensions changed. surftension assumes a fixed interface plane (NVT).\n");
       return 2;
     }
+<<<<<<< HEAD
     if (iface_ == WILLARD && nz != nz_)
       nz = nz_;
+=======
+    if (iface_ == WILLARD && nz != nz_) {
+      // Normal-axis length may jitter slightly; keep the first-frame nz.
+      nz = nz_;
+    }
+>>>>>>> c51400c7 (Add 'surftension' command to calculate capillary-wave surface tension of a liquid slab)
   }
 
   double rho_bulk = 0.0;
   if (iface_ == ITIM) {
+<<<<<<< HEAD
     if (has_mask2_) {
       rho_bulk = ST_RhoBulkFromAtoms(n, natom, Lt1, Lt2, Ln, bulk_halfwidth_);
       if (!ST_ItimTwoMasks(t1, t2, n, natom, t1b, t2b, nb, natom2,
@@ -1705,13 +2109,133 @@ int Action_SurfaceTension::ProcessFrame(Frame const& frm, double Lx, double Ly, 
   for (size_t i = 0; i < top_power_.size(); i++) {
     if (do_upper_) top_power_[i] += p_upper[i];
     if (do_lower_) bottom_power_[i] += p_lower[i];
+=======
+    rho_bulk = ST_RhoBulkFromAtoms(n, natom, Lt1, Lt2, Ln, bulk_halfwidth_);
+    if (!ST_ItimMinMax(t1, t2, n, natom, Lt1, Lt2, Ln, nx_, ny_, h_upper_, h_lower_)) {
+      mprintf("Warning: Empty ITIM column; skipping frame.\n");
+      return 1;
+    }
+  } else {
+    double dx = Lt1 / (double)nx_;
+    double dy = Lt2 / (double)ny_;
+    double dz = Ln / (double)nz_;
+    double voxel = dx * dy * dz;
+    // Histogram counts, then convert to number density (Ang^-3).
+    std::fill(density_.begin(), density_.end(), 0.0);
+    for (int i = 0; i < natom; i++) {
+      int ix = (int)floor(t1[i] / dx);
+      int iy = (int)floor(t2[i] / dy);
+      int iz = (int)floor(n[i] / dz);
+      if (ix < 0) ix = 0;
+      if (iy < 0) iy = 0;
+      if (iz < 0) iz = 0;
+      if (ix >= nx_) ix = nx_ - 1;
+      if (iy >= ny_) iy = ny_ - 1;
+      if (iz >= nz_) iz = nz_ - 1;
+      density_[ST_Idx3(ix, iy, iz, ny_, nz_)] += 1.0;
+    }
+    if (voxel > 0.0) {
+      for (size_t i = 0; i < density_.size(); i++)
+        density_[i] /= voxel;
+    }
+
+    ST_GaussianFilter3D(density_, nx_, ny_, nz_,
+                        sigma_xy_ / dx, sigma_xy_ / dy, sigma_z_ / dz);
+
+    // Bin centers, matching 0.5 * (edges[:-1] + edges[1:]) of numpy.histogramdd.
+    std::vector<double> n_grid((size_t)nz_);
+    for (int iz = 0; iz < nz_; iz++)
+      n_grid[iz] = ((double)iz + 0.5) * dz;
+    double slab_center = 0.5 * Ln;
+    int center_index = 0;
+    double best = fabs(n_grid[0] - slab_center);
+    for (int iz = 1; iz < nz_; iz++) {
+      double d = fabs(n_grid[iz] - slab_center);
+      if (d < best) {
+        best = d;
+        center_index = iz;
+      }
+    }
+
+    std::vector<double> rho_n((size_t)nz_, 0.0);
+    double nxy = (double)(nx_ * ny_);
+    for (int ix = 0; ix < nx_; ix++) {
+      for (int iy = 0; iy < ny_; iy++) {
+        for (int iz = 0; iz < nz_; iz++)
+          rho_n[iz] += density_[ST_Idx3(ix, iy, iz, ny_, nz_)];
+      }
+    }
+    for (int iz = 0; iz < nz_; iz++)
+      rho_n[iz] /= nxy;
+
+    // rho_bulk is the laterally averaged density within +/- bulk_halfwidth of Ln/2.
+    double rho_bulk_acc = 0.0;
+    int nbulk = 0;
+    for (int iz = 0; iz < nz_; iz++) {
+      if (fabs(n_grid[iz] - slab_center) <= bulk_halfwidth_) {
+        rho_bulk_acc += rho_n[iz];
+        nbulk++;
+      }
+    }
+    if (nbulk < 1) {
+      mprintf("Warning: No bins along the normal fall within the bulk region; skipping frame.\n");
+      return 1;
+    }
+    rho_bulk = rho_bulk_acc / (double)nbulk;
+    if (rho_bulk <= 0.0) {
+      mprintf("Warning: Bulk density is non-positive; skipping frame.\n");
+      return 1;
+    }
+    double threshold = threshold_frac_ * rho_bulk;
+
+    // One height pair per lateral column. Any missing crossing skips the frame.
+    std::vector<double> col((size_t)nz_);
+    bool ok = true;
+    for (int ix = 0; ix < nx_ && ok; ix++) {
+      for (int iy = 0; iy < ny_; iy++) {
+        for (int iz = 0; iz < nz_; iz++)
+          col[iz] = density_[ST_Idx3(ix, iy, iz, ny_, nz_)];
+        double hu = ST_FindCrossing(n_grid, col, threshold, center_index, true);
+        double hl = ST_FindCrossing(n_grid, col, threshold, center_index, false);
+        if (!ST_Finite(hu) || !ST_Finite(hl)) {
+          ok = false;
+          break;
+        }
+        h_upper_[ST_Idx2(ix, iy, ny_)] = hu;
+        h_lower_[ST_Idx2(ix, iy, ny_)] = hl;
+      }
+    }
+    if (!ok) {
+      mprintf("Warning: Could not identify a local interface; skipping frame.\n");
+      return 1;
+    }
+  }
+
+  double w_top = ST_RMS(h_upper_);
+  double w_bot = ST_RMS(h_lower_);
+  double w_mean = 0.5 * (w_top + w_bot);
+
+  // Combined spectrum averages both surfaces (n_surfaces_ = 2 n_frames_).
+  std::vector<double> p_upper, p_lower;
+  ST_HeightPower(h_upper_, nx_, ny_, p_upper);
+  ST_HeightPower(h_lower_, nx_, ny_, p_lower);
+
+  for (size_t i = 0; i < top_power_.size(); i++) {
+    top_power_[i] += p_upper[i];
+    bottom_power_[i] += p_lower[i];
+>>>>>>> c51400c7 (Add 'surftension' command to calculate capillary-wave surface tension of a liquid slab)
     total_power_[i] += p_upper[i] + p_lower[i];
     block_power_[i] += p_upper[i] + p_lower[i];
   }
 
   n_frames_++;
+<<<<<<< HEAD
   n_surfaces_ += nsurf_this;
   block_surface_count_ += nsurf_this;
+=======
+  n_surfaces_ += 2;
+  block_surface_count_ += 2;
+>>>>>>> c51400c7 (Add 'surftension' command to calculate capillary-wave surface tension of a liquid slab)
   block_frame_count_++;
   block_w_sum_ += w_mean;
   block_wtop_sum_ += w_top;
@@ -1730,10 +2254,14 @@ int Action_SurfaceTension::ProcessFrame(Frame const& frm, double Lx, double Ly, 
 }
 
 // Action_SurfaceTension::FinishBlock()
+<<<<<<< HEAD
 /** Close one nblock window: S(q) = (Σ |h_q|²) / n_surfaces in the block,
   * then the same CWT γ / κ fits as Print(). Incomplete final window is
   * left in the running spectra but not written to blockout.
   */
+=======
+/** Average the open-block power, fit γ and κ, store roughness means, then reset. */
+>>>>>>> c51400c7 (Add 'surftension' command to calculate capillary-wave surface tension of a liquid slab)
 int Action_SurfaceTension::FinishBlock() {
   if (block_surface_count_ < 1 || block_frame_count_ < 1) return 0;
   std::vector<double> spec(block_power_.size());
@@ -1746,7 +2274,10 @@ int Action_SurfaceTension::FinishBlock() {
   int err_g = ST_CalcGamma(shells, temp_, Lt1_ref_ * Lt2_ref_, qmin_, qmax_, gamma, plateau);
   int err_k = ST_CalcKappa(shells, temp_, Lt1_ref_ * Lt2_ref_, qmin_, qmax_, gamma_k, kappa_kT);
   (void)gamma_k;
+<<<<<<< HEAD
   (void)err_k;
+=======
+>>>>>>> c51400c7 (Add 'surftension' command to calculate capillary-wave surface tension of a liquid slab)
   if (err_g) {
     mprintf("Warning: Block %i: fewer than two q shells in the fit range; skipping block gamma.\n",
             n_blocks_ + 1);
@@ -1762,6 +2293,15 @@ int Action_SurfaceTension::FinishBlock() {
       block_wtop_->Add(n_blocks_, &wtop);
       block_wbot_->Add(n_blocks_, &wbot);
     }
+<<<<<<< HEAD
+=======
+    if (err_k)
+      mprintf("\tBlock %i: gamma = %g mN/m, roughness = %g Ang\n",
+              n_blocks_ + 1, gamma, wmean);
+    else
+      mprintf("\tBlock %i: gamma = %g mN/m, kappa = %g kT, roughness = %g Ang\n",
+              n_blocks_ + 1, gamma, kappa_kT, wmean);
+>>>>>>> c51400c7 (Add 'surftension' command to calculate capillary-wave surface tension of a liquid slab)
     n_blocks_++;
   }
   std::fill(block_power_.begin(), block_power_.end(), 0.0);
@@ -1772,6 +2312,7 @@ int Action_SurfaceTension::FinishBlock() {
 }
 
 // Action_SurfaceTension::DoAction()
+<<<<<<< HEAD
 /** Read the unit-cell lengths (or lx/ly/lz overrides) and ProcessFrame.
   * Skip (Action::OK) if the box is missing or a crossing failed; ERR if
   * the lateral grid changed (not NVT).
@@ -1780,6 +2321,12 @@ Action::RetType Action_SurfaceTension::DoAction(int, ActionFrame& frm)
 {
   if (!frm.Frm().BoxCrd().HasBox()) {
     SkipWarn("Frame has no box; skipping.");
+=======
+Action::RetType Action_SurfaceTension::DoAction(int, ActionFrame& frm)
+{
+  if (!frm.Frm().BoxCrd().HasBox()) {
+    mprintf("Warning: Frame has no box; skipping.\n");
+>>>>>>> c51400c7 (Add 'surftension' command to calculate capillary-wave surface tension of a liquid slab)
     n_skipped_++;
     return Action::OK;
   }
@@ -1789,7 +2336,11 @@ Action::RetType Action_SurfaceTension::DoAction(int, ActionFrame& frm)
   double Ly = (ly_user_ > 0.0) ? ly_user_ : lengths[1];
   double Lz = (lz_user_ > 0.0) ? lz_user_ : lengths[2];
   if (Lx <= 0.0 || Ly <= 0.0 || Lz <= 0.0) {
+<<<<<<< HEAD
     SkipWarn("Invalid box lengths; skipping frame.");
+=======
+    mprintf("Warning: Invalid box lengths; skipping frame.\n");
+>>>>>>> c51400c7 (Add 'surftension' command to calculate capillary-wave surface tension of a liquid slab)
     n_skipped_++;
     return Action::OK;
   }
@@ -1804,6 +2355,7 @@ Action::RetType Action_SurfaceTension::DoAction(int, ActionFrame& frm)
 
 #ifdef MPI
 // Action_SurfaceTension::SyncAction()
+<<<<<<< HEAD
 /** Reduce per-rank |h_q|² so Print() sees the global S(q) = ⟨|h_q|²⟩.
   * Counts (frames, surfaces, skipped) AllReduce SUM. Grid size, L₁, L₂,
   * q_min, and q_fundamental AllReduce MAX so empty ranks (zeros) do not
@@ -1811,6 +2363,12 @@ Action::RetType Action_SurfaceTension::DoAction(int, ActionFrame& frm)
   * power; |q| is a separate MAX. Roughness and block series stay on
   * DataSet::Sync (concat by rank). nblock is per-rank. Print() is master
   * only.
+=======
+/** Radial-style reduction. Three small AllReduces (counts SUM, grid MAX, lateral
+  * box MAX) then one packed ReduceMaster SUM of combined/upper/lower |h_q|^2 onto
+  * the master. |q| uses a separate MAX (different MPI_Op). Print() is master
+  * only. Roughness / block series use DataSet::Sync (concat by rank).
+>>>>>>> c51400c7 (Add 'surftension' command to calculate capillary-wave surface tension of a liquid slab)
   */
 int Action_SurfaceTension::SyncAction() {
   if (trajComm_.Size() < 2) return 0;
@@ -1828,12 +2386,19 @@ int Action_SurfaceTension::SyncAction() {
   int n2max = imax[0];
   nx_ = imax[1];
   ny_ = imax[2];
+<<<<<<< HEAD
   double box[4] = { Lt1_ref_, Lt2_ref_, qmin_, q_fundamental_ };
   trajComm_.AllReduce(box, 4, MPI_DOUBLE, MPI_MAX);
   Lt1_ref_ = box[0];
   Lt2_ref_ = box[1];
   qmin_ = box[2];
   q_fundamental_ = box[3];
+=======
+  double box[2] = { Lt1_ref_, Lt2_ref_ };
+  trajComm_.AllReduce(box, 2, MPI_DOUBLE, MPI_MAX);
+  Lt1_ref_ = box[0];
+  Lt2_ref_ = box[1];
+>>>>>>> c51400c7 (Add 'surftension' command to calculate capillary-wave surface tension of a liquid slab)
 
   if (n2max < 1) return 0;
   if (n2 != 0 && n2 != n2max) {
@@ -1879,11 +2444,15 @@ int Action_SurfaceTension::SyncAction() {
 #endif
 
 // Action_SurfaceTension::Print()
+<<<<<<< HEAD
 /** Form S(q) = (Σ |h_q|²) / n_surfaces, shell-average, then the CWT fits
   *   γ = k_B T / (A ⟨q² S⟩) ,   1/(q² S) = (A / k_B T) (γ + κ q²)
   * Fill the q-meshes, print the numeric summary, and write summaryout.
   * Per-block γ / κ are printed here, not during the frame loop.
   */
+=======
+/** Average accumulated spectra, fill q-meshes, report γ / roughness / blocks. */
+>>>>>>> c51400c7 (Add 'surftension' command to calculate capillary-wave surface tension of a liquid slab)
 void Action_SurfaceTension::Print()
 {
   const char* t1 = 0;
@@ -1896,12 +2465,15 @@ void Action_SurfaceTension::Print()
     mprintf("\tInterface: Willard-Chandler density isosurface.\n");
   else
     mprintf("\tInterface: ITIM min/max.\n");
+<<<<<<< HEAD
   mprintf("\tSurfaces: %i", nsurf_);
   if (nsurf_ == 1)
     mprintf(" (%s)", (side_ == SIDE_UPPER) ? "upper" : "lower");
   mprintf("\n");
   if (has_mask2_)
     mprintf("\tMask2 (lower): '%s'\n", Mask2_.MaskString());
+=======
+>>>>>>> c51400c7 (Add 'surftension' command to calculate capillary-wave surface tension of a liquid slab)
   if (nblock_ > 0 && block_frame_count_ > 0) {
     mprintf("\tNOTE: Incomplete nblock window (%i frames) excluded from blockout.\n",
             block_frame_count_);
@@ -1911,11 +2483,14 @@ void Action_SurfaceTension::Print()
     if (n_skipped_ > 0)
       mprinterr(" (%i skipped)", n_skipped_);
     mprinterr(".\n");
+<<<<<<< HEAD
     if (summaryFile_ != 0) {
       summaryFile_->Printf("# surftension summary\n");
       ST_SummaryI(summaryFile_, "frames", 0);
       ST_SummaryI(summaryFile_, "skipped", n_skipped_);
     }
+=======
+>>>>>>> c51400c7 (Add 'surftension' command to calculate capillary-wave surface tension of a liquid slab)
     return;
   }
 
@@ -1932,9 +2507,15 @@ void Action_SurfaceTension::Print()
 
   // Fit γ on the combined, upper-only, and lower-only shells.
   double area = Lt1_ref_ * Lt2_ref_;
+<<<<<<< HEAD
   double gamma_full = ST_NaN(), plateau = ST_NaN();
   double gamma_top = ST_NaN(), plateau_top = ST_NaN();
   double gamma_bot = ST_NaN(), plateau_bot = ST_NaN();
+=======
+  double gamma_full, plateau;
+  double gamma_top, plateau_top;
+  double gamma_bot, plateau_bot;
+>>>>>>> c51400c7 (Add 'surftension' command to calculate capillary-wave surface tension of a liquid slab)
   std::vector<ST_Shell> top_only = shells;
   std::vector<ST_Shell> bot_only = shells;
   for (size_t i = 0; i < shells.size(); i++) {
@@ -1942,6 +2523,7 @@ void Action_SurfaceTension::Print()
     bot_only[i].S = shells[i].Sbot;
   }
   int err_full = ST_CalcGamma(shells, temp_, area, qmin_, qmax_, gamma_full, plateau);
+<<<<<<< HEAD
   int err_top = 1, err_bot = 1;
   if (do_upper_)
     err_top = ST_CalcGamma(top_only, temp_, area, qmin_, qmax_, gamma_top, plateau_top);
@@ -1958,6 +2540,16 @@ void Action_SurfaceTension::Print()
     err_kh_top = ST_CalcKappa(top_only, temp_, area, qmin_, qmax_, gamma_h_top, kappa_h_top);
   if (do_lower_)
     err_kh_bot = ST_CalcKappa(bot_only, temp_, area, qmin_, qmax_, gamma_h_bot, kappa_h_bot);
+=======
+  int err_top  = ST_CalcGamma(top_only, temp_, area, qmin_, qmax_, gamma_top, plateau_top);
+  int err_bot  = ST_CalcGamma(bot_only, temp_, area, qmin_, qmax_, gamma_bot, plateau_bot);
+  (void)plateau_top;
+  (void)plateau_bot;
+  double gamma_h, kappa_h, gamma_h_top, kappa_h_top, gamma_h_bot, kappa_h_bot;
+  int err_kh     = ST_CalcKappa(shells, temp_, area, qmin_, qmax_, gamma_h, kappa_h);
+  int err_kh_top = ST_CalcKappa(top_only, temp_, area, qmin_, qmax_, gamma_h_top, kappa_h_top);
+  int err_kh_bot = ST_CalcKappa(bot_only, temp_, area, qmin_, qmax_, gamma_h_bot, kappa_h_bot);
+>>>>>>> c51400c7 (Add 'surftension' command to calculate capillary-wave surface tension of a liquid slab)
   double gamma_for_kappaq = err_kh ? gamma_full : gamma_h;
 
   double slope     = ST_LogSlope(shells, qmin_, qmax_, &ST_Shell::S);
@@ -1984,6 +2576,7 @@ void Action_SurfaceTension::Print()
 
   double mean_w = 0.0, mean_wt = 0.0, mean_wb = 0.0;
   if (wmean_->Size() > 0) {
+<<<<<<< HEAD
     int nu = 0, nl = 0;
     for (size_t i = 0; i < wmean_->Size(); i++) {
       mean_w += ((DataSet_1D*)wmean_)->Dval(i);
@@ -1999,6 +2592,16 @@ void Action_SurfaceTension::Print()
     mean_w /= (double)wmean_->Size();
     if (nu > 0) mean_wt /= (double)nu;
     if (nl > 0) mean_wb /= (double)nl;
+=======
+    for (size_t i = 0; i < wmean_->Size(); i++) {
+      mean_w  += ((DataSet_1D*)wmean_)->Dval(i);
+      mean_wt += ((DataSet_1D*)wtop_)->Dval(i);
+      mean_wb += ((DataSet_1D*)wbot_)->Dval(i);
+    }
+    mean_w  /= (double)wmean_->Size();
+    mean_wt /= (double)wtop_->Size();
+    mean_wb /= (double)wbot_->Size();
+>>>>>>> c51400c7 (Add 'surftension' command to calculate capillary-wave surface tension of a liquid slab)
   }
 
   mprintf("\tT = %g K\n", temp_);
@@ -2006,11 +2609,16 @@ void Action_SurfaceTension::Print()
   if (n_skipped_ > 0)
     mprintf(" (%i skipped)", n_skipped_);
   mprintf("\n");
+<<<<<<< HEAD
   mprintf("\tL(%s) = %g Ang, L(%s) = %g Ang (from unit cell unless lx/ly/lz set)\n",
           t1, Lt1_ref_, t2, Lt2_ref_);
   mprintf("\tArea = %g Ang^2\n", area);
   if (q_fundamental_ > 0.0)
     mprintf("\tFundamental |q| = %g Ang^-1\n", q_fundamental_);
+=======
+  mprintf("\t%s x %s = %g x %g Ang\n", t1, t2, Lt1_ref_, Lt2_ref_);
+  mprintf("\tArea = %g Ang^2\n", area);
+>>>>>>> c51400c7 (Add 'surftension' command to calculate capillary-wave surface tension of a liquid slab)
   mprintf("\tFit q range = %g to %g Ang^-1\n", qmin_, qmax_);
   if (ST_Finite(slope))
     mprintf("\tLow-q log-log slope = %g (ideal capillary-wave slope is about -2)\n", slope);
@@ -2033,6 +2641,7 @@ void Action_SurfaceTension::Print()
     mprintf("\tkappa, upper surface = %g kT\n", kappa_h_top);
   if (!err_kh_bot)
     mprintf("\tkappa, lower surface = %g kT\n", kappa_h_bot);
+<<<<<<< HEAD
   if (do_upper_ && do_lower_ && ST_Finite(slope_top) && ST_Finite(slope_bot))
     mprintf("\tLow-q slope upper/lower = %g / %g\n", slope_top, slope_bot);
   if (do_upper_ && do_lower_)
@@ -2061,6 +2670,12 @@ void Action_SurfaceTension::Print()
   }
   double block_gmean = ST_NaN(), block_gsd = ST_NaN(), block_gsem = ST_NaN();
   double block_kmean = ST_NaN(), block_ksd = ST_NaN(), block_ksem = ST_NaN();
+=======
+  if (ST_Finite(slope_top) && ST_Finite(slope_bot))
+    mprintf("\tLow-q slope upper/lower = %g / %g\n", slope_top, slope_bot);
+  mprintf("\tMean roughness = %g Ang (upper %g, lower %g)\n", mean_w, mean_wt, mean_wb);
+
+>>>>>>> c51400c7 (Add 'surftension' command to calculate capillary-wave surface tension of a liquid slab)
   if (block_gamma_ != 0 && block_gamma_->Size() > 1) {
     double gmean = 0.0, g2 = 0.0;
     for (size_t i = 0; i < block_gamma_->Size(); i++) {
@@ -2073,9 +2688,12 @@ void Action_SurfaceTension::Print()
                  (double)(block_gamma_->Size() - 1);
     double sd = (var > 0.0) ? sqrt(var) : 0.0;
     double sem = sd / sqrt((double)block_gamma_->Size());
+<<<<<<< HEAD
     block_gmean = gmean;
     block_gsd = sd;
     block_gsem = sem;
+=======
+>>>>>>> c51400c7 (Add 'surftension' command to calculate capillary-wave surface tension of a liquid slab)
     mprintf("\tBlock mean gamma = %g mN/m\n", gmean);
     mprintf("\tBlock SD gamma = %g mN/m\n", sd);
     mprintf("\tBlock SEM gamma = %g mN/m\n", sem);
@@ -2096,15 +2714,19 @@ void Action_SurfaceTension::Print()
       double var = (k2 - (double)nk * kmean * kmean) / (double)(nk - 1);
       double sd = (var > 0.0) ? sqrt(var) : 0.0;
       double sem = sd / sqrt((double)nk);
+<<<<<<< HEAD
       block_kmean = kmean;
       block_ksd = sd;
       block_ksem = sem;
+=======
+>>>>>>> c51400c7 (Add 'surftension' command to calculate capillary-wave surface tension of a liquid slab)
       mprintf("\tBlock mean kappa = %g kT\n", kmean);
       mprintf("\tBlock SD kappa = %g kT\n", sd);
       mprintf("\tBlock SEM kappa = %g kT\n", sem);
       mprintf("\tkappa +/- 2 SEM = %g kT\n", 2.0 * sem);
     }
   }
+<<<<<<< HEAD
 
   if (summaryFile_ != 0) {
     summaryFile_->Printf("# surftension summary\n");
@@ -2143,4 +2765,6 @@ void Action_SurfaceTension::Print()
     ST_SummaryD(summaryFile_, "block_sd_kappa", block_ksd);
     ST_SummaryD(summaryFile_, "block_sem_kappa", block_ksem);
   }
+=======
+>>>>>>> c51400c7 (Add 'surftension' command to calculate capillary-wave surface tension of a liquid slab)
 }
