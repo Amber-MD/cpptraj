@@ -1,6 +1,18 @@
 // Action_SurfaceTension
 // Capillary-wave surface tension of a liquid slab (Cartesian normal x, y, or z).
-// See Action_SurfaceTension.h for the physical formulae.
+// Formulae, units, and references: Action_SurfaceTension.h
+//
+// Per-frame pipeline (after Init / Setup):
+//   1. Permute Cartesian (x,y,z) into (t1, t2, n) for the chosen normal.
+//   2. Wrap laterals into [0, L_α). Recenter the normal so the circular
+//      mean of the film sits at L_n/2 (one shared shift if mask2 is set).
+//   3. Instantaneous height h(t1, t2): Willard–Chandler isosurface or ITIM.
+//   4. Roughness w = √⟨(h − ⟨h⟩)²⟩ and power |h_q|² from the DFT
+//        h_q = (1/(N₁ N₂)) Σ (h − ⟨h⟩) exp(−i q · r)
+//   5. Print() forms S(q) ≡ ⟨|h_q|²⟩, shell-averages, then
+//        S(q) = k_B T / [A (γ q² + κ q⁴)]
+//
+// NVT: first good frame freezes N₁, N₂, L₁, L₂ (and N_n for Willard).
 // \author Nathan D. Levinzon <ndlevinzon@gmail.com>
 #include <algorithm>
 #include <cmath>
@@ -24,15 +36,14 @@
 // File-local helpers. Names are prefixed ST_ so they do not collide with
 // other Action translation units.
 
-/// Boltzmann constant (J/K); SI, matching the reference Python analysis.
+/// k_B (J/K), CODATA 2018. γ uses SI: k_B T / (A_m² ⟨q² S⟩), then ×1000 → mN/m.
 static const double ST_KB = 1.380649e-23;
-/// Convert Å² → m².
+/// Å² → m² so A in the CWT formula is consistent with γ in N/m.
 static const double ST_ANG2_TO_M2 = 1.0e-20;
-/// scipy.ndimage.gaussian_filter default truncate (kernel radius = truncate × σ).
+/// scipy.ndimage.gaussian_filter default: kernel radius = truncate × σ (pixels).
 static const double ST_GAUSS_TRUNCATE = 4.0;
 
-/// \return true if x is finite (not NaN or ±Inf).
-static inline bool ST_Finite(double x) {
+/// \return true if x is finite (not NaN or ±Inf). Used to reject failed crossings.
   return (x == x) &&
          (x <  std::numeric_limits<double>::infinity()) &&
          (x > -std::numeric_limits<double>::infinity());
@@ -42,12 +53,12 @@ static inline double ST_NaN() {
   return std::numeric_limits<double>::quiet_NaN();
 }
 
-/// Linear index of density_(ix, iy, iz) with z the fastest dimension.
+/// Linear index of ρ(i₁, i₂, i_n) with the normal the fastest dimension.
 static inline size_t ST_Idx3(int ix, int iy, int iz, int ny, int nz) {
   return ((size_t)ix * (size_t)ny + (size_t)iy) * (size_t)nz + (size_t)iz;
 }
 
-/// Linear index of an nx×ny field stored row-major in x, then y.
+/// Linear index of an N₁×N₂ field, row-major in the first lateral index.
 static inline size_t ST_Idx2(int ix, int iy, int ny) {
   return (size_t)ix * (size_t)ny + (size_t)iy;
 }
@@ -57,7 +68,10 @@ static inline int ST_IRound(double x) {
   return (int)floor(x + 0.5);
 }
 
-/** Wrap x into [0, L). Handles negative values; maps x == L back to 0. */
+/** Minimum-image wrap of a Cartesian coordinate into [0, L).
+  * fmod of a negative argument is negative on IEEE-754; that case is lifted
+  * back into the interval. x == L maps to 0 so the last bin is not empty.
+  */
 static double ST_Wrap(double x, double L) {
   if (L <= 0.0) return x;
   double y = fmod(x, L);
@@ -66,9 +80,12 @@ static double ST_Wrap(double x, double L) {
   return y;
 }
 
-/** Circular-mean slab center along the normal (periodic). n2 may be 0.
-  * Mapping n → θ = 2π n / L, then atan2(⟨sin θ⟩, ⟨cos θ⟩), so a slab that
-  * straddles the periodic boundary is still recentered correctly.
+/** Circular mean of the film along the periodic normal, in Å.
+  * Map n → θ = 2π n / L_n and take atan2(⟨sin θ⟩, ⟨cos θ⟩). A slab that
+  * straddles n = 0 is then a single cluster on the circle. n2 may be 0;
+  * when both masks are given they share this one mean so leaflets are not
+  * pulled onto the same mid-box plane independently.
+  * \return the lab-frame coordinate of that mean, in [0, L_n).
   */
 static double ST_CircularSlabCenter(std::vector<double> const& n1, int n1n,
                                     std::vector<double> const* n2, int n2n,
@@ -100,6 +117,7 @@ static double ST_CircularSlabCenter(std::vector<double> const& n1, int n1n,
   return L * angle / Constants::TWOPI;
 }
 
+/** Shift n so slab_center maps to L_n/2, then wrap into [0, L_n). */
 static void ST_ApplyCircularRecenter(std::vector<double>& n, double L,
                                      double slab_center)
 {
@@ -108,27 +126,31 @@ static void ST_ApplyCircularRecenter(std::vector<double>& n, double L,
     n[i] = ST_Wrap(n[i] - slab_center + 0.5 * L, L);
 }
 
-/** Recenter a periodic slab so its circular mean along the normal lies at L/2. */
+/** Recenter one atom set so its circular mean along the normal lies at L_n/2. */
 static void ST_CircularRecenter(std::vector<double>& n, double L) {
   if (n.empty() || L <= 0.0) return;
   ST_ApplyCircularRecenter(n, L, ST_CircularSlabCenter(n, (int)n.size(), 0, 0, L));
 }
 
-/// Cartesian axis name for Help / mprintf (ASCII).
+/// ASCII name of a Cartesian axis for Help / mprintf (terminals are not UTF-8).
 static const char* ST_AxisName(int axis) {
   if (axis == 0) return "x";
   if (axis == 1) return "y";
   return "z";
 }
 
-/// Lateral axis names for a given Cartesian normal.
+/// Names of the two lateral axes for Cartesian normal ∈ {0,1,2} = {x,y,z}.
 static void ST_PlaneAxes(int normal, const char*& t1, const char*& t2) {
   if (normal == 0) { t1 = "y"; t2 = "z"; }
   else if (normal == 1) { t1 = "x"; t2 = "z"; }
   else { t1 = "x"; t2 = "y"; }
 }
 
-/// Split Cartesian box lengths into lateral 1, lateral 2, and normal.
+/** Permute (L_x, L_y, L_z) into (L₁, L₂, L_n).
+  *   n = z:  L₁ = L_x, L₂ = L_y, L_n = L_z
+  *   n = y:  L₁ = L_x, L₂ = L_z, L_n = L_y
+  *   n = x:  L₁ = L_y, L₂ = L_z, L_n = L_x
+  */
 static void ST_SplitBox(int normal, double Lx, double Ly, double Lz,
                         double& Lt1, double& Lt2, double& Ln)
 {
@@ -137,7 +159,7 @@ static void ST_SplitBox(int normal, double Lx, double Ly, double Lz,
   else { Lt1 = Lx; Lt2 = Ly; Ln = Lz; }
 }
 
-/// Split a Cartesian point into lateral 1, lateral 2, and normal.
+/// Same permutation as ST_SplitBox, applied to one Cartesian point.
 static void ST_SplitXYZ(int normal, double x, double y, double z,
                         double& t1, double& t2, double& n)
 {
@@ -146,8 +168,10 @@ static void ST_SplitXYZ(int normal, double x, double y, double z,
   else { t1 = x; t2 = y; n = z; }
 }
 
-/** Normalized 1-D Gaussian kernel matching scipy.ndimage._gaussian_kernel1d.
-  * σ is in pixels. Radius = round(4 σ). Empty kernel means “do not filter”.
+/** Normalized 1-D Gaussian matching scipy.ndimage._gaussian_kernel1d.
+  * σ is in pixels (Å / bin width). Radius = round(4 σ). Weights are
+  *   K_i = exp(−i² / (2 σ²)) / Σ_j K_j ,   i ∈ [−R, R]
+  * An empty kernel (σ ≤ 0) means that axis is left unfiltered.
   */
 static void ST_GaussianKernel(double sigma, std::vector<double>& kernel) {
   kernel.clear();
@@ -168,8 +192,8 @@ static void ST_GaussianKernel(double sigma, std::vector<double>& kernel) {
   }
 }
 
-/** 1-D convolution with periodic (wrap) boundaries.
-  * The Gaussian kernel is symmetric, so correlate and convolve agree.
+/** Periodic 1-D convolution, out[i] = Σ_k K_k in[(i+k) mod N].
+  * The Gaussian is even, so convolution and correlation are identical.
   */
 static void ST_ConvolveWrap(std::vector<double> const& in, std::vector<double> const& kernel,
                             std::vector<double>& out)
@@ -195,10 +219,10 @@ static void ST_ConvolveWrap(std::vector<double> const& in, std::vector<double> c
   }
 }
 
-/** Separable Gaussian smooth of ρ(ix,iy,iz) with periodic boundaries on every axis.
-  * σx, σy, σz are in pixels (Å / bin width), as in scipy.ndimage.gaussian_filter.
-  * OpenMP: each 1-D line in a pass is independent. One parallel region covers
-  * the z, y, and x passes so thread-local line buffers are reused.
+/** Separable periodic Gaussian on ρ(i₁, i₂, i_n), Willard–Chandler coarse-graining.
+  * σ_α in pixels (Å / Δ_α), same as scipy.ndimage.gaussian_filter. Three
+  * 1-D passes (n, then t2, then t1). OpenMP: each line in a pass is
+  * independent; one parallel region reuses thread-local buffers.
   */
 static void ST_GaussianFilter3D(std::vector<double>& rho, int nx, int ny, int nz,
                                 double sigma_x, double sigma_y, double sigma_z)
@@ -269,10 +293,12 @@ static void ST_GaussianFilter3D(std::vector<double>& rho, int nx, int ny, int nz
   }
 }
 
-/** Locate the instantaneous interface along one lateral column.
-  * Walks from the slab center toward +n (upper) or −n (lower) and returns the
-  * linearly interpolated normal coordinate where rho crosses the bulk-density
-  * threshold. \return NaN if no crossing is found.
+/** Willard–Chandler crossing along one lateral column.
+  * Walk from the slab mid-plane toward +n (upper) or −n (lower). The
+  * interface is the first point where ρ drops through θ ρ_bulk, with θ
+  * the threshold fraction. Linear interpolation between the two bins:
+  *   n* = n_k + (θ ρ_bulk − ρ_k) (n_{k±1} − n_k) / (ρ_{k±1} − ρ_k)
+  * \return NaN if no crossing exists (caller skips the frame).
   */
 static double ST_FindCrossing(std::vector<double> const& z_grid,
                               std::vector<double> const& density,
@@ -305,10 +331,12 @@ static double ST_FindCrossing(std::vector<double> const& z_grid,
   return ST_NaN();
 }
 
-/** ITIM-style slab interfaces after circular recentering at Ln/2.
-  * In each lateral column: upper = max n of atoms with n ≥ Ln/2, lower = min n
-  * of atoms with n < Ln/2. Empty half-columns return false.
-  * t1/t2/n are lateral 1, lateral 2, and the slab normal.
+/** ITIM in the probe → 0 limit, after the film has been recentered at L_n/2.
+  * Each lateral column is split at mid-box:
+  *   h_upper = max { n_i | n_i ≥ L_n/2 }     (need_u)
+  *   h_lower = min { n_i | n_i <  L_n/2 }     (need_l)
+  * An empty required half-column returns false (skip the frame). This is
+  * not a finite-radius ITIM probe; it is the min/max of the mask.
   */
 static bool ST_ItimMinMax(std::vector<double> const& t1,
                           std::vector<double> const& t2,
@@ -351,7 +379,11 @@ static bool ST_ItimMinMax(std::vector<double> const& t1,
   return true;
 }
 
-/** ITIM from two atom sets: upper = max n of set 1, lower = min n of set 2. */
+/** Two-mask ITIM (leaflet / liquid–liquid): no mid-box split.
+  *   h_upper(i₁,i₂) = max n of mask 1 in that column
+  *   h_lower(i₁,i₂) = min n of mask 2 in that column
+  * \return false if any required column is empty.
+  */
 static bool ST_ItimTwoMasks(std::vector<double> const& t1u,
                             std::vector<double> const& t2u,
                             std::vector<double> const& nu,
@@ -401,7 +433,10 @@ static bool ST_ItimTwoMasks(std::vector<double> const& t1u,
   return true;
 }
 
-/** Split Cartesian coordinates into wrapped laterals and a recentered normal. */
+/** Extract (t1, t2, n) for one mask. Laterals are wrapped into [0, L_α);
+  * the normal is left unshifted. Recenter is applied afterwards so two
+  * masks can share one circular mean.
+  */
 static void ST_SplitAtomCoords(Frame const& frm, AtomMask const& mask, int nax,
                                double Lx, double Ly, double Lz,
                                std::vector<double>& t1, std::vector<double>& t2,
@@ -424,7 +459,10 @@ static void ST_SplitAtomCoords(Frame const& frm, AtomMask const& mask, int nax,
   }
 }
 
-/** Number density of mask atoms with |n − Ln/2| ≤ bulk_halfwidth (Å⁻³). */
+/** Number density of mask atoms in the mid-slab slab |n − L_n/2| ≤ w (Å⁻³).
+  * Volume is L₁ L₂ (2w). Used for the rhobulk DataSet on the ITIM path;
+  * Willard–Chandler ρ_bulk is the laterally averaged coarse-grained field.
+  */
 static double ST_RhoBulkFromAtoms(std::vector<double> const& ncoord, int natom,
                                   double Lt1, double Lt2, double Ln,
                                   double bulk_halfwidth)
@@ -440,7 +478,10 @@ static double ST_RhoBulkFromAtoms(std::vector<double> const& ncoord, int natom,
   return (double)nbulk / vol;
 }
 
-/** RMS height fluctuation w = √⟨(h − ⟨h⟩)²⟩_xy  (Å). */
+/** Capillary roughness of one instantaneous surface, in Å:
+  *   w = √⟨ (h − ⟨h⟩)² ⟩_{i₁,i₂}
+  * the RMS of the same field whose DFT gives S(q).
+  */
 static double ST_RMS(std::vector<double> const& h) {
   if (h.empty()) return ST_NaN();
   double mean = 0.0;
@@ -455,8 +496,9 @@ static double ST_RMS(std::vector<double> const& h) {
   return sqrt(acc / (double)h.size());
 }
 
-/** Wrapped mode index of bin k on an N-point grid of spacing Δ (Å).
-  * n ∈ (−N/2, N/2]; frequency is n / (N Δ). Used as q_α = 2π n_α / L_α.
+/** Cyclic frequency of DFT bin k on an N-point grid of spacing Δ (Å).
+  * Mode index n ∈ (−N/2, N/2]; frequency is n / (N Δ) = n / L_α.
+  * Wavevector component is then q_α = 2π n / L_α (Å⁻¹).
   */
 static double ST_FftFreq(int k, int n, double d) {
   int p;
@@ -467,7 +509,7 @@ static double ST_FftFreq(int k, int n, double d) {
   return (double)p / ((double)n * d);
 }
 
-/** |q| = √(q₁² + q₂²) with q₁ = 2π n₁ / L₁, q₂ = 2π n₂ / L₂. */
+/** |q| = √(q₁² + q₂²) on the N₁×N₂ Fourier mesh, q_α = 2π n_α / L_α. */
 static void ST_MakeQGrid(int nx, int ny, double Lx, double Ly, std::vector<double>& q) {
   q.resize((size_t)nx * (size_t)ny);
   double dx = Lx / (double)nx;
@@ -481,13 +523,13 @@ static void ST_MakeQGrid(int nx, int ny, double Lx, double Ly, std::vector<doubl
   }
 }
 
-/// One isotropic |q| shell after averaging degenerate Fourier modes.
+/// One isotropic |q| shell: all modes with the same rounded q².
 struct ST_Shell {
   double q;     ///< Mean |q| of modes in this shell (Å⁻¹)
-  double S;     ///< Combined ⟨|h_q|²⟩ (Å²)
-  double Stop;  ///< Upper-interface ⟨|h_q|²⟩
-  double Sbot;  ///< Lower-interface ⟨|h_q|²⟩
-  int n;        ///< Number of modes averaged into this shell
+  double S;     ///< Combined S(q) ≡ ⟨|h_q|²⟩ (Å²)
+  double Stop;  ///< Upper-interface S(q)
+  double Sbot;  ///< Lower-interface S(q)
+  int n;        ///< Number of Fourier modes averaged into this shell
 };
 
 /// Sort shells by increasing |q|.
@@ -495,8 +537,10 @@ static bool ST_ShellQCmp(ST_Shell const& a, ST_Shell const& b) {
   return a.q < b.q;
 }
 
-/** Isotropic shell average: group modes with the same q² (10 decimal places),
-  * as in pandas round(q², decimals=10). q = 0 is dropped.
+/** Isotropic shell average of the 2-D spectrum.
+  * Modes with the same q² rounded to 10 decimal places (numpy / pandas
+  * round(q², 10)) are one shell. The q = 0 (mean-height) mode is dropped.
+  * Each shell stores the mean |q| and the mean of S, S_upper, S_lower.
   */
 static void ST_ShellAverage(std::vector<double> const& q,
                             std::vector<double> const& combined,
@@ -607,7 +651,10 @@ static int ST_CalcKappa(std::vector<ST_Shell> const& shells, double temperature,
   return 0;
 }
 
-/** Apparent κ(q)/k_B T at one shell: invert S = k_B T / [A (γ q² + κ q⁴)]. */
+/** Apparent κ(q)/k_B T at one shell, given a reference γ (mN/m).
+  * Invert S = k_B T / [A (γ q² + κ q⁴)] → κ / k_B T = [1/(q² S) − A γ / k_B T] / (A q²).
+  * Negative κ is allowed (the linear Helfrich slope may change sign).
+  */
 static double ST_ShellKappa(double q, double S, double temperature, double area_A2,
                             double gamma_mNm)
 {
@@ -622,7 +669,9 @@ static double ST_ShellKappa(double q, double S, double temperature, double area_
   return b / area_A2;
 }
 
-/** Apparent γ(q) = k_B T / (A q² S(q)), reported in mN/m. */
+/** Apparent γ(q) = k_B T / (A q² S(q)) from one shell, in mN/m.
+  * Equals the plateau γ only where q² S is flat (κ → 0).
+  */
 static double ST_ShellGamma(double q, double S, double temperature, double area_A2) {
   double q2S = q * q * S;
   if (q2S <= 0.0) return ST_NaN();
@@ -630,8 +679,9 @@ static double ST_ShellGamma(double q, double S, double temperature, double area_
   return 1000.0 * ST_KB * temperature / (area_m2 * q2S);
 }
 
-/** Ordinary least-squares slope of log S vs log q on [qmin, qmax].
-  * Ideal capillary waves give slope ≈ −2. Sfield selects S / Stop / Sbot.
+/** OLS slope of ln S vs ln q on [q_min, q_max].
+  * Pure capillary waves have S(q) ∝ q⁻², so the slope is −2. A slope
+  * near −4 is Helfrich-dominated. Sfield selects S / S_upper / S_lower.
   */
 static double ST_LogSlope(std::vector<ST_Shell> const& shells, double qmin, double qmax,
                           double ST_Shell::* Sfield)
@@ -698,7 +748,7 @@ static int ST_CheckParentDir(DataFile* df, const char* key) {
 }
 
 // -----------------------------------------------------------------------------
-/// CONSTRUCTOR — defaults match the reference Python analysis.
+/// CONSTRUCTOR — Willard–Chandler, nsurf 2, normal z; grid / σ match the Python.
 Action_SurfaceTension::Action_SurfaceTension() :
   iface_(WILLARD),
   normal_(AXIS_Z),
@@ -742,6 +792,7 @@ Action_SurfaceTension::Action_SurfaceTension() :
 {}
 
 // Action_SurfaceTension::Help()
+/** ASCII-only (terminals). Formulae live in the class header, not here. */
 void Action_SurfaceTension::Help() const {
   mprintf("\t[<name>] <mask> [mask2 <mask2>] temp <T>\n"
           "\t[normal {x|y|z}] [nsurf {1|2}] [side {upper|lower}]\n"
@@ -771,11 +822,12 @@ void Action_SurfaceTension::Help() const {
 
 // Action_SurfaceTension::Init()
 /** Parse keywords, allocate DataSets, attach optional output files.
-  * Spectrum / roughness DataSets always exist so writedata can dump them.
-  * Files are written only if the matching *out / *agr / *gnu keyword is given.
-  * *out uses the DataFile writer for the filename extension (canonical
-  * cpptraj: .agr/.xmgr = Grace/xmgrace, .gnu = gnuplot). agr/gnu keywords force
-  * DataFile::XMGRACE / GNUPLOT even when the extension is not recognized.
+  * Spectrum / roughness meshes always exist so writedata can dump them after
+  * Print() fills S(q). Files are written only if the matching *out / *agr /
+  * *gnu keyword is given. Parent directories are checked here: DataFiles
+  * open only after run, so a missing path would otherwise lose the write.
+  * out is an alias for spectrumout. agr/gnu force Grace / gnuplot.
+  * Contains() is called before getKey* so flags are not already consumed.
   */
 Action::RetType Action_SurfaceTension::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
@@ -1224,6 +1276,9 @@ Action::RetType Action_SurfaceTension::Init(ArgList& actionArgs, ActionInit& ini
 }
 
 // Action_SurfaceTension::Setup()
+/** Require an orthorhombic unit cell (L₁, L₂, L_n) and bind the mask(s).
+  * Non-X-aligned boxes are warned: laterals are wrapped independently.
+  */
 Action::RetType Action_SurfaceTension::Setup(ActionSetup& setup)
 {
   if (!setup.CoordInfo().HasBox()) {
@@ -1253,6 +1308,11 @@ Action::RetType Action_SurfaceTension::Setup(ActionSetup& setup)
 }
 
 // Action_SurfaceTension::AllocateGrid()
+/** First good frame: freeze N₁, N₂, L₁, L₂ and (Willard) N_n.
+  * Allocates ρ, h, |h_q|² accumulators, PubFFT plans, and q_α = 2π n_α / L_α.
+  * If q_min was omitted it is set to 2π / max(L₁, L₂).
+  * \return 0 OK, 1 fatal (FFT setup or q_max ≤ q_min).
+  */
 int Action_SurfaceTension::AllocateGrid(int nx, int ny, int nz) {
   nx_ = nx;
   ny_ = ny;
@@ -1322,6 +1382,7 @@ int Action_SurfaceTension::AllocateGrid(int nx, int ny, int nz) {
   return 0;
 }
 
+/** Cap skip-frame warnings at 5, then one “further messages suppressed.” */
 void Action_SurfaceTension::SkipWarn(const char* msg)
 {
   const int maxw = 5;
@@ -1333,6 +1394,12 @@ void Action_SurfaceTension::SkipWarn(const char* msg)
 }
 
 // Action_SurfaceTension::WillardHeights()
+/** Willard–Chandler heights from one atom set into the given density buffer.
+  * Histogram atoms onto N₁×N₂×N_n, convert to number density (Å⁻³), apply
+  * the periodic Gaussian, take ρ_bulk as the mid-slab lateral mean, then
+  * find the ±n crossings of θ ρ_bulk. Writes h_upper_ / h_lower_.
+  * \return 0 OK, 1 skip (no bulk bins, ρ_bulk ≤ 0, or a column has no crossing).
+  */
 int Action_SurfaceTension::WillardHeights(std::vector<double> const& t1,
                                           std::vector<double> const& t2,
                                           std::vector<double> const& ncoord,
@@ -1500,10 +1567,11 @@ void Action_SurfaceTension::HeightPower(std::vector<double> const& h,
 }
 
 // Action_SurfaceTension::ProcessFrame()
-/** Wrap laterals, recenter along the normal, build instantaneous interfaces,
-  * then accumulate roughness and |h_q|². First good frame freezes nx, ny,
-  * Lt1, Lt2 (and nz for Willard–Chandler). Cartesian Lx/Ly/Lz are permuted
-  * into (Lt1, Lt2, Ln) according to normal_.
+/** One NVT frame: permute → wrap / recenter → h(t1,t2) → w and |h_q|².
+  * First good frame freezes N₁, N₂, L₁, L₂ (and N_n for Willard). Later
+  * frames must keep the same lateral box (NVT). Combined power is summed
+  * over the surfaces actually used (nsurf 1 or 2).
+  * \return 0 OK, 1 skip frame, 2 fatal (grid or L₁, L₂ changed).
   */
 int Action_SurfaceTension::ProcessFrame(Frame const& frm, double Lx, double Ly, double Lz)
 {
@@ -1631,7 +1699,10 @@ int Action_SurfaceTension::ProcessFrame(Frame const& frm, double Lx, double Ly, 
 }
 
 // Action_SurfaceTension::FinishBlock()
-/** Average the open-block power, fit γ and κ, store roughness means, then reset. */
+/** Close one nblock window: S(q) = (Σ |h_q|²) / n_surfaces in the block,
+  * then the same CWT γ / κ fits as Print(). Incomplete final window is
+  * left in the running spectra but not written to blockout.
+  */
 int Action_SurfaceTension::FinishBlock() {
   if (block_surface_count_ < 1 || block_frame_count_ < 1) return 0;
   std::vector<double> spec(block_power_.size());
@@ -1670,6 +1741,10 @@ int Action_SurfaceTension::FinishBlock() {
 }
 
 // Action_SurfaceTension::DoAction()
+/** Read the unit-cell lengths (or lx/ly/lz overrides) and ProcessFrame.
+  * Skip (Action::OK) if the box is missing or a crossing failed; ERR if
+  * the lateral grid changed (not NVT).
+  */
 Action::RetType Action_SurfaceTension::DoAction(int, ActionFrame& frm)
 {
   if (!frm.Frm().BoxCrd().HasBox()) {
@@ -1698,10 +1773,13 @@ Action::RetType Action_SurfaceTension::DoAction(int, ActionFrame& frm)
 
 #ifdef MPI
 // Action_SurfaceTension::SyncAction()
-/** Radial-style reduction. Three small AllReduces (counts SUM, grid MAX, lateral
-  * box MAX) then one packed ReduceMaster SUM of combined/upper/lower |h_q|² onto
-  * the master. |q| uses a separate MAX (different MPI_Op). Print() is master
-  * only. Roughness / block series use DataSet::Sync (concat by rank).
+/** Reduce per-rank |h_q|² so Print() sees the global S(q) = ⟨|h_q|²⟩.
+  * Counts (frames, surfaces, skipped) AllReduce SUM. Grid size, L₁, L₂,
+  * q_min, and q_fundamental AllReduce MAX so empty ranks (zeros) do not
+  * clobber. One packed ReduceMaster SUM of combined / upper / lower
+  * power; |q| is a separate MAX. Roughness and block series stay on
+  * DataSet::Sync (concat by rank). nblock is per-rank. Print() is master
+  * only.
   */
 int Action_SurfaceTension::SyncAction() {
   if (trajComm_.Size() < 2) return 0;
@@ -1770,7 +1848,11 @@ int Action_SurfaceTension::SyncAction() {
 #endif
 
 // Action_SurfaceTension::Print()
-/** Average accumulated spectra, fill q-meshes, report γ / roughness / blocks. */
+/** Form S(q) = (Σ |h_q|²) / n_surfaces, shell-average, then the CWT fits
+  *   γ = k_B T / (A ⟨q² S⟩) ,   1/(q² S) = (A / k_B T) (γ + κ q²)
+  * Fill the q-meshes, print the numeric summary, and write summaryout.
+  * Per-block γ / κ are printed here, not during the frame loop.
+  */
 void Action_SurfaceTension::Print()
 {
   const char* t1 = 0;
