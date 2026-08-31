@@ -44,6 +44,7 @@ static const double ST_ANG2_TO_M2 = 1.0e-20;
 static const double ST_GAUSS_TRUNCATE = 4.0;
 
 /// \return true if x is finite (not NaN or ±Inf). Used to reject failed crossings.
+static inline bool ST_Finite(double x) {
   return (x == x) &&
          (x <  std::numeric_limits<double>::infinity()) &&
          (x > -std::numeric_limits<double>::infinity());
