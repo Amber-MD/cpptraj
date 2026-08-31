@@ -632,6 +632,7 @@ static double ST_FftFreq(int k, int n, double d) {
 }
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 /** |q| = √(q₁² + q₂²) on the N₁×N₂ Fourier mesh, q_α = 2π n_α / L_α. */
 =======
 /** 2-D power spectrum of a height field.
@@ -678,6 +679,8 @@ static void ST_HeightPower(std::vector<double> const& h, int nx, int ny,
   }
 }
 
+=======
+>>>>>>> 5b484999 (Implement 2-D FFT for height fields in Action_SurfaceTension)
 /** |q| = √(qx² + qy²) for each Fourier mode, qx = 2π fftfreq(nx, Lx/nx). */
 >>>>>>> c51400c7 (Add 'surftension' command to calculate capillary-wave surface tension of a liquid slab)
 static void ST_MakeQGrid(int nx, int ny, double Lx, double Ly, std::vector<double>& q) {
@@ -1562,7 +1565,11 @@ Action::RetType Action_SurfaceTension::Init(ArgList& actionArgs, ActionInit& ini
 =======
   mprintf("\tFit q range= %g to %g Ang^-1\n", qmin_, qmax_);
   mprintf("\tHelfrich kappa: linear fit of 1/(q^2 S) vs q^2 on that window.\n");
+<<<<<<< HEAD
 >>>>>>> c51400c7 (Add 'surftension' command to calculate capillary-wave surface tension of a liquid slab)
+=======
+  mprintf("\tHeight-field 2-D FFT: PubFFT (numpy fft2 / (nx*ny)).\n");
+>>>>>>> 5b484999 (Implement 2-D FFT for height fields in Action_SurfaceTension)
   if (lx_user_ > 0.0)
     mprintf("\tUsing fixed Lx= %g Ang (%s)\n", lx_user_,
             (normal_ == AXIS_X) ? "normal" : "lateral");
@@ -1627,6 +1634,7 @@ Action::RetType Action_SurfaceTension::Init(ArgList& actionArgs, ActionInit& ini
     }
     if (nthreads > 1) {
 <<<<<<< HEAD
+<<<<<<< HEAD
       if (iface_ == WILLARD)
         mprintf("\tOpenMP: 3-D Gaussian filter parallelized with %i threads.\n", nthreads);
 =======
@@ -1635,6 +1643,10 @@ Action::RetType Action_SurfaceTension::Init(ArgList& actionArgs, ActionInit& ini
         mprintf(" and 3-D Gaussian filter");
       mprintf(" parallelized with %i threads.\n", nthreads);
 >>>>>>> c51400c7 (Add 'surftension' command to calculate capillary-wave surface tension of a liquid slab)
+=======
+      if (iface_ == WILLARD)
+        mprintf("\tOpenMP: 3-D Gaussian filter parallelized with %i threads.\n", nthreads);
+>>>>>>> 5b484999 (Implement 2-D FFT for height fields in Action_SurfaceTension)
     }
   }
 # endif
@@ -1716,6 +1728,9 @@ int Action_SurfaceTension::AllocateGrid(int nx, int ny, int nz) {
   bottom_power_.assign(n2, 0.0);
   block_power_.assign(n2, 0.0);
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> 5b484999 (Implement 2-D FFT for height fields in Action_SurfaceTension)
   if (fft_n1_.SetupFFTforN(nx_) || fft_n2_.SetupFFTforN(ny_)) {
     mprinterr("Error: Could not set up 2-D FFT (nx = %i, ny = %i).\n", nx_, ny_);
     return 1;
@@ -1723,8 +1738,11 @@ int Action_SurfaceTension::AllocateGrid(int nx, int ny, int nz) {
   fft_grid_.Allocate(nx_ * ny_);
   fft_row_.Allocate(ny_);
   fft_col_.Allocate(nx_);
+<<<<<<< HEAD
   ST_MakeQGrid(nx_, ny_, Lt1_ref_, Lt2_ref_, q_grid_);
 =======
+=======
+>>>>>>> 5b484999 (Implement 2-D FFT for height fields in Action_SurfaceTension)
   ST_MakeQGrid(nx_, ny_, Lt1_ref_, Lt2_ref_, q_grid_);
   grid_ready_ = true;
 >>>>>>> c51400c7 (Add 'surftension' command to calculate capillary-wave surface tension of a liquid slab)
@@ -1975,6 +1993,69 @@ void Action_SurfaceTension::HeightPower(std::vector<double> const& h,
   return 0;
 }
 
+// Action_SurfaceTension::HeightPower()
+/** 2-D FFT of h − ⟨h⟩ via row-column PubFFT 1-D transforms, then
+  *   h_q = FFT2 / (nx ny)
+  * matching numpy.fft.fft2(h) / h.size. Power is |h_q|² (Ang^2).
+  * fft_n2_ transforms along iy (contiguous); fft_n1_ along ix.
+  */
+void Action_SurfaceTension::HeightPower(std::vector<double> const& h,
+                                        std::vector<double>& power)
+{
+  int nx = nx_;
+  int ny = ny_;
+  int nxy = nx * ny;
+  power.assign((size_t)nxy, 0.0);
+  if (nxy == 0) return;
+
+  double mean = 0.0;
+  for (int i = 0; i < nxy; i++)
+    mean += h[i];
+  mean /= (double)nxy;
+
+  for (int ix = 0; ix < nx; ix++) {
+    for (int iy = 0; iy < ny; iy++) {
+      int idx = ST_Idx2(ix, iy, ny);
+      fft_grid_[2 * idx]     = h[idx] - mean;
+      fft_grid_[2 * idx + 1] = 0.0;
+    }
+  }
+
+  for (int ix = 0; ix < nx; ix++) {
+    int base = ix * ny;
+    for (int iy = 0; iy < ny; iy++) {
+      fft_row_[2 * iy]     = fft_grid_[2 * (base + iy)];
+      fft_row_[2 * iy + 1] = fft_grid_[2 * (base + iy) + 1];
+    }
+    fft_n2_.Forward(fft_row_);
+    for (int iy = 0; iy < ny; iy++) {
+      fft_grid_[2 * (base + iy)]     = fft_row_[2 * iy];
+      fft_grid_[2 * (base + iy) + 1] = fft_row_[2 * iy + 1];
+    }
+  }
+
+  for (int iy = 0; iy < ny; iy++) {
+    for (int ix = 0; ix < nx; ix++) {
+      int idx = ST_Idx2(ix, iy, ny);
+      fft_col_[2 * ix]     = fft_grid_[2 * idx];
+      fft_col_[2 * ix + 1] = fft_grid_[2 * idx + 1];
+    }
+    fft_n1_.Forward(fft_col_);
+    for (int ix = 0; ix < nx; ix++) {
+      int idx = ST_Idx2(ix, iy, ny);
+      fft_grid_[2 * idx]     = fft_col_[2 * ix];
+      fft_grid_[2 * idx + 1] = fft_col_[2 * ix + 1];
+    }
+  }
+
+  double Ninv = 1.0 / (double)nxy;
+  for (int k = 0; k < nxy; k++) {
+    double re = fft_grid_[2 * k] * Ninv;
+    double im = fft_grid_[2 * k + 1] * Ninv;
+    power[k] = re * re + im * im;
+  }
+}
+
 // Action_SurfaceTension::ProcessFrame()
 /** Wrap laterals, recenter along the normal, build instantaneous interfaces,
   * then accumulate roughness and |h_q|^2. First good frame freezes nx, ny,
@@ -2032,10 +2113,14 @@ int Action_SurfaceTension::ProcessFrame(Frame const& frm, double Lx, double Ly, 
     Lt1_ref_ = Lt1;
     Lt2_ref_ = Lt2;
 <<<<<<< HEAD
+<<<<<<< HEAD
     if (AllocateGrid(nx, ny, nz)) return 2;
 =======
     AllocateGrid(nx, ny, nz);
 >>>>>>> c51400c7 (Add 'surftension' command to calculate capillary-wave surface tension of a liquid slab)
+=======
+    if (AllocateGrid(nx, ny, nz)) return 2;
+>>>>>>> 5b484999 (Implement 2-D FFT for height fields in Action_SurfaceTension)
   } else {
     if (nx != nx_ || ny != ny_) {
       mprinterr("Error: Interface grid dimensions changed during the trajectory.\n");
@@ -2221,8 +2306,8 @@ int Action_SurfaceTension::ProcessFrame(Frame const& frm, double Lx, double Ly, 
 
   // Combined spectrum averages both surfaces (n_surfaces_ = 2 n_frames_).
   std::vector<double> p_upper, p_lower;
-  ST_HeightPower(h_upper_, nx_, ny_, p_upper);
-  ST_HeightPower(h_lower_, nx_, ny_, p_lower);
+  HeightPower(h_upper_, p_upper);
+  HeightPower(h_lower_, p_lower);
 
   for (size_t i = 0; i < top_power_.size(); i++) {
     top_power_[i] += p_upper[i];
