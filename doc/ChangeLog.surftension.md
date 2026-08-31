@@ -82,6 +82,9 @@ surftension [<name>] <mask> temp <T>
   `sigmanormal` ≡ `sigmaz` (error if both given and they differ).
   Init/Print report e.g. `Slab normal: z (interface plane x-y)`. Warns on
   non-orthogonal boxes.
+- Height-field 2-D FFT uses cpptraj `PubFFT` (row-column 1-D FFTs), then
+  divides by `nx*ny` (numpy `fft2` convention). Same `S(q)` as the old
+  direct DFT. Per-block γ/κ print in `Print()`, not during the frame loop.
 
 ---
 

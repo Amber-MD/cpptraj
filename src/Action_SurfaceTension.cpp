@@ -363,50 +363,6 @@ static double ST_FftFreq(int k, int n, double d) {
   return (double)p / ((double)n * d);
 }
 
-/** 2-D power spectrum of a height field.
-  * Subtract ⟨h⟩ (q = 0 translation), then
-  *   h_q = (1 / N) Σ h(x,y) exp(−i q · r)     N = nx ny
-  * which matches numpy.fft.fft2(h) / h.size. Power is |h_q|² (Å²).
-  * Direct DFT is used so nx, ny need not be powers of two.
-  * OpenMP: each (kx, ky) mode is independent; the loop is flattened so it
-  * does not need collapse() (OpenMP 3.0), matching other cpptraj Actions.
-  */
-static void ST_HeightPower(std::vector<double> const& h, int nx, int ny,
-                           std::vector<double>& power)
-{
-  int nxy = nx * ny;
-  power.assign((size_t)nxy, 0.0);
-  if (nxy == 0) return;
-  double mean = 0.0;
-  for (int i = 0; i < nxy; i++)
-    mean += h[i];
-  mean /= (double)nxy;
-  double Ninv = 1.0 / (double)nxy;
-  int k;
-# ifdef _OPENMP
-# pragma omp parallel for schedule(dynamic)
-# endif
-  for (k = 0; k < nxy; k++) {
-    int kx = k / ny;
-    int ky = k - kx * ny;
-    double re = 0.0;
-    double im = 0.0;
-    for (int ix = 0; ix < nx; ix++) {
-      for (int iy = 0; iy < ny; iy++) {
-        double hv = h[ST_Idx2(ix, iy, ny)] - mean;
-        double ang = Constants::TWOPI *
-                     ((double)kx * (double)ix / (double)nx +
-                      (double)ky * (double)iy / (double)ny);
-        re += hv * cos(ang);
-        im -= hv * sin(ang);
-      }
-    }
-    re *= Ninv;
-    im *= Ninv;
-    power[k] = re * re + im * im;
-  }
-}
-
 /** |q| = √(qx² + qy²) for each Fourier mode, qx = 2π fftfreq(nx, Lx/nx). */
 static void ST_MakeQGrid(int nx, int ny, double Lx, double Ly, std::vector<double>& q) {
   q.resize((size_t)nx * (size_t)ny);
@@ -928,6 +884,7 @@ Action::RetType Action_SurfaceTension::Init(ArgList& actionArgs, ActionInit& ini
   }
   mprintf("\tFit q range= %g to %g Ang^-1\n", qmin_, qmax_);
   mprintf("\tHelfrich kappa: linear fit of 1/(q^2 S) vs q^2 on that window.\n");
+  mprintf("\tHeight-field 2-D FFT: PubFFT (numpy fft2 / (nx*ny)).\n");
   if (lx_user_ > 0.0)
     mprintf("\tUsing fixed Lx= %g Ang (%s)\n", lx_user_,
             (normal_ == AXIS_X) ? "normal" : "lateral");
@@ -981,10 +938,8 @@ Action::RetType Action_SurfaceTension::Init(ArgList& actionArgs, ActionInit& ini
       nthreads = omp_get_num_threads();
     }
     if (nthreads > 1) {
-      mprintf("\tOpenMP: 2-D DFT");
       if (iface_ == WILLARD)
-        mprintf(" and 3-D Gaussian filter");
-      mprintf(" parallelized with %i threads.\n", nthreads);
+        mprintf("\tOpenMP: 3-D Gaussian filter parallelized with %i threads.\n", nthreads);
     }
   }
 # endif
@@ -1033,6 +988,13 @@ int Action_SurfaceTension::AllocateGrid(int nx, int ny, int nz) {
   top_power_.assign(n2, 0.0);
   bottom_power_.assign(n2, 0.0);
   block_power_.assign(n2, 0.0);
+  if (fft_n1_.SetupFFTforN(nx_) || fft_n2_.SetupFFTforN(ny_)) {
+    mprinterr("Error: Could not set up 2-D FFT (nx = %i, ny = %i).\n", nx_, ny_);
+    return 1;
+  }
+  fft_grid_.Allocate(nx_ * ny_);
+  fft_row_.Allocate(ny_);
+  fft_col_.Allocate(nx_);
   ST_MakeQGrid(nx_, ny_, Lt1_ref_, Lt2_ref_, q_grid_);
   grid_ready_ = true;
   double qmin_acc = 0.0;
@@ -1057,6 +1019,69 @@ int Action_SurfaceTension::AllocateGrid(int nx, int ny, int nz) {
   if (haveq)
     mprintf("\tSmallest accessible q = %g Ang^-1\n", qmin_acc);
   return 0;
+}
+
+// Action_SurfaceTension::HeightPower()
+/** 2-D FFT of h − ⟨h⟩ via row-column PubFFT 1-D transforms, then
+  *   h_q = FFT2 / (nx ny)
+  * matching numpy.fft.fft2(h) / h.size. Power is |h_q|² (Ang^2).
+  * fft_n2_ transforms along iy (contiguous); fft_n1_ along ix.
+  */
+void Action_SurfaceTension::HeightPower(std::vector<double> const& h,
+                                        std::vector<double>& power)
+{
+  int nx = nx_;
+  int ny = ny_;
+  int nxy = nx * ny;
+  power.assign((size_t)nxy, 0.0);
+  if (nxy == 0) return;
+
+  double mean = 0.0;
+  for (int i = 0; i < nxy; i++)
+    mean += h[i];
+  mean /= (double)nxy;
+
+  for (int ix = 0; ix < nx; ix++) {
+    for (int iy = 0; iy < ny; iy++) {
+      int idx = ST_Idx2(ix, iy, ny);
+      fft_grid_[2 * idx]     = h[idx] - mean;
+      fft_grid_[2 * idx + 1] = 0.0;
+    }
+  }
+
+  for (int ix = 0; ix < nx; ix++) {
+    int base = ix * ny;
+    for (int iy = 0; iy < ny; iy++) {
+      fft_row_[2 * iy]     = fft_grid_[2 * (base + iy)];
+      fft_row_[2 * iy + 1] = fft_grid_[2 * (base + iy) + 1];
+    }
+    fft_n2_.Forward(fft_row_);
+    for (int iy = 0; iy < ny; iy++) {
+      fft_grid_[2 * (base + iy)]     = fft_row_[2 * iy];
+      fft_grid_[2 * (base + iy) + 1] = fft_row_[2 * iy + 1];
+    }
+  }
+
+  for (int iy = 0; iy < ny; iy++) {
+    for (int ix = 0; ix < nx; ix++) {
+      int idx = ST_Idx2(ix, iy, ny);
+      fft_col_[2 * ix]     = fft_grid_[2 * idx];
+      fft_col_[2 * ix + 1] = fft_grid_[2 * idx + 1];
+    }
+    fft_n1_.Forward(fft_col_);
+    for (int ix = 0; ix < nx; ix++) {
+      int idx = ST_Idx2(ix, iy, ny);
+      fft_grid_[2 * idx]     = fft_col_[2 * ix];
+      fft_grid_[2 * idx + 1] = fft_col_[2 * ix + 1];
+    }
+  }
+
+  double Ninv = 1.0 / (double)nxy;
+  for (int k = 0; k < nxy; k++) {
+    double re = fft_grid_[2 * k] * Ninv;
+    double im = fft_grid_[2 * k + 1] * Ninv;
+    power[k] = re * re + im * im;
+  }
 }
 
 // Action_SurfaceTension::ProcessFrame()
@@ -1095,7 +1120,7 @@ int Action_SurfaceTension::ProcessFrame(Frame const& frm, double Lx, double Ly, 
   if (!grid_ready_) {
     Lt1_ref_ = Lt1;
     Lt2_ref_ = Lt2;
-    AllocateGrid(nx, ny, nz);
+    if (AllocateGrid(nx, ny, nz)) return 2;
   } else {
     if (nx != nx_ || ny != ny_) {
       mprinterr("Error: Interface grid dimensions changed during the trajectory.\n");
@@ -1220,8 +1245,8 @@ int Action_SurfaceTension::ProcessFrame(Frame const& frm, double Lx, double Ly, 
 
   // Combined spectrum averages both surfaces (n_surfaces_ = 2 n_frames_).
   std::vector<double> p_upper, p_lower;
-  ST_HeightPower(h_upper_, nx_, ny_, p_upper);
-  ST_HeightPower(h_lower_, nx_, ny_, p_lower);
+  HeightPower(h_upper_, p_upper);
+  HeightPower(h_lower_, p_lower);
 
   for (size_t i = 0; i < top_power_.size(); i++) {
     top_power_[i] += p_upper[i];

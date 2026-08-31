@@ -3,14 +3,15 @@
 #include <vector>
 #include "Action.h"
 #include "AtomMask.h"
+#include "PubFFT.h"
 class DataSet_Mesh;
 /// Capillary-wave surface tension of a liquid slab (Cartesian normal).
 /** Instantaneous upper and lower interfaces are either a Willard-Chandler
   * isosurface of a Gaussian-smoothed number-density field (default) or an
   * ITIM-style per-column min/max of <mask>, split at mid-box along the normal.
   * Height fluctuations in the interface plane are Fourier transformed with
-  * the numpy convention
-  *   h_q = (1 / N₁N₂) Σ h(t1,t2) exp(−i q · r)
+  * cpptraj PubFFT (row-column 1-D FFTs) using the numpy convention
+  *   h_q = (1 / N₁N₂) FFT2(h − ⟨h⟩)
   * Capillary-wave theory including bending rigidity κ is
   *   ⟨|h_q|²⟩ = k_B T / (A (γ q² + κ q⁴))
   * so γ (mN/m) is obtained from the small-q plateau of q² S(q), and κ (in kT)
@@ -44,6 +45,8 @@ class Action_SurfaceTension : public Action {
     int ProcessFrame(Frame const&, double, double, double);
     /// Finish one complete nblock window (γ, κ, and roughness).
     int FinishBlock();
+    /// |h_q|² of a height field via 2-D PubFFT / (nx ny).
+    void HeightPower(std::vector<double> const&, std::vector<double>&);
 
     /// Instantaneous-interface definition.
     enum IfaceType { WILLARD = 0, ITIM };
@@ -102,6 +105,12 @@ class Action_SurfaceTension : public Action {
     std::vector<double> bottom_power_; ///< Accumulated |h_q|², lower
     std::vector<double> block_power_;  ///< Combined |h_q|² for the open block
     std::vector<double> q_grid_;       ///< |q| for each Fourier mode (Å⁻¹)
+
+    PubFFT fft_n1_;                 ///< 1-D FFT along lateral axis 1 (nx)
+    PubFFT fft_n2_;                 ///< 1-D FFT along lateral axis 2 (ny)
+    ComplexArray fft_grid_;         ///< nx×ny complex grid for the 2-D FFT
+    ComplexArray fft_row_;          ///< Length-ny row buffer
+    ComplexArray fft_col_;          ///< Length-nx column buffer
 
     int nx_;                        ///< Bins along lateral axis 1
     int ny_;                        ///< Bins along lateral axis 2
