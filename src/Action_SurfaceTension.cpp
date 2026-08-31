@@ -1,0 +1,1559 @@
+// Action_SurfaceTension
+// Capillary-wave surface tension of a liquid slab (Cartesian normal x, y, or z).
+// See Action_SurfaceTension.h for the physical formulae.
+// \author Nathan D Levinzon <ndlevinzon@gmail.com>
+#include <algorithm>
+#include <cmath>
+#include <limits>
+#include <map>
+#include <vector>
+#include "Action_SurfaceTension.h"
+#include "Constants.h"
+#include "CpptrajStdio.h"
+#include "DataFile.h"
+#include "DataSet_1D.h"
+#include "DataSet_Mesh.h"
+#include "Frame.h"
+#ifdef _OPENMP
+# include <omp.h>
+#endif
+
+// File-local helpers. Names are prefixed ST_ so they do not collide with
+// other Action translation units.
+
+/// Boltzmann constant (J/K); SI, matching the reference Python analysis.
+static const double ST_KB = 1.380649e-23;
+/// Convert Å² → m².
+static const double ST_ANG2_TO_M2 = 1.0e-20;
+/// scipy.ndimage.gaussian_filter default truncate (kernel radius = truncate × σ).
+static const double ST_GAUSS_TRUNCATE = 4.0;
+
+/// \return true if x is finite (not NaN or ±Inf).
+static inline bool ST_Finite(double x) {
+  return (x == x) &&
+         (x <  std::numeric_limits<double>::infinity()) &&
+         (x > -std::numeric_limits<double>::infinity());
+}
+
+static inline double ST_NaN() {
+  return std::numeric_limits<double>::quiet_NaN();
+}
+
+/// Linear index of density_(ix, iy, iz) with z the fastest dimension.
+static inline size_t ST_Idx3(int ix, int iy, int iz, int ny, int nz) {
+  return ((size_t)ix * (size_t)ny + (size_t)iy) * (size_t)nz + (size_t)iz;
+}
+
+/// Linear index of an nx×ny field stored row-major in x, then y.
+static inline size_t ST_Idx2(int ix, int iy, int ny) {
+  return (size_t)ix * (size_t)ny + (size_t)iy;
+}
+
+/// Round a non-negative value to the nearest integer (ties away from −∞).
+static inline int ST_IRound(double x) {
+  return (int)floor(x + 0.5);
+}
+
+/** Wrap x into [0, L). Handles negative values; maps x == L back to 0. */
+static double ST_Wrap(double x, double L) {
+  if (L <= 0.0) return x;
+  double y = fmod(x, L);
+  if (y < 0.0) y += L;
+  if (y >= L) y = 0.0;
+  return y;
+}
+
+/** Recenter a periodic slab so its circular mean along the normal lies at L/2.
+  * Mapping n → θ = 2π n / L, then using atan2(⟨sin θ⟩, ⟨cos θ⟩), avoids
+  * failure when the slab straddles the periodic boundary.
+  */
+static void ST_CircularRecenter(std::vector<double>& n, double L) {
+  if (n.empty() || L <= 0.0) return;
+  double mean_sin = 0.0;
+  double mean_cos = 0.0;
+  for (size_t i = 0; i < n.size(); i++) {
+    double theta = Constants::TWOPI * ST_Wrap(n[i], L) / L;
+    mean_sin += sin(theta);
+    mean_cos += cos(theta);
+  }
+  mean_sin /= (double)n.size();
+  mean_cos /= (double)n.size();
+  double angle = atan2(mean_sin, mean_cos);
+  if (angle < 0.0) angle += Constants::TWOPI;
+  double slab_center = L * angle / Constants::TWOPI;
+  for (size_t i = 0; i < n.size(); i++)
+    n[i] = ST_Wrap(n[i] - slab_center + 0.5 * L, L);
+}
+
+/// Cartesian axis name for Help / mprintf (ASCII).
+static const char* ST_AxisName(int axis) {
+  if (axis == 0) return "x";
+  if (axis == 1) return "y";
+  return "z";
+}
+
+/// Lateral axis names for a given Cartesian normal.
+static void ST_PlaneAxes(int normal, const char*& t1, const char*& t2) {
+  if (normal == 0) { t1 = "y"; t2 = "z"; }
+  else if (normal == 1) { t1 = "x"; t2 = "z"; }
+  else { t1 = "x"; t2 = "y"; }
+}
+
+/// Split Cartesian box lengths into lateral 1, lateral 2, and normal.
+static void ST_SplitBox(int normal, double Lx, double Ly, double Lz,
+                        double& Lt1, double& Lt2, double& Ln)
+{
+  if (normal == 0) { Lt1 = Ly; Lt2 = Lz; Ln = Lx; }
+  else if (normal == 1) { Lt1 = Lx; Lt2 = Lz; Ln = Ly; }
+  else { Lt1 = Lx; Lt2 = Ly; Ln = Lz; }
+}
+
+/// Split a Cartesian point into lateral 1, lateral 2, and normal.
+static void ST_SplitXYZ(int normal, double x, double y, double z,
+                        double& t1, double& t2, double& n)
+{
+  if (normal == 0) { t1 = y; t2 = z; n = x; }
+  else if (normal == 1) { t1 = x; t2 = z; n = y; }
+  else { t1 = x; t2 = y; n = z; }
+}
+
+/** Normalized 1-D Gaussian kernel matching scipy.ndimage._gaussian_kernel1d.
+  * σ is in pixels. Radius = round(4 σ). Empty kernel means “do not filter”.
+  */
+static void ST_GaussianKernel(double sigma, std::vector<double>& kernel) {
+  kernel.clear();
+  if (sigma <= 0.0) return;
+  int radius = ST_IRound(ST_GAUSS_TRUNCATE * sigma);
+  if (radius < 0) radius = 0;
+  kernel.assign((size_t)(2 * radius + 1), 0.0);
+  double sigma2 = sigma * sigma;
+  double sum = 0.0;
+  for (int i = -radius; i <= radius; i++) {
+    double v = exp(-0.5 * ((double)i * (double)i) / sigma2);
+    kernel[i + radius] = v;
+    sum += v;
+  }
+  if (sum > 0.0) {
+    for (size_t i = 0; i < kernel.size(); i++)
+      kernel[i] /= sum;
+  }
+}
+
+/** 1-D convolution with periodic (wrap) boundaries.
+  * The Gaussian kernel is symmetric, so correlate and convolve agree.
+  */
+static void ST_ConvolveWrap(std::vector<double> const& in, std::vector<double> const& kernel,
+                            std::vector<double>& out)
+{
+  int n = (int)in.size();
+  int ksize = (int)kernel.size();
+  int radius = (ksize - 1) / 2;
+  out.assign((size_t)n, 0.0);
+  if (n == 0) return;
+  if (kernel.empty() || ksize < 1) {
+    out = in;
+    return;
+  }
+  for (int i = 0; i < n; i++) {
+    double acc = 0.0;
+    for (int k = -radius; k <= radius; k++) {
+      int j = i + k;
+      j %= n;
+      if (j < 0) j += n;
+      acc += in[j] * kernel[k + radius];
+    }
+    out[i] = acc;
+  }
+}
+
+/** Separable Gaussian smooth of ρ(ix,iy,iz) with periodic boundaries on every axis.
+  * σx, σy, σz are in pixels (Å / bin width), as in scipy.ndimage.gaussian_filter.
+  * OpenMP: each 1-D line in a pass is independent. One parallel region covers
+  * the z, y, and x passes so thread-local line buffers are reused.
+  */
+static void ST_GaussianFilter3D(std::vector<double>& rho, int nx, int ny, int nz,
+                                double sigma_x, double sigma_y, double sigma_z)
+{
+  std::vector<double> kx, ky, kz;
+  ST_GaussianKernel(sigma_x, kx);
+  ST_GaussianKernel(sigma_y, ky);
+  ST_GaussianKernel(sigma_z, kz);
+  if (kx.empty() && ky.empty() && kz.empty()) return;
+
+# ifdef _OPENMP
+# pragma omp parallel
+# endif
+  {
+    std::vector<double> line, conv;
+    int col;
+
+    if (!kz.empty()) {
+      line.resize((size_t)nz);
+      int nxy = nx * ny;
+#     ifdef _OPENMP
+#     pragma omp for schedule(dynamic)
+#     endif
+      for (col = 0; col < nxy; col++) {
+        int ix = col / ny;
+        int iy = col - ix * ny;
+        for (int iz = 0; iz < nz; iz++)
+          line[iz] = rho[ST_Idx3(ix, iy, iz, ny, nz)];
+        ST_ConvolveWrap(line, kz, conv);
+        for (int iz = 0; iz < nz; iz++)
+          rho[ST_Idx3(ix, iy, iz, ny, nz)] = conv[iz];
+      }
+    }
+
+    if (!ky.empty()) {
+      line.resize((size_t)ny);
+      int nxz = nx * nz;
+#     ifdef _OPENMP
+#     pragma omp for schedule(dynamic)
+#     endif
+      for (col = 0; col < nxz; col++) {
+        int ix = col / nz;
+        int iz = col - ix * nz;
+        for (int iy = 0; iy < ny; iy++)
+          line[iy] = rho[ST_Idx3(ix, iy, iz, ny, nz)];
+        ST_ConvolveWrap(line, ky, conv);
+        for (int iy = 0; iy < ny; iy++)
+          rho[ST_Idx3(ix, iy, iz, ny, nz)] = conv[iy];
+      }
+    }
+
+    if (!kx.empty()) {
+      line.resize((size_t)nx);
+      int nyz = ny * nz;
+#     ifdef _OPENMP
+#     pragma omp for schedule(dynamic)
+#     endif
+      for (col = 0; col < nyz; col++) {
+        int iy = col / nz;
+        int iz = col - iy * nz;
+        for (int ix = 0; ix < nx; ix++)
+          line[ix] = rho[ST_Idx3(ix, iy, iz, ny, nz)];
+        ST_ConvolveWrap(line, kx, conv);
+        for (int ix = 0; ix < nx; ix++)
+          rho[ST_Idx3(ix, iy, iz, ny, nz)] = conv[ix];
+      }
+    }
+  }
+}
+
+/** Locate the instantaneous interface along one lateral column.
+  * Walks from the slab center toward +n (upper) or -n (lower) and returns the
+  * linearly interpolated normal coordinate where rho crosses the bulk-density
+  * threshold. \return NaN if no crossing is found.
+  */
+static double ST_FindCrossing(std::vector<double> const& z_grid,
+                              std::vector<double> const& density,
+                              double threshold, int center_index, bool upper)
+{
+  int nz = (int)z_grid.size();
+  if (nz < 2 || center_index < 0 || center_index >= nz)
+    return ST_NaN();
+  if (upper) {
+    for (int k = center_index; k < nz - 1; k++) {
+      double rho0 = density[k];
+      double rho1 = density[k + 1];
+      if (rho0 >= threshold && rho1 < threshold) {
+        if (fabs(rho1 - rho0) < Constants::SMALL)
+          return 0.5 * (z_grid[k] + z_grid[k + 1]);
+        return z_grid[k] + (threshold - rho0) * (z_grid[k + 1] - z_grid[k]) / (rho1 - rho0);
+      }
+    }
+  } else {
+    for (int k = center_index; k > 0; k--) {
+      double rho0 = density[k];
+      double rho1 = density[k - 1];
+      if (rho0 >= threshold && rho1 < threshold) {
+        if (fabs(rho1 - rho0) < Constants::SMALL)
+          return 0.5 * (z_grid[k] + z_grid[k - 1]);
+        return z_grid[k] + (threshold - rho0) * (z_grid[k - 1] - z_grid[k]) / (rho1 - rho0);
+      }
+    }
+  }
+  return ST_NaN();
+}
+
+/** ITIM-style slab interfaces after circular recentering at Ln/2.
+  * In each lateral column: upper = max n of atoms with n >= Ln/2, lower = min n
+  * of atoms with n < Ln/2. Empty half-columns return false.
+  * t1/t2/n are lateral 1, lateral 2, and the slab normal.
+  */
+static bool ST_ItimMinMax(std::vector<double> const& t1,
+                          std::vector<double> const& t2,
+                          std::vector<double> const& n,
+                          int natom, double Lt1, double Lt2, double Ln,
+                          int nx, int ny,
+                          std::vector<double>& h_upper,
+                          std::vector<double>& h_lower)
+{
+  double dx = Lt1 / (double)nx;
+  double dy = Lt2 / (double)ny;
+  double mid = 0.5 * Ln;
+  size_t n2 = (size_t)nx * (size_t)ny;
+  const double inf = std::numeric_limits<double>::infinity();
+  std::vector<double> zmax(n2, -inf), zmin(n2, inf);
+  std::vector<char> has_u(n2, 0), has_l(n2, 0);
+  for (int i = 0; i < natom; i++) {
+    int ix = (int)floor(t1[i] / dx);
+    int iy = (int)floor(t2[i] / dy);
+    if (ix < 0) ix = 0;
+    if (iy < 0) iy = 0;
+    if (ix >= nx) ix = nx - 1;
+    if (iy >= ny) iy = ny - 1;
+    size_t idx = ST_Idx2(ix, iy, ny);
+    if (n[i] >= mid) {
+      if (!has_u[idx] || n[i] > zmax[idx]) zmax[idx] = n[i];
+      has_u[idx] = 1;
+    } else {
+      if (!has_l[idx] || n[i] < zmin[idx]) zmin[idx] = n[i];
+      has_l[idx] = 1;
+    }
+  }
+  for (size_t i = 0; i < n2; i++) {
+    if (!has_u[i] || !has_l[i]) return false;
+    h_upper[i] = zmax[i];
+    h_lower[i] = zmin[i];
+  }
+  return true;
+}
+
+/** Number density of mask atoms with |n - Ln/2| <= bulk_halfwidth (Ang^-3). */
+static double ST_RhoBulkFromAtoms(std::vector<double> const& ncoord, int natom,
+                                  double Lt1, double Lt2, double Ln,
+                                  double bulk_halfwidth)
+{
+  double mid = 0.5 * Ln;
+  int nbulk = 0;
+  for (int i = 0; i < natom; i++) {
+    if (fabs(ncoord[i] - mid) <= bulk_halfwidth)
+      nbulk++;
+  }
+  double vol = Lt1 * Lt2 * 2.0 * bulk_halfwidth;
+  if (vol <= 0.0) return 0.0;
+  return (double)nbulk / vol;
+}
+
+/** RMS height fluctuation w = √⟨(h − ⟨h⟩)²⟩_xy  (Å). */
+static double ST_RMS(std::vector<double> const& h) {
+  if (h.empty()) return ST_NaN();
+  double mean = 0.0;
+  for (size_t i = 0; i < h.size(); i++)
+    mean += h[i];
+  mean /= (double)h.size();
+  double acc = 0.0;
+  for (size_t i = 0; i < h.size(); i++) {
+    double d = h[i] - mean;
+    acc += d * d;
+  }
+  return sqrt(acc / (double)h.size());
+}
+
+/** Sample frequencies, identical to numpy.fft.fftfreq(n, d)[k].
+  * d is the real-space sample spacing (Å). Result is in Å⁻¹.
+  */
+static double ST_FftFreq(int k, int n, double d) {
+  int p;
+  if (k <= (n - 1) / 2)
+    p = k;
+  else
+    p = k - n;
+  return (double)p / ((double)n * d);
+}
+
+/** 2-D power spectrum of a height field.
+  * Subtract ⟨h⟩ (q = 0 translation), then
+  *   h_q = (1 / N) Σ h(x,y) exp(−i q · r)     N = nx ny
+  * which matches numpy.fft.fft2(h) / h.size. Power is |h_q|² (Å²).
+  * Direct DFT is used so nx, ny need not be powers of two.
+  * OpenMP: each (kx, ky) mode is independent; the loop is flattened so it
+  * does not need collapse() (OpenMP 3.0), matching other cpptraj Actions.
+  */
+static void ST_HeightPower(std::vector<double> const& h, int nx, int ny,
+                           std::vector<double>& power)
+{
+  int nxy = nx * ny;
+  power.assign((size_t)nxy, 0.0);
+  if (nxy == 0) return;
+  double mean = 0.0;
+  for (int i = 0; i < nxy; i++)
+    mean += h[i];
+  mean /= (double)nxy;
+  double Ninv = 1.0 / (double)nxy;
+  int k;
+# ifdef _OPENMP
+# pragma omp parallel for schedule(dynamic)
+# endif
+  for (k = 0; k < nxy; k++) {
+    int kx = k / ny;
+    int ky = k - kx * ny;
+    double re = 0.0;
+    double im = 0.0;
+    for (int ix = 0; ix < nx; ix++) {
+      for (int iy = 0; iy < ny; iy++) {
+        double hv = h[ST_Idx2(ix, iy, ny)] - mean;
+        double ang = Constants::TWOPI *
+                     ((double)kx * (double)ix / (double)nx +
+                      (double)ky * (double)iy / (double)ny);
+        re += hv * cos(ang);
+        im -= hv * sin(ang);
+      }
+    }
+    re *= Ninv;
+    im *= Ninv;
+    power[k] = re * re + im * im;
+  }
+}
+
+/** |q| = √(qx² + qy²) for each Fourier mode, qx = 2π fftfreq(nx, Lx/nx). */
+static void ST_MakeQGrid(int nx, int ny, double Lx, double Ly, std::vector<double>& q) {
+  q.resize((size_t)nx * (size_t)ny);
+  double dx = Lx / (double)nx;
+  double dy = Ly / (double)ny;
+  for (int kx = 0; kx < nx; kx++) {
+    double qx = Constants::TWOPI * ST_FftFreq(kx, nx, dx);
+    for (int ky = 0; ky < ny; ky++) {
+      double qy = Constants::TWOPI * ST_FftFreq(ky, ny, dy);
+      q[ST_Idx2(kx, ky, ny)] = sqrt(qx * qx + qy * qy);
+    }
+  }
+}
+
+/// One isotropic |q| shell after averaging degenerate Fourier modes.
+struct ST_Shell {
+  double q;     ///< Mean |q| of modes in this shell (Å⁻¹)
+  double S;     ///< Combined ⟨|h_q|²⟩ (Å²)
+  double Stop;  ///< Upper-interface ⟨|h_q|²⟩
+  double Sbot;  ///< Lower-interface ⟨|h_q|²⟩
+  int n;        ///< Number of modes averaged into this shell
+};
+
+/// Sort shells by increasing |q|.
+static bool ST_ShellQCmp(ST_Shell const& a, ST_Shell const& b) {
+  return a.q < b.q;
+}
+
+/** Isotropic shell average: group modes with the same q² (10 decimal places),
+  * as in pandas round(q², decimals=10). q = 0 is dropped.
+  */
+static void ST_ShellAverage(std::vector<double> const& q,
+                            std::vector<double> const& combined,
+                            std::vector<double> const& top,
+                            std::vector<double> const& bot,
+                            std::vector<ST_Shell>& shells)
+{
+  shells.clear();
+  struct Acc {
+    Acc() : qsum(0.0), S(0.0), Stop(0.0), Sbot(0.0), n(0) {}
+    double qsum, S, Stop, Sbot;
+    int n;
+  };
+  std::map<long long, Acc> bins;
+  size_t n = q.size();
+  for (size_t i = 0; i < n; i++) {
+    if (q[i] <= 0.0) continue;
+    // Group by rounded q², matching numpy.round(q**2, decimals=10).
+    long long key = (long long)floor(q[i] * q[i] * 1.0e10 + 0.5);
+    Acc& a = bins[key];
+    a.qsum += q[i];
+    a.S += combined[i];
+    a.Stop += top[i];
+    a.Sbot += bot[i];
+    a.n++;
+  }
+  shells.reserve(bins.size());
+  for (std::map<long long, Acc>::const_iterator it = bins.begin(); it != bins.end(); ++it) {
+    ST_Shell s;
+    s.n = it->second.n;
+    s.q = it->second.qsum / (double)s.n;
+    s.S = it->second.S / (double)s.n;
+    s.Stop = it->second.Stop / (double)s.n;
+    s.Sbot = it->second.Sbot / (double)s.n;
+    shells.push_back(s);
+  }
+  std::sort(shells.begin(), shells.end(), ST_ShellQCmp);
+}
+
+/** Capillary-wave γ from the mean q² S(q) plateau on [qmin, qmax].
+  *   plateau = ⟨ q² S(q) ⟩_shells
+  *   γ (N/m) = k_B T / (A plateau), then ×1000 → mN/m
+  * Equal weight per q-shell. Needs at least two shells.
+  * \return 0 on success, 1 on failure (γ/plateau set to NaN).
+  */
+static int ST_CalcGamma(std::vector<ST_Shell> const& shells, double temperature,
+                        double area_A2, double qmin, double qmax,
+                        double& gamma, double& plateau)
+{
+  gamma = ST_NaN();
+  plateau = ST_NaN();
+  double acc = 0.0;
+  int nfit = 0;
+  for (size_t i = 0; i < shells.size(); i++) {
+    if (shells[i].q >= qmin && shells[i].q <= qmax) {
+      acc += shells[i].q * shells[i].q * shells[i].S;
+      nfit++;
+    }
+  }
+  if (nfit < 2) return 1;
+  plateau = acc / (double)nfit;
+  if (plateau <= 0.0) return 1;
+  double area_m2 = area_A2 * ST_ANG2_TO_M2;
+  gamma = 1000.0 * ST_KB * temperature / (area_m2 * plateau);
+  return 0;
+}
+
+/** Helfrich fit on [qmin, qmax]:
+  *   1 / (q² S) = a + b q²
+  * q in Å⁻¹, S in Å², so q² S is dimensionless.
+  *   γ (mN/m) = 1000 k_B T a / A_m²     (intercept)
+  *   κ / kT   = b / A_Å²                 (slope)
+  * Equal weight per shell. Needs at least three shells with S > 0.
+  * \return 0 on success, 1 on failure (outputs set to NaN).
+  */
+static int ST_CalcKappa(std::vector<ST_Shell> const& shells, double temperature,
+                        double area_A2, double qmin, double qmax,
+                        double& gamma, double& kappa_kT)
+{
+  gamma = ST_NaN();
+  kappa_kT = ST_NaN();
+  double sx = 0.0, sy = 0.0, sxx = 0.0, sxy = 0.0;
+  int n = 0;
+  for (size_t i = 0; i < shells.size(); i++) {
+    if (shells[i].q < qmin || shells[i].q > qmax) continue;
+    double q2 = shells[i].q * shells[i].q;
+    double q2S = q2 * shells[i].S;
+    if (q2S <= 0.0 || !ST_Finite(q2S)) continue;
+    double x = q2;
+    double y = 1.0 / q2S;
+    sx += x;
+    sy += y;
+    sxx += x * x;
+    sxy += x * y;
+    n++;
+  }
+  if (n < 3) return 1;
+  double den = (double)n * sxx - sx * sx;
+  if (fabs(den) < Constants::SMALL) return 1;
+  double a = (sxx * sy - sx * sxy) / den;
+  double b = ((double)n * sxy - sx * sy) / den;
+  if (a <= 0.0 || !ST_Finite(a) || !ST_Finite(b)) return 1;
+  double area_m2 = area_A2 * ST_ANG2_TO_M2;
+  gamma = 1000.0 * ST_KB * temperature * a / area_m2;
+  kappa_kT = b / area_A2;
+  return 0;
+}
+
+/** Apparent κ(q)/kT given γ (mN/m): invert γ q² + κ q⁴ at one shell. */
+static double ST_ShellKappa(double q, double S, double temperature, double area_A2,
+                            double gamma_mNm)
+{
+  if (q <= 0.0 || S <= 0.0 || !ST_Finite(gamma_mNm)) return ST_NaN();
+  double q2 = q * q;
+  double q2S = q2 * S;
+  if (q2S <= 0.0) return ST_NaN();
+  double y = 1.0 / q2S;
+  double area_m2 = area_A2 * ST_ANG2_TO_M2;
+  double a = area_m2 * (gamma_mNm / 1000.0) / (ST_KB * temperature);
+  double b = (y - a) / q2;
+  return b / area_A2;
+}
+
+/** Apparent γ(q) = k_B T / (A q² S(q)) in mN/m. */
+static double ST_ShellGamma(double q, double S, double temperature, double area_A2) {
+  double q2S = q * q * S;
+  if (q2S <= 0.0) return ST_NaN();
+  double area_m2 = area_A2 * ST_ANG2_TO_M2;
+  return 1000.0 * ST_KB * temperature / (area_m2 * q2S);
+}
+
+/** Ordinary least-squares slope of log S vs log q on [qmin, qmax].
+  * Ideal capillary waves give slope ≈ −2. Sfield selects S / Stop / Sbot.
+  */
+static double ST_LogSlope(std::vector<ST_Shell> const& shells, double qmin, double qmax,
+                          double ST_Shell::* Sfield)
+{
+  double sx = 0.0, sy = 0.0, sxx = 0.0, sxy = 0.0;
+  int n = 0;
+  for (size_t i = 0; i < shells.size(); i++) {
+    double Sval = shells[i].*Sfield;
+    if (shells[i].q >= qmin && shells[i].q <= qmax && Sval > 0.0) {
+      double x = log(shells[i].q);
+      double y = log(Sval);
+      sx += x;
+      sy += y;
+      sxx += x * x;
+      sxy += x * y;
+      n++;
+    }
+  }
+  if (n < 2) return ST_NaN();
+  double den = (double)n * sxx - sx * sx;
+  if (fabs(den) < Constants::SMALL) return ST_NaN();
+  return ((double)n * sxy - sx * sy) / den;
+}
+
+/** Add ds to each non-null DataFile (ASCII / Grace / gnuplot). */
+static void ST_AddSetToFiles(DataSet* ds, DataFile* a, DataFile* b, DataFile* c) {
+  if (ds == 0) return;
+  if (a != 0) a->AddDataSet(ds);
+  if (b != 0) b->AddDataSet(ds);
+  if (c != 0) c->AddDataSet(ds);
+}
+
+// -----------------------------------------------------------------------------
+/// CONSTRUCTOR — defaults match the reference Python analysis.
+Action_SurfaceTension::Action_SurfaceTension() :
+  iface_(WILLARD),
+  normal_(AXIS_Z),
+  temp_(-1.0),
+  gridspacing_(2.5),
+  dz_(1.0),
+  sigma_xy_(2.5),
+  sigma_z_(1.5),
+  bulk_halfwidth_(5.0),
+  threshold_frac_(0.5),
+  qmin_(0.033283),
+  qmax_(0.174649),
+  lx_user_(-1.0),
+  ly_user_(-1.0),
+  lz_user_(-1.0),
+  nblock_(0),
+  debug_(0),
+  S_(0), S_top_(0), S_bot_(0),
+  q2S_(0), q2S_top_(0), q2S_bot_(0),
+  gammaq_(0), gammaq_top_(0), gammaq_bot_(0),
+  kappaq_(0), kappaq_top_(0), kappaq_bot_(0),
+  wtop_(0), wbot_(0), wmean_(0), rhobulk_(0),
+  block_gamma_(0), block_kappa_(0), block_wmean_(0), block_wtop_(0), block_wbot_(0),
+  nx_(0), ny_(0), nz_(0),
+  Lt1_ref_(0.0), Lt2_ref_(0.0),
+  grid_ready_(false),
+  n_frames_(0), n_surfaces_(0), n_skipped_(0), n_blocks_(0),
+  block_surface_count_(0), block_frame_count_(0),
+  block_w_sum_(0.0), block_wtop_sum_(0.0), block_wbot_sum_(0.0)
+{}
+
+// Action_SurfaceTension::Help()
+void Action_SurfaceTension::Help() const {
+  mprintf("\t[<name>] <mask> temp <T>\n"
+          "\t[normal {x|y|z}] [interface {willard|itim}]\n"
+          "\t[gridspacing <d>] [dz <d> | dnormal <d>]\n"
+          "\t[sigmaxy <d>] [sigmaz <d> | sigmanormal <d>]\n"
+          "\t[bulkhalfwidth <d>] [threshold <frac>]\n"
+          "\t[qmin <q>] [qmax <q>] [lx <Lx>] [ly <Ly>] [lz <Lz>]\n"
+          "\t[nblock <frames>]\n"
+          "\t[spectrumout <file>] [roughout <file>] [blockout <file>]\n"
+          "\t[spectrumagr <file>] [roughagr <file>] [blockagr <file>]\n"
+          "\t[spectrumgnu <file>] [roughgnu <file>] [blockgnu <file>]\n"
+          "  Calculate capillary-wave surface tension (mN/m) for a liquid slab.\n"
+          "  normal x|y|z selects the slab normal (default z). gridspacing and\n"
+          "  sigmaxy apply in the interface plane; dz (alias dnormal) and sigmaz\n"
+          "  (alias sigmanormal) apply along the normal. <mask> should select\n"
+          "  interfacial density atoms (e.g. ':WAT@O'). Interfaces are a\n"
+          "  Willard-Chandler Gaussian density isosurface (default) or ITIM\n"
+          "  per-column min/max of <mask>, split at mid-box along the normal.\n"
+          "  Height fluctuations are Fourier transformed; gamma is the small-q\n"
+          "  plateau of q^2 <|h_q|^2>. kappa (kT) is the slope of 1/(q^2 S) vs\n"
+          "  q^2 on the same q window. lx/ly/lz optionally replace Cartesian box\n"
+          "  lengths. Lateral lengths are held fixed (NVT). Assumes an X-aligned\n"
+          "  orthogonal box. DataSets are always created; files are written only\n"
+          "  when the matching *out/*agr/*gnu keyword is given. *out format\n"
+          "  follows the extension (.agr/.xmgr = xmgrace, .gnu = gnuplot,\n"
+          "  otherwise ASCII). *agr/*gnu force Grace or gnuplot. In MPI,\n"
+          "  nblock is per-rank; spectra are summed onto the master.\n");
+}
+
+// Action_SurfaceTension::Init()
+/** Parse keywords, allocate DataSets, attach optional output files.
+  * Spectrum / roughness DataSets always exist so writedata can dump them.
+  * Files are written only if the matching *out / *agr / *gnu keyword is given.
+  * *out uses the DataFile writer for the filename extension (canonical
+  * cpptraj: .agr/.xmgr = Grace/xmgrace, .gnu = gnuplot). *agr/*gnu force
+  * DataFile::XMGRACE / GNUPLOT even when the extension is not recognized.
+  */
+Action::RetType Action_SurfaceTension::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
+{
+# ifdef MPI
+  trajComm_ = init.TrajComm();
+# endif
+  debug_ = debugIn;
+  // Optional output files. AddDataFile returns 0 if the keyword is absent.
+  DataFile* spectrumFile = init.DFL().AddDataFile(actionArgs.GetStringKey("spectrumout"), actionArgs);
+  DataFile* roughFile    = init.DFL().AddDataFile(actionArgs.GetStringKey("roughout"), actionArgs);
+  DataFile* blockFile    = init.DFL().AddDataFile(actionArgs.GetStringKey("blockout"), actionArgs);
+  DataFile* spectrumAgr  = init.DFL().AddDataFile(actionArgs.GetStringKey("spectrumagr"), actionArgs, DataFile::XMGRACE);
+  DataFile* roughAgr     = init.DFL().AddDataFile(actionArgs.GetStringKey("roughagr"), actionArgs, DataFile::XMGRACE);
+  DataFile* blockAgr     = init.DFL().AddDataFile(actionArgs.GetStringKey("blockagr"), actionArgs, DataFile::XMGRACE);
+  DataFile* spectrumGnu  = init.DFL().AddDataFile(actionArgs.GetStringKey("spectrumgnu"), actionArgs, DataFile::GNUPLOT);
+  DataFile* roughGnu     = init.DFL().AddDataFile(actionArgs.GetStringKey("roughgnu"), actionArgs, DataFile::GNUPLOT);
+  DataFile* blockGnu     = init.DFL().AddDataFile(actionArgs.GetStringKey("blockgnu"), actionArgs, DataFile::GNUPLOT);
+
+  temp_ = actionArgs.getKeyDouble("temp", -1.0);
+  if (temp_ <= 0.0) {
+    mprinterr("Error: Temperature must be specified with 'temp <T>' (T > 0).\n");
+    return Action::ERR;
+  }
+  gridspacing_ = actionArgs.getKeyDouble("gridspacing", 2.5);
+  sigma_xy_ = actionArgs.getKeyDouble("sigmaxy", 2.5);
+  bulk_halfwidth_ = actionArgs.getKeyDouble("bulkhalfwidth", 5.0);
+  threshold_frac_ = actionArgs.getKeyDouble("threshold", 0.5);
+  qmin_ = actionArgs.getKeyDouble("qmin", 0.033283);
+  qmax_ = actionArgs.getKeyDouble("qmax", 0.174649);
+  bool has_lx = actionArgs.Contains("lx");
+  bool has_ly = actionArgs.Contains("ly");
+  bool has_lz = actionArgs.Contains("lz");
+  lx_user_ = actionArgs.getKeyDouble("lx", -1.0);
+  ly_user_ = actionArgs.getKeyDouble("ly", -1.0);
+  lz_user_ = actionArgs.getKeyDouble("lz", -1.0);
+  nblock_ = actionArgs.getKeyInt("nblock", 0);
+
+  // dz / dnormal and sigmaz / sigmanormal are aliases (normal-axis spacing / sigma).
+  bool has_dz = actionArgs.Contains("dz");
+  bool has_dnormal = actionArgs.Contains("dnormal");
+  double dz_val = actionArgs.getKeyDouble("dz", 1.0);
+  double dnormal_val = actionArgs.getKeyDouble("dnormal", 1.0);
+  if (has_dz && has_dnormal && fabs(dz_val - dnormal_val) > 1.0e-12) {
+    mprinterr("Error: dz and dnormal both specified and differ.\n");
+    return Action::ERR;
+  }
+  dz_ = has_dnormal ? dnormal_val : dz_val;
+
+  bool has_sigmaz = actionArgs.Contains("sigmaz");
+  bool has_sigman = actionArgs.Contains("sigmanormal");
+  double sigmaz_val = actionArgs.getKeyDouble("sigmaz", 1.5);
+  double sigman_val = actionArgs.getKeyDouble("sigmanormal", 1.5);
+  if (has_sigmaz && has_sigman && fabs(sigmaz_val - sigman_val) > 1.0e-12) {
+    mprinterr("Error: sigmaz and sigmanormal both specified and differ.\n");
+    return Action::ERR;
+  }
+  sigma_z_ = has_sigman ? sigman_val : sigmaz_val;
+
+  std::string nstr = actionArgs.GetStringKey("normal");
+  if (nstr.empty() && actionArgs.Contains("normal")) {
+    mprinterr("Error: 'normal' requires x, y, or z.\n");
+    return Action::ERR;
+  }
+  if (nstr.empty())
+    nstr = "z";
+  if (nstr == "x" || nstr == "X")
+    normal_ = AXIS_X;
+  else if (nstr == "y" || nstr == "Y")
+    normal_ = AXIS_Y;
+  else if (nstr == "z" || nstr == "Z")
+    normal_ = AXIS_Z;
+  else {
+    mprinterr("Error: normal must be 'x', 'y', or 'z'.\n");
+    return Action::ERR;
+  }
+
+  std::string ifacestr = actionArgs.GetStringKey("interface");
+  if (ifacestr.empty() && actionArgs.Contains("interface")) {
+    mprinterr("Error: interface must be 'willard' or 'itim'.\n");
+    return Action::ERR;
+  }
+  if (ifacestr.empty())
+    ifacestr = "willard";
+  if (ifacestr == "willard" || ifacestr == "wc")
+    iface_ = WILLARD;
+  else if (ifacestr == "itim" || ifacestr == "minmax")
+    iface_ = ITIM;
+  else {
+    mprinterr("Error: interface must be 'willard' or 'itim'.\n");
+    return Action::ERR;
+  }
+
+  if (has_lx && lx_user_ <= 0.0) {
+    mprinterr("Error: lx must be > 0.\n");
+    return Action::ERR;
+  }
+  if (has_ly && ly_user_ <= 0.0) {
+    mprinterr("Error: ly must be > 0.\n");
+    return Action::ERR;
+  }
+  if (has_lz && lz_user_ <= 0.0) {
+    mprinterr("Error: lz must be > 0.\n");
+    return Action::ERR;
+  }
+
+  if (gridspacing_ <= 0.0) {
+    mprinterr("Error: gridspacing must be > 0.\n");
+    return Action::ERR;
+  }
+  if (iface_ == WILLARD) {
+    if (dz_ <= 0.0) {
+      mprinterr("Error: dz (or dnormal) must be > 0.\n");
+      return Action::ERR;
+    }
+    if (sigma_xy_ < 0.0 || sigma_z_ < 0.0) {
+      mprinterr("Error: sigmaxy and sigmaz (or sigmanormal) must be >= 0.\n");
+      return Action::ERR;
+    }
+    if (threshold_frac_ <= 0.0 || threshold_frac_ >= 1.0) {
+      mprinterr("Error: threshold must be between 0 and 1.\n");
+      return Action::ERR;
+    }
+  }
+  if (bulk_halfwidth_ <= 0.0) {
+    mprinterr("Error: bulkhalfwidth must be > 0.\n");
+    return Action::ERR;
+  }
+  if (qmax_ <= qmin_) {
+    mprinterr("Error: qmax must be greater than qmin.\n");
+    return Action::ERR;
+  }
+  if (nblock_ < 0) {
+    mprinterr("Error: nblock must be >= 0.\n");
+    return Action::ERR;
+  }
+  if ((blockFile != 0 || blockAgr != 0 || blockGnu != 0) && nblock_ < 1) {
+    mprinterr("Error: 'blockout'/'blockagr'/'blockgnu' require 'nblock <frames>'.\n");
+    return Action::ERR;
+  }
+
+  std::string maskexp = actionArgs.GetMaskNext();
+  if (maskexp.empty()) {
+    mprinterr("Error: No atom mask given.\n");
+    return Action::ERR;
+  }
+  if (Mask_.SetMaskString(maskexp)) return Action::ERR;
+
+  // Dataset name is the leftover argument (cpptraj convention). Reuse the
+  // generated name so all aspects share one set family (ST_00000, …).
+  std::string dsname = actionArgs.GetStringNext();
+  S_ = (DataSet_Mesh*)init.DSL().AddSet(DataSet::XYMESH, MetaData(dsname, "S", MetaData::NOT_TS), "ST");
+  if (S_ == 0) return Action::ERR;
+  dsname = S_->Meta().Name();
+  S_top_     = (DataSet_Mesh*)init.DSL().AddSet(DataSet::XYMESH, MetaData(dsname, "Stop", MetaData::NOT_TS), "ST");
+  S_bot_     = (DataSet_Mesh*)init.DSL().AddSet(DataSet::XYMESH, MetaData(dsname, "Sbot", MetaData::NOT_TS), "ST");
+  q2S_       = (DataSet_Mesh*)init.DSL().AddSet(DataSet::XYMESH, MetaData(dsname, "q2S", MetaData::NOT_TS), "ST");
+  q2S_top_   = (DataSet_Mesh*)init.DSL().AddSet(DataSet::XYMESH, MetaData(dsname, "q2Stop", MetaData::NOT_TS), "ST");
+  q2S_bot_   = (DataSet_Mesh*)init.DSL().AddSet(DataSet::XYMESH, MetaData(dsname, "q2Sbot", MetaData::NOT_TS), "ST");
+  gammaq_    = (DataSet_Mesh*)init.DSL().AddSet(DataSet::XYMESH, MetaData(dsname, "gammaq", MetaData::NOT_TS), "ST");
+  gammaq_top_= (DataSet_Mesh*)init.DSL().AddSet(DataSet::XYMESH, MetaData(dsname, "gammaqtop", MetaData::NOT_TS), "ST");
+  gammaq_bot_= (DataSet_Mesh*)init.DSL().AddSet(DataSet::XYMESH, MetaData(dsname, "gammaqbot", MetaData::NOT_TS), "ST");
+  kappaq_    = (DataSet_Mesh*)init.DSL().AddSet(DataSet::XYMESH, MetaData(dsname, "kappaq", MetaData::NOT_TS), "ST");
+  kappaq_top_= (DataSet_Mesh*)init.DSL().AddSet(DataSet::XYMESH, MetaData(dsname, "kappaqtop", MetaData::NOT_TS), "ST");
+  kappaq_bot_= (DataSet_Mesh*)init.DSL().AddSet(DataSet::XYMESH, MetaData(dsname, "kappaqbot", MetaData::NOT_TS), "ST");
+  if (S_==0 || S_top_==0 || S_bot_==0 || q2S_==0 || q2S_top_==0 || q2S_bot_==0 ||
+      gammaq_==0 || gammaq_top_==0 || gammaq_bot_==0 ||
+      kappaq_==0 || kappaq_top_==0 || kappaq_bot_==0)
+    return Action::ERR;
+  // Grace/gnuplot xlabel comes from Dim(0). Mesh X values are q, not a uniform grid.
+  Dimension qdim(0.0, 1.0, "q (Ang^-1)");
+  S_->SetDim(Dimension::X, qdim);
+  S_top_->SetDim(Dimension::X, qdim);
+  S_bot_->SetDim(Dimension::X, qdim);
+  q2S_->SetDim(Dimension::X, qdim);
+  q2S_top_->SetDim(Dimension::X, qdim);
+  q2S_bot_->SetDim(Dimension::X, qdim);
+  gammaq_->SetDim(Dimension::X, qdim);
+  gammaq_top_->SetDim(Dimension::X, qdim);
+  gammaq_bot_->SetDim(Dimension::X, qdim);
+  kappaq_->SetDim(Dimension::X, qdim);
+  kappaq_top_->SetDim(Dimension::X, qdim);
+  kappaq_bot_->SetDim(Dimension::X, qdim);
+  // Print() fills these from the accumulated spectra; they are not time series.
+  // MPI: SyncAction reduces |h_q|^2; skip DataSet concat of empty meshes.
+# ifdef MPI
+  S_->SetNeedsSync(false); S_top_->SetNeedsSync(false); S_bot_->SetNeedsSync(false);
+  q2S_->SetNeedsSync(false); q2S_top_->SetNeedsSync(false); q2S_bot_->SetNeedsSync(false);
+  gammaq_->SetNeedsSync(false); gammaq_top_->SetNeedsSync(false); gammaq_bot_->SetNeedsSync(false);
+  kappaq_->SetNeedsSync(false); kappaq_top_->SetNeedsSync(false); kappaq_bot_->SetNeedsSync(false);
+# endif
+  ST_AddSetToFiles(S_,          spectrumFile, spectrumAgr, spectrumGnu);
+  ST_AddSetToFiles(S_top_,      spectrumFile, spectrumAgr, spectrumGnu);
+  ST_AddSetToFiles(S_bot_,      spectrumFile, spectrumAgr, spectrumGnu);
+  ST_AddSetToFiles(q2S_,        spectrumFile, spectrumAgr, spectrumGnu);
+  ST_AddSetToFiles(q2S_top_,    spectrumFile, spectrumAgr, spectrumGnu);
+  ST_AddSetToFiles(q2S_bot_,    spectrumFile, spectrumAgr, spectrumGnu);
+  ST_AddSetToFiles(gammaq_,     spectrumFile, spectrumAgr, spectrumGnu);
+  ST_AddSetToFiles(gammaq_top_, spectrumFile, spectrumAgr, spectrumGnu);
+  ST_AddSetToFiles(gammaq_bot_, spectrumFile, spectrumAgr, spectrumGnu);
+  ST_AddSetToFiles(kappaq_,     spectrumFile, spectrumAgr, spectrumGnu);
+  ST_AddSetToFiles(kappaq_top_, spectrumFile, spectrumAgr, spectrumGnu);
+  ST_AddSetToFiles(kappaq_bot_, spectrumFile, spectrumAgr, spectrumGnu);
+
+  wtop_   = init.DSL().AddSet(DataSet::DOUBLE, MetaData(dsname, "wtop"), "ST");
+  wbot_   = init.DSL().AddSet(DataSet::DOUBLE, MetaData(dsname, "wbot"), "ST");
+  wmean_  = init.DSL().AddSet(DataSet::DOUBLE, MetaData(dsname, "wmean"), "ST");
+  rhobulk_= init.DSL().AddSet(DataSet::DOUBLE, MetaData(dsname, "rhobulk"), "ST");
+  if (wtop_==0 || wbot_==0 || wmean_==0 || rhobulk_==0) return Action::ERR;
+  ST_AddSetToFiles(wtop_,    roughFile, roughAgr, roughGnu);
+  ST_AddSetToFiles(wbot_,    roughFile, roughAgr, roughGnu);
+  ST_AddSetToFiles(wmean_,   roughFile, roughAgr, roughGnu);
+  ST_AddSetToFiles(rhobulk_, roughFile, roughAgr, roughGnu);
+
+  if (nblock_ > 0) {
+    // Block DataSets are indexed by completed block, not by frame.
+    block_gamma_ = init.DSL().AddSet(DataSet::DOUBLE, MetaData(dsname, "bgamma"), "ST");
+    block_kappa_ = init.DSL().AddSet(DataSet::DOUBLE, MetaData(dsname, "bkappa"), "ST");
+    block_wmean_ = init.DSL().AddSet(DataSet::DOUBLE, MetaData(dsname, "bwmean"), "ST");
+    block_wtop_  = init.DSL().AddSet(DataSet::DOUBLE, MetaData(dsname, "bwtop"), "ST");
+    block_wbot_  = init.DSL().AddSet(DataSet::DOUBLE, MetaData(dsname, "bwbot"), "ST");
+    if (block_gamma_==0 || block_kappa_==0 || block_wmean_==0 || block_wtop_==0 || block_wbot_==0)
+      return Action::ERR;
+    ST_AddSetToFiles(block_gamma_, blockFile, blockAgr, blockGnu);
+    ST_AddSetToFiles(block_kappa_, blockFile, blockAgr, blockGnu);
+    ST_AddSetToFiles(block_wmean_, blockFile, blockAgr, blockGnu);
+    ST_AddSetToFiles(block_wtop_,  blockFile, blockAgr, blockGnu);
+    ST_AddSetToFiles(block_wbot_,  blockFile, blockAgr, blockGnu);
+  }
+
+  mprintf("    SURFTENSION: Capillary-wave surface tension.\n");
+  mprintf("\tMask: '%s'\n", Mask_.MaskString());
+  {
+    const char* t1 = 0;
+    const char* t2 = 0;
+    ST_PlaneAxes((int)normal_, t1, t2);
+    mprintf("\tSlab normal: %s (interface plane %s-%s)\n",
+            ST_AxisName((int)normal_), t1, t2);
+  }
+  if (iface_ == WILLARD)
+    mprintf("\tInterface: Willard-Chandler density isosurface.\n");
+  else
+    mprintf("\tInterface: ITIM min/max (per-column, split at mid-box along %s).\n",
+            ST_AxisName((int)normal_));
+  mprintf("\tTemperature= %g K\n", temp_);
+  mprintf("\tInterface-plane grid spacing= %g Ang\n", gridspacing_);
+  if (iface_ == WILLARD) {
+    mprintf("\tNormal-axis bin spacing (dz)= %g Ang\n", dz_);
+    mprintf("\tGaussian sigma in plane= %g Ang, along normal= %g Ang\n",
+            sigma_xy_, sigma_z_);
+    mprintf("\tBulk half-width= %g Ang, threshold fraction= %g\n",
+            bulk_halfwidth_, threshold_frac_);
+  } else {
+    mprintf("\tBulk half-width (rho_bulk only)= %g Ang\n", bulk_halfwidth_);
+  }
+  mprintf("\tFit q range= %g to %g Ang^-1\n", qmin_, qmax_);
+  mprintf("\tHelfrich kappa: linear fit of 1/(q^2 S) vs q^2 on that window.\n");
+  if (lx_user_ > 0.0)
+    mprintf("\tUsing fixed Lx= %g Ang (%s)\n", lx_user_,
+            (normal_ == AXIS_X) ? "normal" : "lateral");
+  if (ly_user_ > 0.0)
+    mprintf("\tUsing fixed Ly= %g Ang (%s)\n", ly_user_,
+            (normal_ == AXIS_Y) ? "normal" : "lateral");
+  if (lz_user_ > 0.0)
+    mprintf("\tUsing fixed Lz= %g Ang (%s)\n", lz_user_,
+            (normal_ == AXIS_Z) ? "normal" : "lateral");
+  if (nblock_ > 0) {
+    mprintf("\tBlock averaging every %i analyzed frames", nblock_);
+#   ifdef MPI
+    if (trajComm_.Size() > 1)
+      mprintf(" (per rank)");
+#   endif
+    mprintf(".\n");
+  } else
+    mprintf("\tBlock averaging disabled.\n");
+  mprintf("\tSpectrum DataSets: %s %s %s %s %s %s %s %s %s %s %s %s\n",
+          S_->legend(), S_top_->legend(), S_bot_->legend(),
+          q2S_->legend(), q2S_top_->legend(), q2S_bot_->legend(),
+          gammaq_->legend(), gammaq_top_->legend(), gammaq_bot_->legend(),
+          kappaq_->legend(), kappaq_top_->legend(), kappaq_bot_->legend());
+  if (spectrumFile != 0)
+    mprintf("\tSpectrum output to '%s' (%s)\n", spectrumFile->DataFilename().full(),
+            spectrumFile->FormatString());
+  if (spectrumAgr != 0)
+    mprintf("\tSpectrum Grace output to '%s'\n", spectrumAgr->DataFilename().full());
+  if (spectrumGnu != 0)
+    mprintf("\tSpectrum gnuplot output to '%s'\n", spectrumGnu->DataFilename().full());
+  if (roughFile != 0)
+    mprintf("\tRoughness output to '%s' (%s)\n", roughFile->DataFilename().full(),
+            roughFile->FormatString());
+  if (roughAgr != 0)
+    mprintf("\tRoughness Grace output to '%s'\n", roughAgr->DataFilename().full());
+  if (roughGnu != 0)
+    mprintf("\tRoughness gnuplot output to '%s'\n", roughGnu->DataFilename().full());
+  if (blockFile != 0)
+    mprintf("\tBlock output to '%s' (%s)\n", blockFile->DataFilename().full(),
+            blockFile->FormatString());
+  if (blockAgr != 0)
+    mprintf("\tBlock Grace output to '%s'\n", blockAgr->DataFilename().full());
+  if (blockGnu != 0)
+    mprintf("\tBlock gnuplot output to '%s'\n", blockGnu->DataFilename().full());
+# ifdef _OPENMP
+  {
+    int nthreads = 1;
+#   pragma omp parallel
+    {
+#     pragma omp master
+      nthreads = omp_get_num_threads();
+    }
+    if (nthreads > 1) {
+      mprintf("\tOpenMP: 2-D DFT");
+      if (iface_ == WILLARD)
+        mprintf(" and 3-D Gaussian filter");
+      mprintf(" parallelized with %i threads.\n", nthreads);
+    }
+  }
+# endif
+# ifdef MPI
+  if (trajComm_.Size() > 1)
+    mprintf("\tMPI: |h_q|^2 spectra reduced to master with one packed SUM.\n");
+# endif
+  return Action::OK;
+}
+
+// Action_SurfaceTension::Setup()
+Action::RetType Action_SurfaceTension::Setup(ActionSetup& setup)
+{
+  if (!setup.CoordInfo().HasBox()) {
+    mprintf("Warning: No unit cell; surface tension cannot be calculated for '%s'\n",
+            setup.Top().c_str());
+    return Action::SKIP;
+  }
+  if (!setup.CoordInfo().TrajBox().Is_X_Aligned_Ortho()) {
+    mprintf("Warning: Box is not X-aligned orthorhombic; wrapping Cartesian\n"
+            "Warning:   coordinates independently may not be correct.\n");
+  }
+  if (setup.Top().SetupIntegerMask(Mask_)) return Action::ERR;
+  Mask_.MaskInfo();
+  if (Mask_.None()) {
+    mprintf("Warning: Mask '%s' selects no atoms.\n", Mask_.MaskString());
+    return Action::SKIP;
+  }
+  return Action::OK;
+}
+
+// Action_SurfaceTension::AllocateGrid()
+int Action_SurfaceTension::AllocateGrid(int nx, int ny, int nz) {
+  nx_ = nx;
+  ny_ = ny;
+  nz_ = nz;
+  size_t n3 = (size_t)nx * (size_t)ny * (size_t)nz;
+  size_t n2 = (size_t)nx * (size_t)ny;
+  if (nz > 0)
+    density_.assign(n3, 0.0);
+  else
+    density_.clear();
+  h_upper_.assign(n2, 0.0);
+  h_lower_.assign(n2, 0.0);
+  total_power_.assign(n2, 0.0);
+  top_power_.assign(n2, 0.0);
+  bottom_power_.assign(n2, 0.0);
+  block_power_.assign(n2, 0.0);
+  ST_MakeQGrid(nx_, ny_, Lt1_ref_, Lt2_ref_, q_grid_);
+  grid_ready_ = true;
+  double qmin_acc = 0.0;
+  bool haveq = false;
+  for (size_t i = 0; i < q_grid_.size(); i++) {
+    if (q_grid_[i] > 0.0 && (!haveq || q_grid_[i] < qmin_acc)) {
+      qmin_acc = q_grid_[i];
+      haveq = true;
+    }
+  }
+  const char* t1 = 0;
+  const char* t2 = 0;
+  ST_PlaneAxes((int)normal_, t1, t2);
+  mprintf("\tInterface grid = %i x %i", nx_, ny_);
+  if (nz_ > 0)
+    mprintf(" x %i", nz_);
+  mprintf(" (%s x %s", t1, t2);
+  if (nz_ > 0)
+    mprintf(" x %s", ST_AxisName((int)normal_));
+  mprintf(")\n");
+  mprintf("\t%s x %s = %g x %g Ang\n", t1, t2, Lt1_ref_, Lt2_ref_);
+  if (haveq)
+    mprintf("\tSmallest accessible q = %g Ang^-1\n", qmin_acc);
+  return 0;
+}
+
+// Action_SurfaceTension::ProcessFrame()
+/** Wrap laterals, recenter along the normal, build instantaneous interfaces,
+  * then accumulate roughness and |h_q|^2. First good frame freezes nx, ny,
+  * Lt1, Lt2 (and nz for Willard-Chandler). Cartesian Lx/Ly/Lz are permuted
+  * into (Lt1, Lt2, Ln) according to normal_.
+  */
+int Action_SurfaceTension::ProcessFrame(Frame const& frm, double Lx, double Ly, double Lz)
+{
+  int nax = (int)normal_;
+  double Lt1, Lt2, Ln;
+  ST_SplitBox(nax, Lx, Ly, Lz, Lt1, Lt2, Ln);
+
+  int natom = Mask_.Nselected();
+  std::vector<double> t1((size_t)natom), t2((size_t)natom), n((size_t)natom);
+  int idx = 0;
+  for (AtomMask::const_iterator at = Mask_.begin(); at != Mask_.end(); ++at, ++idx) {
+    const double* xyz = frm.XYZ(*at);
+    double a, b, c;
+    ST_SplitXYZ(nax, xyz[0], xyz[1], xyz[2], a, b, c);
+    t1[idx] = ST_Wrap(a, Lt1);
+    t2[idx] = ST_Wrap(b, Lt2);
+    n[idx] = c;
+  }
+  ST_CircularRecenter(n, Ln);
+
+  // Same bin counts as the reference Python: max(8, round(L/spacing)) in the
+  // interface plane, max(32, round(Ln/dz)) along the normal (Willard only).
+  int nx = std::max(8, ST_IRound(Lt1 / gridspacing_));
+  int ny = std::max(8, ST_IRound(Lt2 / gridspacing_));
+  int nz = 0;
+  if (iface_ == WILLARD)
+    nz = std::max(32, ST_IRound(Ln / dz_));
+
+  if (!grid_ready_) {
+    Lt1_ref_ = Lt1;
+    Lt2_ref_ = Lt2;
+    AllocateGrid(nx, ny, nz);
+  } else {
+    if (nx != nx_ || ny != ny_) {
+      mprinterr("Error: Interface grid dimensions changed during the trajectory.\n");
+      return 2;
+    }
+    if (fabs(Lt1 - Lt1_ref_) > 1.0e-5 || fabs(Lt2 - Lt2_ref_) > 1.0e-5) {
+      mprinterr("Error: Lateral box dimensions changed. surftension assumes a fixed interface plane (NVT).\n");
+      return 2;
+    }
+    if (iface_ == WILLARD && nz != nz_) {
+      // Normal-axis length may jitter slightly; keep the first-frame nz.
+      nz = nz_;
+    }
+  }
+
+  double rho_bulk = 0.0;
+  if (iface_ == ITIM) {
+    rho_bulk = ST_RhoBulkFromAtoms(n, natom, Lt1, Lt2, Ln, bulk_halfwidth_);
+    if (!ST_ItimMinMax(t1, t2, n, natom, Lt1, Lt2, Ln, nx_, ny_, h_upper_, h_lower_)) {
+      mprintf("Warning: Empty ITIM column; skipping frame.\n");
+      return 1;
+    }
+  } else {
+    double dx = Lt1 / (double)nx_;
+    double dy = Lt2 / (double)ny_;
+    double dz = Ln / (double)nz_;
+    double voxel = dx * dy * dz;
+    // Histogram counts, then convert to number density (Ang^-3).
+    std::fill(density_.begin(), density_.end(), 0.0);
+    for (int i = 0; i < natom; i++) {
+      int ix = (int)floor(t1[i] / dx);
+      int iy = (int)floor(t2[i] / dy);
+      int iz = (int)floor(n[i] / dz);
+      if (ix < 0) ix = 0;
+      if (iy < 0) iy = 0;
+      if (iz < 0) iz = 0;
+      if (ix >= nx_) ix = nx_ - 1;
+      if (iy >= ny_) iy = ny_ - 1;
+      if (iz >= nz_) iz = nz_ - 1;
+      density_[ST_Idx3(ix, iy, iz, ny_, nz_)] += 1.0;
+    }
+    if (voxel > 0.0) {
+      for (size_t i = 0; i < density_.size(); i++)
+        density_[i] /= voxel;
+    }
+
+    ST_GaussianFilter3D(density_, nx_, ny_, nz_,
+                        sigma_xy_ / dx, sigma_xy_ / dy, sigma_z_ / dz);
+
+    // Bin centers, matching 0.5 * (edges[:-1] + edges[1:]) of numpy.histogramdd.
+    std::vector<double> n_grid((size_t)nz_);
+    for (int iz = 0; iz < nz_; iz++)
+      n_grid[iz] = ((double)iz + 0.5) * dz;
+    double slab_center = 0.5 * Ln;
+    int center_index = 0;
+    double best = fabs(n_grid[0] - slab_center);
+    for (int iz = 1; iz < nz_; iz++) {
+      double d = fabs(n_grid[iz] - slab_center);
+      if (d < best) {
+        best = d;
+        center_index = iz;
+      }
+    }
+
+    std::vector<double> rho_n((size_t)nz_, 0.0);
+    double nxy = (double)(nx_ * ny_);
+    for (int ix = 0; ix < nx_; ix++) {
+      for (int iy = 0; iy < ny_; iy++) {
+        for (int iz = 0; iz < nz_; iz++)
+          rho_n[iz] += density_[ST_Idx3(ix, iy, iz, ny_, nz_)];
+      }
+    }
+    for (int iz = 0; iz < nz_; iz++)
+      rho_n[iz] /= nxy;
+
+    // rho_bulk is the laterally averaged density within +/- bulk_halfwidth of Ln/2.
+    double rho_bulk_acc = 0.0;
+    int nbulk = 0;
+    for (int iz = 0; iz < nz_; iz++) {
+      if (fabs(n_grid[iz] - slab_center) <= bulk_halfwidth_) {
+        rho_bulk_acc += rho_n[iz];
+        nbulk++;
+      }
+    }
+    if (nbulk < 1) {
+      mprintf("Warning: No bins along the normal fall within the bulk region; skipping frame.\n");
+      return 1;
+    }
+    rho_bulk = rho_bulk_acc / (double)nbulk;
+    if (rho_bulk <= 0.0) {
+      mprintf("Warning: Bulk density is non-positive; skipping frame.\n");
+      return 1;
+    }
+    double threshold = threshold_frac_ * rho_bulk;
+
+    // One height pair per lateral column. Any missing crossing skips the frame.
+    std::vector<double> col((size_t)nz_);
+    bool ok = true;
+    for (int ix = 0; ix < nx_ && ok; ix++) {
+      for (int iy = 0; iy < ny_; iy++) {
+        for (int iz = 0; iz < nz_; iz++)
+          col[iz] = density_[ST_Idx3(ix, iy, iz, ny_, nz_)];
+        double hu = ST_FindCrossing(n_grid, col, threshold, center_index, true);
+        double hl = ST_FindCrossing(n_grid, col, threshold, center_index, false);
+        if (!ST_Finite(hu) || !ST_Finite(hl)) {
+          ok = false;
+          break;
+        }
+        h_upper_[ST_Idx2(ix, iy, ny_)] = hu;
+        h_lower_[ST_Idx2(ix, iy, ny_)] = hl;
+      }
+    }
+    if (!ok) {
+      mprintf("Warning: Could not identify a local interface; skipping frame.\n");
+      return 1;
+    }
+  }
+
+  double w_top = ST_RMS(h_upper_);
+  double w_bot = ST_RMS(h_lower_);
+  double w_mean = 0.5 * (w_top + w_bot);
+
+  // Combined spectrum averages both surfaces (n_surfaces_ = 2 n_frames_).
+  std::vector<double> p_upper, p_lower;
+  ST_HeightPower(h_upper_, nx_, ny_, p_upper);
+  ST_HeightPower(h_lower_, nx_, ny_, p_lower);
+
+  for (size_t i = 0; i < top_power_.size(); i++) {
+    top_power_[i] += p_upper[i];
+    bottom_power_[i] += p_lower[i];
+    total_power_[i] += p_upper[i] + p_lower[i];
+    block_power_[i] += p_upper[i] + p_lower[i];
+  }
+
+  n_frames_++;
+  n_surfaces_ += 2;
+  block_surface_count_ += 2;
+  block_frame_count_++;
+  block_w_sum_ += w_mean;
+  block_wtop_sum_ += w_top;
+  block_wbot_sum_ += w_bot;
+
+  int fidx = n_frames_ - 1;
+  wtop_->Add(fidx, &w_top);
+  wbot_->Add(fidx, &w_bot);
+  wmean_->Add(fidx, &w_mean);
+  rhobulk_->Add(fidx, &rho_bulk);
+
+  if (nblock_ > 0 && (n_frames_ % nblock_) == 0) {
+    if (FinishBlock()) return 2;
+  }
+  return 0;
+}
+
+// Action_SurfaceTension::FinishBlock()
+/** Average the open-block power, fit γ and κ, store roughness means, then reset. */
+int Action_SurfaceTension::FinishBlock() {
+  if (block_surface_count_ < 1 || block_frame_count_ < 1) return 0;
+  std::vector<double> spec(block_power_.size());
+  for (size_t i = 0; i < spec.size(); i++)
+    spec[i] = block_power_[i] / (double)block_surface_count_;
+  std::vector<ST_Shell> shells;
+  ST_ShellAverage(q_grid_, spec, spec, spec, shells);
+  double gamma, plateau;
+  double gamma_k, kappa_kT;
+  int err_g = ST_CalcGamma(shells, temp_, Lt1_ref_ * Lt2_ref_, qmin_, qmax_, gamma, plateau);
+  int err_k = ST_CalcKappa(shells, temp_, Lt1_ref_ * Lt2_ref_, qmin_, qmax_, gamma_k, kappa_kT);
+  (void)gamma_k;
+  if (err_g) {
+    mprintf("Warning: Block %i: fewer than two q shells in the fit range; skipping block gamma.\n",
+            n_blocks_ + 1);
+  } else {
+    double wmean = block_w_sum_ / (double)block_frame_count_;
+    double wtop  = block_wtop_sum_ / (double)block_frame_count_;
+    double wbot  = block_wbot_sum_ / (double)block_frame_count_;
+    if (block_gamma_ != 0) {
+      block_gamma_->Add(n_blocks_, &gamma);
+      if (block_kappa_ != 0)
+        block_kappa_->Add(n_blocks_, &kappa_kT);
+      block_wmean_->Add(n_blocks_, &wmean);
+      block_wtop_->Add(n_blocks_, &wtop);
+      block_wbot_->Add(n_blocks_, &wbot);
+    }
+    if (err_k)
+      mprintf("\tBlock %i: gamma = %g mN/m, roughness = %g Ang\n",
+              n_blocks_ + 1, gamma, wmean);
+    else
+      mprintf("\tBlock %i: gamma = %g mN/m, kappa = %g kT, roughness = %g Ang\n",
+              n_blocks_ + 1, gamma, kappa_kT, wmean);
+    n_blocks_++;
+  }
+  std::fill(block_power_.begin(), block_power_.end(), 0.0);
+  block_surface_count_ = 0;
+  block_frame_count_ = 0;
+  block_w_sum_ = block_wtop_sum_ = block_wbot_sum_ = 0.0;
+  return 0;
+}
+
+// Action_SurfaceTension::DoAction()
+Action::RetType Action_SurfaceTension::DoAction(int, ActionFrame& frm)
+{
+  if (!frm.Frm().BoxCrd().HasBox()) {
+    mprintf("Warning: Frame has no box; skipping.\n");
+    n_skipped_++;
+    return Action::OK;
+  }
+  Vec3 lengths = frm.Frm().BoxCrd().Lengths();
+  // Optional lx/ly/lz override the trajectory box (NVT slabs with noisy box records).
+  double Lx = (lx_user_ > 0.0) ? lx_user_ : lengths[0];
+  double Ly = (ly_user_ > 0.0) ? ly_user_ : lengths[1];
+  double Lz = (lz_user_ > 0.0) ? lz_user_ : lengths[2];
+  if (Lx <= 0.0 || Ly <= 0.0 || Lz <= 0.0) {
+    mprintf("Warning: Invalid box lengths; skipping frame.\n");
+    n_skipped_++;
+    return Action::OK;
+  }
+  int err = ProcessFrame(frm.Frm(), Lx, Ly, Lz);
+  if (err == 1) {
+    n_skipped_++;
+    return Action::OK;
+  }
+  if (err == 2) return Action::ERR;
+  return Action::OK;
+}
+
+#ifdef MPI
+// Action_SurfaceTension::SyncAction()
+/** Radial-style reduction. Three small AllReduces (counts SUM, grid MAX, lateral
+  * box MAX) then one packed ReduceMaster SUM of combined/upper/lower |h_q|^2 onto
+  * the master. |q| uses a separate MAX (different MPI_Op). Print() is master
+  * only. Roughness / block series use DataSet::Sync (concat by rank).
+  */
+int Action_SurfaceTension::SyncAction() {
+  if (trajComm_.Size() < 2) return 0;
+
+  int counts[4] = { n_frames_, n_surfaces_, n_skipped_, block_frame_count_ };
+  trajComm_.AllReduce(counts, 4, MPI_INT, MPI_SUM);
+  n_frames_          = counts[0];
+  n_surfaces_        = counts[1];
+  n_skipped_         = counts[2];
+  block_frame_count_ = counts[3];
+
+  int n2 = (int)total_power_.size();
+  int imax[3] = { n2, nx_, ny_ };
+  trajComm_.AllReduce(imax, 3, MPI_INT, MPI_MAX);
+  int n2max = imax[0];
+  nx_ = imax[1];
+  ny_ = imax[2];
+  double box[2] = { Lt1_ref_, Lt2_ref_ };
+  trajComm_.AllReduce(box, 2, MPI_DOUBLE, MPI_MAX);
+  Lt1_ref_ = box[0];
+  Lt2_ref_ = box[1];
+
+  if (n2max < 1) return 0;
+  if (n2 != 0 && n2 != n2max) {
+    rprintf("Error: surftension Fourier grid size %i differs from other ranks (%i).\n",
+            n2, n2max);
+    return 1;
+  }
+  if (n2 == 0) {
+    total_power_.assign((size_t)n2max, 0.0);
+    top_power_.assign((size_t)n2max, 0.0);
+    bottom_power_.assign((size_t)n2max, 0.0);
+    q_grid_.assign((size_t)n2max, 0.0);
+  }
+
+  // One ReduceMaster for all three spectra (latency-bound, not bandwidth).
+  int npack = n2max * 3;
+  std::vector<double> send((size_t)npack);
+  std::copy(total_power_.begin(),  total_power_.end(),  send.begin());
+  std::copy(top_power_.begin(),    top_power_.end(),    send.begin() + n2max);
+  std::copy(bottom_power_.begin(), bottom_power_.end(), send.begin() + 2 * n2max);
+  if (trajComm_.Master()) {
+    std::vector<double> recv((size_t)npack);
+    trajComm_.ReduceMaster(&recv[0], &send[0], npack, MPI_DOUBLE, MPI_SUM);
+    total_power_.assign(recv.begin(), recv.begin() + n2max);
+    top_power_.assign(recv.begin() + n2max, recv.begin() + 2 * n2max);
+    bottom_power_.assign(recv.begin() + 2 * n2max, recv.end());
+  } else {
+    trajComm_.ReduceMaster(0, &send[0], npack, MPI_DOUBLE, MPI_SUM);
+  }
+
+  if (q_grid_.size() != (size_t)n2max)
+    q_grid_.assign((size_t)n2max, 0.0);
+  if (trajComm_.Master()) {
+    std::vector<double> qmaxv((size_t)n2max);
+    trajComm_.ReduceMaster(&qmaxv[0], &q_grid_[0], n2max, MPI_DOUBLE, MPI_MAX);
+    q_grid_.swap(qmaxv);
+    grid_ready_ = true;
+  } else {
+    trajComm_.ReduceMaster(0, &q_grid_[0], n2max, MPI_DOUBLE, MPI_MAX);
+  }
+  return 0;
+}
+#endif
+
+// Action_SurfaceTension::Print()
+/** Average accumulated spectra, fill q-meshes, report γ / roughness / blocks. */
+void Action_SurfaceTension::Print()
+{
+  const char* t1 = 0;
+  const char* t2 = 0;
+  ST_PlaneAxes((int)normal_, t1, t2);
+  mprintf("    SURFTENSION:\n");
+  mprintf("\tSlab normal: %s (interface plane %s-%s)\n",
+          ST_AxisName((int)normal_), t1, t2);
+  if (iface_ == WILLARD)
+    mprintf("\tInterface: Willard-Chandler density isosurface.\n");
+  else
+    mprintf("\tInterface: ITIM min/max.\n");
+  if (nblock_ > 0 && block_frame_count_ > 0) {
+    mprintf("\tNOTE: Incomplete nblock window (%i frames) excluded from blockout.\n",
+            block_frame_count_);
+  }
+  if (n_frames_ < 1) {
+    mprinterr("Error: surftension: No frames were analyzed");
+    if (n_skipped_ > 0)
+      mprinterr(" (%i skipped)", n_skipped_);
+    mprinterr(".\n");
+    return;
+  }
+
+  std::vector<double> spec(total_power_.size());
+  std::vector<double> spec_top(top_power_.size());
+  std::vector<double> spec_bot(bottom_power_.size());
+  for (size_t i = 0; i < spec.size(); i++) {
+    spec[i] = total_power_[i] / (double)n_surfaces_;
+    spec_top[i] = top_power_[i] / (double)n_frames_;
+    spec_bot[i] = bottom_power_[i] / (double)n_frames_;
+  }
+  std::vector<ST_Shell> shells;
+  ST_ShellAverage(q_grid_, spec, spec_top, spec_bot, shells);
+
+  // Fit γ on the combined, upper-only, and lower-only shells.
+  double area = Lt1_ref_ * Lt2_ref_;
+  double gamma_full, plateau;
+  double gamma_top, plateau_top;
+  double gamma_bot, plateau_bot;
+  std::vector<ST_Shell> top_only = shells;
+  std::vector<ST_Shell> bot_only = shells;
+  for (size_t i = 0; i < shells.size(); i++) {
+    top_only[i].S = shells[i].Stop;
+    bot_only[i].S = shells[i].Sbot;
+  }
+  int err_full = ST_CalcGamma(shells, temp_, area, qmin_, qmax_, gamma_full, plateau);
+  int err_top  = ST_CalcGamma(top_only, temp_, area, qmin_, qmax_, gamma_top, plateau_top);
+  int err_bot  = ST_CalcGamma(bot_only, temp_, area, qmin_, qmax_, gamma_bot, plateau_bot);
+  (void)plateau_top;
+  (void)plateau_bot;
+  double gamma_h, kappa_h, gamma_h_top, kappa_h_top, gamma_h_bot, kappa_h_bot;
+  int err_kh     = ST_CalcKappa(shells, temp_, area, qmin_, qmax_, gamma_h, kappa_h);
+  int err_kh_top = ST_CalcKappa(top_only, temp_, area, qmin_, qmax_, gamma_h_top, kappa_h_top);
+  int err_kh_bot = ST_CalcKappa(bot_only, temp_, area, qmin_, qmax_, gamma_h_bot, kappa_h_bot);
+  double gamma_for_kappaq = err_kh ? gamma_full : gamma_h;
+
+  double slope     = ST_LogSlope(shells, qmin_, qmax_, &ST_Shell::S);
+  double slope_top = ST_LogSlope(shells, qmin_, qmax_, &ST_Shell::Stop);
+  double slope_bot = ST_LogSlope(shells, qmin_, qmax_, &ST_Shell::Sbot);
+
+  for (size_t i = 0; i < shells.size(); i++) {
+    double q = shells[i].q;
+    S_->AddXY(q, shells[i].S);
+    S_top_->AddXY(q, shells[i].Stop);
+    S_bot_->AddXY(q, shells[i].Sbot);
+    q2S_->AddXY(q, q * q * shells[i].S);
+    q2S_top_->AddXY(q, q * q * shells[i].Stop);
+    q2S_bot_->AddXY(q, q * q * shells[i].Sbot);
+    gammaq_->AddXY(q, ST_ShellGamma(q, shells[i].S, temp_, area));
+    gammaq_top_->AddXY(q, ST_ShellGamma(q, shells[i].Stop, temp_, area));
+    gammaq_bot_->AddXY(q, ST_ShellGamma(q, shells[i].Sbot, temp_, area));
+    kappaq_->AddXY(q, ST_ShellKappa(q, shells[i].S, temp_, area, gamma_for_kappaq));
+    kappaq_top_->AddXY(q, ST_ShellKappa(q, shells[i].Stop, temp_, area,
+                                       err_kh_top ? gamma_top : gamma_h_top));
+    kappaq_bot_->AddXY(q, ST_ShellKappa(q, shells[i].Sbot, temp_, area,
+                                       err_kh_bot ? gamma_bot : gamma_h_bot));
+  }
+
+  double mean_w = 0.0, mean_wt = 0.0, mean_wb = 0.0;
+  if (wmean_->Size() > 0) {
+    for (size_t i = 0; i < wmean_->Size(); i++) {
+      mean_w  += ((DataSet_1D*)wmean_)->Dval(i);
+      mean_wt += ((DataSet_1D*)wtop_)->Dval(i);
+      mean_wb += ((DataSet_1D*)wbot_)->Dval(i);
+    }
+    mean_w  /= (double)wmean_->Size();
+    mean_wt /= (double)wtop_->Size();
+    mean_wb /= (double)wbot_->Size();
+  }
+
+  mprintf("\tT = %g K\n", temp_);
+  mprintf("\tFrames analyzed = %i", n_frames_);
+  if (n_skipped_ > 0)
+    mprintf(" (%i skipped)", n_skipped_);
+  mprintf("\n");
+  mprintf("\t%s x %s = %g x %g Ang\n", t1, t2, Lt1_ref_, Lt2_ref_);
+  mprintf("\tArea = %g Ang^2\n", area);
+  mprintf("\tFit q range = %g to %g Ang^-1\n", qmin_, qmax_);
+  if (ST_Finite(slope))
+    mprintf("\tLow-q log-log slope = %g (ideal capillary-wave slope is about -2)\n", slope);
+  if (err_full)
+    mprinterr("Error: Combined-surface gamma fit failed.\n");
+  else
+    mprintf("\tgamma, combined surfaces = %g mN/m (q^2 S plateau = %g)\n", gamma_full, plateau);
+  if (!err_top)
+    mprintf("\tgamma, upper surface = %g mN/m\n", gamma_top);
+  if (!err_bot)
+    mprintf("\tgamma, lower surface = %g mN/m\n", gamma_bot);
+  if (err_kh)
+    mprintf("\tNOTE: Helfrich kappa fit needs at least three q shells in the fit range.\n");
+  else {
+    mprintf("\tgamma, Helfrich intercept = %g mN/m\n", gamma_h);
+    mprintf("\tkappa, combined surfaces = %g kT (%g J)\n",
+            kappa_h, kappa_h * ST_KB * temp_);
+  }
+  if (!err_kh_top)
+    mprintf("\tkappa, upper surface = %g kT\n", kappa_h_top);
+  if (!err_kh_bot)
+    mprintf("\tkappa, lower surface = %g kT\n", kappa_h_bot);
+  if (ST_Finite(slope_top) && ST_Finite(slope_bot))
+    mprintf("\tLow-q slope upper/lower = %g / %g\n", slope_top, slope_bot);
+  mprintf("\tMean roughness = %g Ang (upper %g, lower %g)\n", mean_w, mean_wt, mean_wb);
+
+  if (block_gamma_ != 0 && block_gamma_->Size() > 1) {
+    double gmean = 0.0, g2 = 0.0;
+    for (size_t i = 0; i < block_gamma_->Size(); i++) {
+      double g = ((DataSet_1D*)block_gamma_)->Dval(i);
+      gmean += g;
+      g2 += g * g;
+    }
+    gmean /= (double)block_gamma_->Size();
+    double var = (g2 - (double)block_gamma_->Size() * gmean * gmean) /
+                 (double)(block_gamma_->Size() - 1);
+    double sd = (var > 0.0) ? sqrt(var) : 0.0;
+    double sem = sd / sqrt((double)block_gamma_->Size());
+    mprintf("\tBlock mean gamma = %g mN/m\n", gmean);
+    mprintf("\tBlock SD gamma = %g mN/m\n", sd);
+    mprintf("\tBlock SEM gamma = %g mN/m\n", sem);
+    mprintf("\tgamma +/- 2 SEM = %g mN/m\n", 2.0 * sem);
+  }
+  if (block_kappa_ != 0 && block_kappa_->Size() > 1) {
+    double kmean = 0.0, k2 = 0.0;
+    int nk = 0;
+    for (size_t i = 0; i < block_kappa_->Size(); i++) {
+      double k = ((DataSet_1D*)block_kappa_)->Dval(i);
+      if (!ST_Finite(k)) continue;
+      kmean += k;
+      k2 += k * k;
+      nk++;
+    }
+    if (nk > 1) {
+      kmean /= (double)nk;
+      double var = (k2 - (double)nk * kmean * kmean) / (double)(nk - 1);
+      double sd = (var > 0.0) ? sqrt(var) : 0.0;
+      double sem = sd / sqrt((double)nk);
+      mprintf("\tBlock mean kappa = %g kT\n", kmean);
+      mprintf("\tBlock SD kappa = %g kT\n", sd);
+      mprintf("\tBlock SEM kappa = %g kT\n", sem);
+      mprintf("\tkappa +/- 2 SEM = %g kT\n", 2.0 * sem);
+    }
+  }
+}

@@ -88,6 +88,7 @@
 #include "Action_Center.h"
 #include "Action_Image.h"
 #include "Action_Surf.h"
+#include "Action_SurfaceTension.h"
 #include "Action_Radgyr.h"
 #include "Action_Mask.h"
 #include "Action_Closest.h"
@@ -411,6 +412,7 @@ void Command::Init() {
   Command::AddCmd( new Action_STFC_Diffusion(),Cmd::ACT, 1, "stfcdiffusion" );
   Command::AddCmd( new Action_Strip(),         Cmd::ACT, 1, "strip" );
   Command::AddCmd( new Action_Surf(),          Cmd::ACT, 1, "surf" );
+  Command::AddCmd( new Action_SurfaceTension(),Cmd::ACT, 1, "surftension" );
   Command::AddCmd( new Action_SymmetricRmsd(), Cmd::ACT, 1, "symmrmsd" );
   Command::AddCmd( new Action_Temperature(),   Cmd::ACT, 1, "temperature" );
   Command::AddCmd( new Action_Test(),          Cmd::ACT, 1, "testtest" ); // HIDDEN

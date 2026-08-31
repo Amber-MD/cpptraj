@@ -13,6 +13,30 @@ New Commands
 
 - `desc` - DEBUG: describe a selection in the same manner as leap.
 
+- `surftension` - Calculate capillary-wave surface tension of a liquid slab.
+  Builds Gaussian-smoothed instantaneous upper and lower interfaces from a number-density
+  field, Fourier-transforms height fluctuations, and reports γ in mN/m from the small-q
+  plateau of q²⟨|h_q|²⟩. κ (kT) is the Helfrich slope of 1/(q² S) vs q².
+  `normal {x|y|z}` selects the slab normal (default z). `interface {willard|itim}`
+  selects a Willard-Chandler density isosurface (default) or ITIM per-column min/max.
+  Optional outputs (`spectrumout`, `roughout`, `blockout`) follow the filename extension
+  (`.agr`/`.xmgr` = xmgrace, `.gnu` = gnuplot). Dedicated `*agr`/`*gnu`
+  keywords force Grace or gnuplot. MPI-parallel (packed
+  spectral SUM to the master). Assumes NVT (fixed lateral box lengths).
+
+```
+surftension [<name>] <mask> temp <T>
+  [normal {x|y|z}] [interface {willard|itim}]
+  [gridspacing <d>] [dz <d> | dnormal <d>]
+  [sigmaxy <d>] [sigmaz <d> | sigmanormal <d>]
+  [bulkhalfwidth <d>] [threshold <frac>]
+  [qmin <q>] [qmax <q>] [lx <Lx>] [ly <Ly>] [lz <Lz>]
+  [nblock <frames>]
+  [spectrumout <file>] [roughout <file>] [blockout <file>]
+  [spectrumagr <file>] [roughagr <file>] [blockagr <file>]
+  [spectrumgnu <file>] [roughgnu <file>] [blockgnu <file>]
+```
+
 New functionality
 =================
 - Read topology/coordinates with the 'readdata' command.
