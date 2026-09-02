@@ -1,7 +1,8 @@
 #!/bin/bash
 # surftension tests.
-# slab.pdb is a 20 A cubic lattice of O atoms. Stretching one box length
-# creates vacuum on both sides of a slab so Willard/ITIM can find interfaces.
+# slab.pdb is a 20 A cubic lattice of O atoms with a small z-corrugation
+# so ITIM min/max is not flat. Stretching one box length creates vacuum
+# on both sides of a slab so Willard/ITIM can find interfaces.
 
 . ../MasterTest.sh
 
