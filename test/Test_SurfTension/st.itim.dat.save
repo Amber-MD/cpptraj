@@ -1,0 +1,17 @@
+# surftension summary
+temperature 300
+nsurf 2
+normal z
+interface itim
+mask :WAT@O
+L_t1 20
+L_t2 20
+area 400
+q_fundamental 0.314159
+qmin 0.314159
+qmax 0.8
+frames 1
+skipped 0
+roughness 0
+roughness_upper 0
+roughness_lower 0

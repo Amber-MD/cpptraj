@@ -731,13 +731,21 @@ static void ST_SummaryS(CpptrajFile* f, const char* key, const char* v) {
   f->Printf("%s %s\n", key, v);
 }
 
+/** Prepend fprefix to the basename; directory is unchanged. Empty name stays empty. */
+static FileName ST_OutName(std::string const& name, std::string const& prefix) {
+  if (name.empty()) return FileName();
+  FileName fn(name);
+  if (prefix.empty()) return fn;
+  return fn.PrependFileName(prefix);
+}
+
 /** DataFiles are opened only at the end of the run. Fail at Init if the
   * parent directory is missing so a long trajectory is not processed only
   * to lose the write.
   */
-static int ST_CheckParentDir(DataFile* df, const char* key) {
-  if (df == 0) return 0;
-  std::string dir = df->DataFilename().DirPrefix_NoSlash();
+static int ST_CheckParentDir(FileName const& fn, const char* key) {
+  if (fn.empty()) return 0;
+  std::string dir = fn.DirPrefix_NoSlash();
   if (dir.empty()) return 0;
   struct stat st;
   if (stat(dir.c_str(), &st) != 0) {
@@ -746,6 +754,11 @@ static int ST_CheckParentDir(DataFile* df, const char* key) {
     return 1;
   }
   return 0;
+}
+
+static int ST_CheckParentDir(DataFile* df, const char* key) {
+  if (df == 0) return 0;
+  return ST_CheckParentDir(df->DataFilename(), key);
 }
 
 // -----------------------------------------------------------------------------
@@ -802,7 +815,7 @@ void Action_SurfaceTension::Help() const {
           "\t[sigmaxy <d>] [sigmaz <d> | sigmanormal <d>]\n"
           "\t[bulkhalfwidth <d>] [threshold <frac>]\n"
           "\t[qmin <q>] [qmax <q>] [lx <Lx>] [ly <Ly>] [lz <Lz>]\n"
-          "\t[nblock <frames>] [dt <ps>] [blocktime <ps>]\n"
+          "\t[nblock <frames>] [dt <ps>] [blocktime <ps>] [fprefix <prefix>]\n"
           "\t[out <file> | spectrumout <file>] [roughout <file>] [blockout <file>]\n"
           "\t[summaryout <file>]\n"
           "\t[spectrumagr <file>] [roughagr <file>] [blockagr <file>]\n"
@@ -818,6 +831,8 @@ void Action_SurfaceTension::Help() const {
           "  blocktime (ps) with dt (analyzed-frame spacing, ps) sets nblock.\n"
           "  out is an alias for spectrumout. Write to the current directory,\n"
           "  e.g. spectrumout spec.dat roughout rough.dat blockout blocks.dat.\n"
+          "  fprefix is prepended to each of those file names (directory unchanged),\n"
+          "  e.g. fprefix 150K_ spectrumout spec.dat writes 150K_spec.dat.\n"
           "  A directory in the name must already exist; it is not created.\n");
 }
 
@@ -838,6 +853,8 @@ Action::RetType Action_SurfaceTension::Init(ArgList& actionArgs, ActionInit& ini
   debug_ = debugIn;
   // Optional output files. AddDataFile returns 0 if the keyword is absent.
   // out == spectrumout (usual cpptraj keyword for the main result file).
+  // fprefix is prepended to each basename so multiple runs can share a directory.
+  std::string fprefix = actionArgs.GetStringKey("fprefix");
   bool has_spectrumout = actionArgs.Contains("spectrumout");
   bool has_out = actionArgs.Contains("out");
   std::string specname = actionArgs.GetStringKey("spectrumout");
@@ -849,21 +866,32 @@ Action::RetType Action_SurfaceTension::Init(ArgList& actionArgs, ActionInit& ini
   if (specname.empty())
     specname = outname;
   bool has_summaryout = actionArgs.Contains("summaryout");
-  std::string sumname = actionArgs.GetStringKey("summaryout");
-  DataFile* spectrumFile = init.DFL().AddDataFile(specname, actionArgs);
-  DataFile* roughFile    = init.DFL().AddDataFile(actionArgs.GetStringKey("roughout"), actionArgs);
-  DataFile* blockFile    = init.DFL().AddDataFile(actionArgs.GetStringKey("blockout"), actionArgs);
-  DataFile* spectrumAgr  = init.DFL().AddDataFile(actionArgs.GetStringKey("spectrumagr"), actionArgs, DataFile::XMGRACE);
-  DataFile* roughAgr     = init.DFL().AddDataFile(actionArgs.GetStringKey("roughagr"), actionArgs, DataFile::XMGRACE);
-  DataFile* blockAgr     = init.DFL().AddDataFile(actionArgs.GetStringKey("blockagr"), actionArgs, DataFile::XMGRACE);
-  DataFile* spectrumGnu  = init.DFL().AddDataFile(actionArgs.GetStringKey("spectrumgnu"), actionArgs, DataFile::GNUPLOT);
-  DataFile* roughGnu     = init.DFL().AddDataFile(actionArgs.GetStringKey("roughgnu"), actionArgs, DataFile::GNUPLOT);
-  DataFile* blockGnu     = init.DFL().AddDataFile(actionArgs.GetStringKey("blockgnu"), actionArgs, DataFile::GNUPLOT);
-  summaryFile_ = init.DFL().AddCpptrajFile(sumname, "SurfTension summary");
+  FileName specFileName = ST_OutName(specname, fprefix);
+  FileName roughName    = ST_OutName(actionArgs.GetStringKey("roughout"), fprefix);
+  FileName blockName    = ST_OutName(actionArgs.GetStringKey("blockout"), fprefix);
+  FileName specAgrName  = ST_OutName(actionArgs.GetStringKey("spectrumagr"), fprefix);
+  FileName roughAgrName = ST_OutName(actionArgs.GetStringKey("roughagr"), fprefix);
+  FileName blockAgrName = ST_OutName(actionArgs.GetStringKey("blockagr"), fprefix);
+  FileName specGnuName  = ST_OutName(actionArgs.GetStringKey("spectrumgnu"), fprefix);
+  FileName roughGnuName = ST_OutName(actionArgs.GetStringKey("roughgnu"), fprefix);
+  FileName blockGnuName = ST_OutName(actionArgs.GetStringKey("blockgnu"), fprefix);
+  FileName sumName      = ST_OutName(actionArgs.GetStringKey("summaryout"), fprefix);
+  DataFile* spectrumFile = init.DFL().AddDataFile(specFileName, actionArgs);
+  DataFile* roughFile    = init.DFL().AddDataFile(roughName, actionArgs);
+  DataFile* blockFile    = init.DFL().AddDataFile(blockName, actionArgs);
+  DataFile* spectrumAgr  = init.DFL().AddDataFile(specAgrName, actionArgs, DataFile::XMGRACE);
+  DataFile* roughAgr     = init.DFL().AddDataFile(roughAgrName, actionArgs, DataFile::XMGRACE);
+  DataFile* blockAgr     = init.DFL().AddDataFile(blockAgrName, actionArgs, DataFile::XMGRACE);
+  DataFile* spectrumGnu  = init.DFL().AddDataFile(specGnuName, actionArgs, DataFile::GNUPLOT);
+  DataFile* roughGnu     = init.DFL().AddDataFile(roughGnuName, actionArgs, DataFile::GNUPLOT);
+  DataFile* blockGnu     = init.DFL().AddDataFile(blockGnuName, actionArgs, DataFile::GNUPLOT);
+  summaryFile_ = init.DFL().AddCpptrajFile(sumName, "SurfTension summary");
   if (has_summaryout && summaryFile_ == 0) {
-    mprinterr("Error: Could not open summaryout '%s'.\n", sumname.c_str());
+    mprinterr("Error: Could not open summaryout '%s'.\n", sumName.full());
     return Action::ERR;
   }
+  if (ST_CheckParentDir(sumName, "summaryout"))
+    return Action::ERR;
   if (ST_CheckParentDir(spectrumFile, "spectrumout") ||
       ST_CheckParentDir(roughFile, "roughout") ||
       ST_CheckParentDir(blockFile, "blockout") ||
@@ -1207,6 +1235,8 @@ Action::RetType Action_SurfaceTension::Init(ArgList& actionArgs, ActionInit& ini
             qmax_);
   mprintf("\tHelfrich kappa: linear fit of 1/(q^2 S) vs q^2 on that window.\n");
   mprintf("\tHeight-field 2-D FFT: PubFFT (numpy fft2 / (nx*ny)).\n");
+  if (!fprefix.empty())
+    mprintf("\tOutput file prefix: '%s'\n", fprefix.c_str());
   if (lx_user_ > 0.0)
     mprintf("\tUsing fixed Lx= %g Ang (%s)\n", lx_user_,
             (normal_ == AXIS_X) ? "normal" : "lateral");

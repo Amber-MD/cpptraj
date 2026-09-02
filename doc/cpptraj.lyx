@@ -1350,6 +1350,10 @@ surf
 \end_layout
 
 \begin_layout LyX-Code
+surftension (3-D Gaussian filter only)
+\end_layout
+
+\begin_layout LyX-Code
 tordiff
 \end_layout
 
@@ -22656,7 +22660,7 @@ Mod
 \begin_layout Standard
 \align center
 \begin_inset Tabular
-<lyxtabular version="3" rows="93" columns="3">
+<lyxtabular version="3" rows="94" columns="3">
 <features islongtable="true" longtabularalignment="center">
 <column alignment="center" valignment="top" width="25text%">
 <column alignment="center" valignment="top" width="65text%">
@@ -25013,6 +25017,35 @@ surf
 \begin_layout Plain Layout
 Calculate the LCPO surface area of specified atoms.
  Can do partial surface areas.
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+surftension
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Calculate capillary-wave surface tension of a liquid slab.
 \end_layout
 
 \end_inset
@@ -44793,6 +44826,255 @@ surf out surf.dat
 
 \begin_layout LyX-Code
 surf :1 out surf.dat
+\end_layout
+
+\begin_layout Subsection
+surftension
+\begin_inset CommandInset label
+LatexCommand label
+name "subsec:cpptraj_surftension"
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout LyX-Code
+surftension
+\begin_inset Index idx
+range none
+pageformat default
+status collapsed
+
+\begin_layout Plain Layout
+surftension
+\end_layout
+
+\end_inset
+
+ [<name>] <mask> [mask2 <mask2>] temp <T>
+\end_layout
+
+\begin_layout LyX-Code
+	[normal {x|y|z}] [nsurf {1|2}] [side {upper|lower}]
+\end_layout
+
+\begin_layout LyX-Code
+	[interface {willard|itim}]
+\end_layout
+
+\begin_layout LyX-Code
+	[gridspacing <d>] [dz <d> | dnormal <d>]
+\end_layout
+
+\begin_layout LyX-Code
+	[sigmaxy <d>] [sigmaz <d> | sigmanormal <d>]
+\end_layout
+
+\begin_layout LyX-Code
+	[bulkhalfwidth <d>] [threshold <frac>]
+\end_layout
+
+\begin_layout LyX-Code
+	[qmin <q>] [qmax <q>] [lx <Lx>] [ly <Ly>] [lz <Lz>]
+\end_layout
+
+\begin_layout LyX-Code
+	[nblock <frames>] [dt <ps>] [blocktime <ps>] [fprefix <prefix>]
+\end_layout
+
+\begin_layout LyX-Code
+	[out <file> | spectrumout <file>] [roughout <file>] [blockout <file>]
+\end_layout
+
+\begin_layout LyX-Code
+	[summaryout <file>]
+\end_layout
+
+\begin_layout LyX-Code
+	[spectrumagr <file>] [roughagr <file>] [blockagr <file>]
+\end_layout
+
+\begin_layout LyX-Code
+	[spectrumgnu <file>] [roughgnu <file>] [blockgnu <file>]
+\begin_inset Separator latexpar
+\end_inset
+
+
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+<name> Output data set name.
+\end_layout
+
+\begin_layout Description
+<mask> Atoms used to build the instantaneous interface (typically heavy atoms of the liquid, e.g.
+ :WAT@O).
+\end_layout
+
+\begin_layout Description
+mask2
+\begin_inset space ~
+\end_inset
+
+<mask2> Optional atoms for the lower surface (leaflet or second liquid).
+ The upper surface then comes from <mask> with no mid-box split.
+ Both masks share one circular recenter.
+\end_layout
+
+\begin_layout Description
+temp
+\begin_inset space ~
+\end_inset
+
+<T> Temperature in K (required).
+\end_layout
+
+\begin_layout Description
+normal
+\begin_inset space ~
+\end_inset
+
+{x|y|z} Cartesian slab normal (default z).
+ The other two axes span the interface plane.
+\end_layout
+
+\begin_layout Description
+nsurf
+\begin_inset space ~
+\end_inset
+
+{1|2} Number of interfaces (default 2).
+ Use 2 for a film with vacuum or a second phase on both sides.
+\end_layout
+
+\begin_layout Description
+side
+\begin_inset space ~
+\end_inset
+
+{upper|lower} Which interface when nsurf is 1 (default upper).
+\end_layout
+
+\begin_layout Description
+interface
+\begin_inset space ~
+\end_inset
+
+{willard|itim} Instantaneous interface: Willard–Chandler density isosurface (default) or ITIM per-column min/max.
+\end_layout
+
+\begin_layout Description
+gridspacing
+\begin_inset space ~
+\end_inset
+
+<d> Lateral histogram spacing in Ang.
+ (default 2.5).
+\end_layout
+
+\begin_layout Description
+dz / dnormal
+\begin_inset space ~
+\end_inset
+
+<d> Bin spacing along the normal for Willard–Chandler (default 1.0).
+\end_layout
+
+\begin_layout Description
+sigmaxy / sigmaz / sigmanormal
+\begin_inset space ~
+\end_inset
+
+Gaussian widths in Ang.
+ for the Willard–Chandler density (defaults 2.5 and 1.5).
+\end_layout
+
+\begin_layout Description
+qmin / qmax
+\begin_inset space ~
+\end_inset
+
+Fit window in Ang.
+^-1.
+ If qmin is omitted it is 2*pi/max(L1,L2) from the first good frame.
+\end_layout
+
+\begin_layout Description
+lx / ly / lz
+\begin_inset space ~
+\end_inset
+
+Override Cartesian box lengths (NVT slabs with noisy box records).
+\end_layout
+
+\begin_layout Description
+nblock / dt / blocktime
+\begin_inset space ~
+\end_inset
+
+Block averaging.
+ blocktime (ps) with dt (analyzed-frame spacing, ps) sets nblock.
+\end_layout
+
+\begin_layout Description
+fprefix
+\begin_inset space ~
+\end_inset
+
+<prefix> Prepended to each output file basename (directory unchanged) so multiple runs can share a directory.
+\end_layout
+
+\begin_layout Description
+out / spectrumout / roughout / blockout / summaryout
+\begin_inset space ~
+\end_inset
+
+Optional output files.
+ out is an alias for spectrumout.
+ Parent directories must already exist.
+\end_layout
+
+\begin_layout Description
+*agr / *gnu
+\begin_inset space ~
+\end_inset
+
+Force Grace or gnuplot format for spectrum, roughness, or block files.
+\end_layout
+
+\end_deeper
+\begin_layout Standard
+Calculate the capillary-wave surface tension of a liquid slab from height fluctuations of instantaneous interfaces
+\begin_inset CommandInset citation
+LatexCommand citep
+key "Buff65,Sides99,Willard10,Partay08,Helfrich73"
+literal "true"
+
+\end_inset
+
+.
+ Frames are recentered so the film sits at mid-box along the chosen normal.
+ The default interface is a Willard–Chandler isosurface of a Gaussian-smoothed number-density field;
+ interface itim uses per-column min/max of <mask> (probe radius to 0).
+ The height field is Fourier transformed (numpy fft2 convention), shell-averaged to S(q), and gamma (mN/m) is taken from the small-q plateau of q^2 S(q).
+ A Helfrich fit of 1/(q^2 S) vs q^2 on the same window gives kappa in kT.
+ The trajectory is assumed NVT (fixed lateral box lengths).
+ The 3-D Gaussian filter is OpenMP-parallel.
+\end_layout
+
+\begin_layout Standard
+For example,
+ to analyze a water slab with vacuum along z:
+\end_layout
+
+\begin_layout LyX-Code
+surftension :WAT@O temp 300 qmax 0.30 summaryout st.summary.dat
+\end_layout
+
+\begin_layout LyX-Code
+	spectrumout st.spectrum.dat roughout st.rough.dat
 \end_layout
 
 \begin_layout Subsection
