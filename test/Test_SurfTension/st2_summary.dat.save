@@ -11,7 +11,7 @@ area 400
 q_fundamental 0.314159
 qmin 0.314159
 qmax 0.8
-frames 1
+frames 2
 skipped 0
 gamma 512.372
 gamma_upper 512.372
