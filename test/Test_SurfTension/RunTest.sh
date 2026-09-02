@@ -1,101 +1,89 @@
 #!/bin/bash
-# Smoke tests for the surftension Action.
-# tz2.ortho is a solvated protein box, not a liquid slab, so the 1-frame run
-# only checks that Init/Setup do not crash. Numeric γ comparison needs a
-# dedicated slab trajectory.
+# surftension tests.
+# slab.pdb is a 20 A cubic lattice of O atoms. Stretching one box length
+# creates vacuum on both sides of a slab so Willard/ITIM can find interfaces.
 
 . ../MasterTest.sh
 
-CleanFiles st.in st.summary.dat
+CleanFiles st.in st.willard.dat st.itim.dat st.normalx.dat st.normaly.dat \
+           st.nsurf1.dat st2_summary.dat
 
 TESTNAME='Surface tension (surftension) tests'
 
-# Command is registered and Help() prints.
-UNITNAME='surftension help'
-cat > st.in <<EOF
-help surftension
-EOF
 INPUT='-i st.in'
+
+UNITNAME='surftension Willard-Chandler (default)'
+cat > st.in <<EOF
+noprogress
+parm slab.pdb
+trajin slab.pdb
+box z 50.0
+surftension :WAT@O temp 300.0 qmax 0.80 summaryout st.willard.dat
+run
+EOF
 RunCpptraj "$UNITNAME"
+DoTest st.willard.dat.save st.willard.dat -a 0.001
 
-# One ortho frame: parse keywords, bind :WAT@O, require a box.
-UNITNAME='surftension smoke (Init/Setup)'
-CheckFor netcdf
-if [ $? -eq 0 ] ; then
-  cat > st.in <<EOF
-parm ../tz2.ortho.parm7
-trajin ../tz2.ortho.nc 1 1
-surftension :WAT@O temp 300.0
+UNITNAME='surftension ITIM'
+cat > st.in <<EOF
+noprogress
+parm slab.pdb
+trajin slab.pdb
+box z 50.0
+surftension :WAT@O temp 300.0 qmax 0.80 interface itim summaryout st.itim.dat
 run
 EOF
-  INPUT='-i st.in'
-  RunCpptraj "$UNITNAME"
-fi
+RunCpptraj "$UNITNAME"
+DoTest st.itim.dat.save st.itim.dat -a 0.001
 
-UNITNAME='surftension smoke (interface itim)'
-CheckFor netcdf
-if [ $? -eq 0 ] ; then
-  cat > st.in <<EOF
-parm ../tz2.ortho.parm7
-trajin ../tz2.ortho.nc 1 1
-surftension :WAT@O temp 300.0 interface itim
+UNITNAME='surftension normal x'
+cat > st.in <<EOF
+noprogress
+parm slab.pdb
+trajin slab.pdb
+box x 50.0
+surftension :WAT@O temp 300.0 qmax 0.80 normal x summaryout st.normalx.dat
 run
 EOF
-  INPUT='-i st.in'
-  RunCpptraj "$UNITNAME"
-fi
+RunCpptraj "$UNITNAME"
+DoTest st.normalx.dat.save st.normalx.dat -a 0.001
 
-UNITNAME='surftension smoke (normal x)'
-CheckFor netcdf
-if [ $? -eq 0 ] ; then
-  cat > st.in <<EOF
-parm ../tz2.ortho.parm7
-trajin ../tz2.ortho.nc 1 1
-surftension :WAT@O temp 300.0 normal x
+UNITNAME='surftension normal y, dnormal alias'
+cat > st.in <<EOF
+noprogress
+parm slab.pdb
+trajin slab.pdb
+box y 50.0
+surftension :WAT@O temp 300.0 qmax 0.80 normal y dnormal 1.0 sigmanormal 1.5 summaryout st.normaly.dat
 run
 EOF
-  INPUT='-i st.in'
-  RunCpptraj "$UNITNAME"
-fi
+RunCpptraj "$UNITNAME"
+DoTest st.normaly.dat.save st.normaly.dat -a 0.001
 
-UNITNAME='surftension smoke (normal y, dnormal alias)'
-CheckFor netcdf
-if [ $? -eq 0 ] ; then
-  cat > st.in <<EOF
-parm ../tz2.ortho.parm7
-trajin ../tz2.ortho.nc 1 1
-surftension :WAT@O temp 300.0 normal y dnormal 1.0 sigmanormal 1.5
+UNITNAME='surftension nsurf 1'
+cat > st.in <<EOF
+noprogress
+parm slab.pdb
+trajin slab.pdb
+box z 50.0
+surftension :WAT@O temp 300.0 qmax 0.80 nsurf 1 side upper summaryout st.nsurf1.dat
 run
 EOF
-  INPUT='-i st.in'
-  RunCpptraj "$UNITNAME"
-fi
+RunCpptraj "$UNITNAME"
+DoTest st.nsurf1.dat.save st.nsurf1.dat -a 0.001
 
-UNITNAME='surftension smoke (nsurf 1)'
-CheckFor netcdf
-if [ $? -eq 0 ] ; then
-  cat > st.in <<EOF
-parm ../tz2.ortho.parm7
-trajin ../tz2.ortho.nc 1 1
-surftension :WAT@O temp 300.0 nsurf 1 side upper
+UNITNAME='surftension mask2, fprefix, blocktime'
+cat > st.in <<EOF
+noprogress
+parm slab.pdb
+trajin slab.pdb
+box z 50.0
+surftension :WAT@O mask2 :WAT@O temp 300.0 qmax 0.80 dt 1.0 blocktime 10.0 \
+  fprefix st2_ summaryout summary.dat
 run
 EOF
-  INPUT='-i st.in'
-  RunCpptraj "$UNITNAME"
-fi
-
-UNITNAME='surftension smoke (mask2, summaryout, blocktime)'
-CheckFor netcdf
-if [ $? -eq 0 ] ; then
-  cat > st.in <<EOF
-parm ../tz2.ortho.parm7
-trajin ../tz2.ortho.nc 1 1
-surftension :WAT@O mask2 :WAT@O temp 300.0 dt 100 blocktime 50000 summaryout st.summary.dat
-run
-EOF
-  INPUT='-i st.in'
-  RunCpptraj "$UNITNAME"
-fi
+RunCpptraj "$UNITNAME"
+DoTest st2_summary.dat.save st2_summary.dat -a 0.001
 
 EndTest
 exit 0
