@@ -12,6 +12,9 @@ qmin 0.314159
 qmax 0.8
 frames 1
 skipped 0
-roughness 0
-roughness_upper 0
-roughness_lower 0
+gamma 5336.11
+gamma_upper 5336.11
+gamma_lower 5336.11
+roughness 0.125838
+roughness_upper 0.125838
+roughness_lower 0.125838
