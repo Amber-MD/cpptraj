@@ -85,6 +85,7 @@ COMMON_SOURCES= \
         Action_Spam.cpp \
         Action_Strip.cpp \
         Action_Surf.cpp \
+        Action_SurfaceTension.cpp \
         Action_SymmetricRmsd.cpp \
         Action_Temperature.cpp \
         Action_Test.cpp \

@@ -1,0 +1,21 @@
+# surftension summary
+temperature 300
+nsurf 2
+normal x
+interface willard
+mask :WAT@O
+L_t1 20
+L_t2 20
+area 400
+q_fundamental 0.314159
+qmin 0.314159
+qmax 0.8
+frames 2
+skipped 0
+gamma 1051.08
+gamma_upper 1051.08
+gamma_lower 1051.08
+kappa -1.53118e+32
+roughness 0.205627
+roughness_upper 0.205627
+roughness_lower 0.205627
