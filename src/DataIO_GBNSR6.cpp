@@ -31,6 +31,19 @@ int DataIO_GBNSR6::processReadArgs(ArgList& argIn)
   return 0;
 }
 
+static inline bool validTerm(int i) {
+  using namespace Cpptraj;
+  AmberEterm::FieldType etype = (AmberEterm::FieldType)i;
+  if (etype == AmberEterm::ECAVITY) return true;
+  if (etype == AmberEterm::ETOT) return true;
+  if (etype == AmberEterm::EEL14) return true;
+  if (etype == AmberEterm::EEL) return true;
+  if (etype == AmberEterm::EGB) return true;
+  if (etype == AmberEterm::ESURF) return true;
+  return false;
+}
+  
+
 // DataIO_GBNSR6::ReadData()
 int DataIO_GBNSR6::ReadData(FileName const& fname, DataSetList& dsl, std::string const& dsname)
 {
@@ -61,19 +74,19 @@ int DataIO_GBNSR6::ReadData(FileName const& fname, DataSetList& dsl, std::string
         if (strncmp(ptr, "-----", 5) == 0) {
           Phase = UNKNOWN;
         } else {
-          mprintf("DEBUG: [Input] %s\n", ptr);
+          if (debug_ > 0) mprintf("DEBUG: [Input] %s\n", ptr);
         }
       } else if (Phase == RESULTS) {
         if (argline[0] == "Maximum")
           Phase = UNKNOWN;
         else if (argline[0] == "Cavity") {
           Energy[AmberEterm::ECAVITY] = argline.getKeyDouble("energy", 0);
-          mprintf("DEBUG: Cavity term: %f\n", Energy[AmberEterm::ECAVITY]);
+          if (debug_ > 0) mprintf("DEBUG: Cavity term: %f\n", Energy[AmberEterm::ECAVITY]);
           EnergyExists[AmberEterm::ECAVITY] = true;
         } else if (strncmp(ptr," ----", 5) == 0) {
           // END frame - store all energies present
           for (int i = 0; i < AmberEterm::NenergyTerms(); i++) {
-            if (EnergyExists[i]) {
+            if (validTerm(i) && EnergyExists[i]) {
               if (inputSets[i] == 0) {
                 MetaData md( dsname, AmberEterm::Ename(i) );
                 md.SetLegend( dsname + "_" + AmberEterm::Ename(i) );
@@ -89,7 +102,7 @@ int DataIO_GBNSR6::ReadData(FileName const& fname, DataSetList& dsl, std::string
           }
           frame++;
         } else if (strncmp(ptr, "-----", 5) != 0) {
-          mprintf("DEBUG: [Results] %s\n", ptr);
+          if (debug_ > 0) mprintf("DEBUG: [Results] %s\n", ptr);
           if (AEterm.GetAmberEterms(ptr, Energy, EnergyExists))
             mprintf("Warning: Issue parsing line %i\n", infile.LineNumber());
         }
