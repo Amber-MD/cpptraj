@@ -375,6 +375,9 @@ test.distance:
 test.volume:
 	@-cd Test_Volume && ./RunTest.sh $(OPT)
 
+test.surftension:
+	@-cd Test_SurfTension && ./RunTest.sh $(OPT)
+
 test.setvelocity:
 	@-cd Test_SetVelocity && ./RunTest.sh $(OPT)
 
@@ -694,6 +697,7 @@ COMPLETETESTS=test.general \
               test.fiximagedbonds \
               test.distance \
               test.volume \
+              test.surftension \
               test.setvelocity \
               test.remlog \
               test.areapermol \

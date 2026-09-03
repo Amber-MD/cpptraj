@@ -86,6 +86,7 @@ CPPTRAJ_HEADERS = \
         ./Action_STFC_Diffusion.h \
         ./Action_Strip.h \
         ./Action_Surf.h \
+        ./Action_SurfaceTension.h \
         ./Action_SymmetricRmsd.h \
         ./Action_Temperature.h \
         ./Action_Test.h \
