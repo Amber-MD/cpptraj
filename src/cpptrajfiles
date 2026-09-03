@@ -200,6 +200,7 @@ COMMON_SOURCES= \
         DataIO_Coords.cpp \
         DataIO_Cpout.cpp \
         DataIO_Evecs.cpp \
+        DataIO_GBNSR6.cpp \
         DataIO_Gnuplot.cpp \
         DataIO_Grace.cpp \
         DataIO_LeapRC.cpp \
