@@ -99,6 +99,7 @@ COMMON_SOURCES= \
         Action_Volume.cpp \
         Action_Watershell.cpp \
         Action_XtalSymm.cpp \
+        AmberEterm.cpp \
         AmberParamFile.cpp \
         AnalysisList.cpp \
         Analysis_AmdBias.cpp \

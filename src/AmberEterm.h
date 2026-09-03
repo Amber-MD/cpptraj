@@ -18,6 +18,8 @@ class AmberEterm {
     Darray AllocEnergyArray();
     std::vector<bool> AllocExistsArray();
     int GetAmberEterms(const char*, Darray&, std::vector<bool>&) const;
+    static int NenergyTerms() { return (int)N_FIELDTYPES; }
+    static const char* Ename(int i) { return Enames_[i]; }
   private:
     static const char* Enames_[];
 

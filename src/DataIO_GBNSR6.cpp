@@ -1,6 +1,8 @@
 #include "DataIO_GBNSR6.h"
 #include "CpptrajStdio.h"
 #include "BufferedLine.h"
+#include "AmberEterm.h"
+#include "DataSet_double.h"
 #include <cstring>
 
 /// CONSTRUCTOR
@@ -38,25 +40,65 @@ int DataIO_GBNSR6::ReadData(FileName const& fname, DataSetList& dsl, std::string
     mprinterr("Error: Could not open file '%s'\n", fname.full());
     return 1;
   }
+  using namespace Cpptraj;
+  AmberEterm AEterm;
+  AmberEterm::Darray Energy = AEterm.AllocEnergyArray();
+  std::vector<bool> EnergyExists = AEterm.AllocExistsArray();
+  DataSetList::DataListType inputSets(AmberEterm::NenergyTerms(), 0);
   const char* ptr = infile.Line();
-  enum PhaseType { UNKNOWN=0, INPUT };
+  enum PhaseType { UNKNOWN=0, INPUT, RESULTS };
   PhaseType Phase = UNKNOWN;
+  int frame = 0;
   while (ptr != 0) {
     ArgList argline(ptr);
     if (argline.Nargs() > 0) {
       if (Phase == UNKNOWN) {
         if (argline.Nargs() >= 3 && argline[0] == "Here" && argline[1] == "is" && argline[2] == "the")
           Phase = INPUT;
+        else if (argline.Nargs() >= 2 && argline[0] == "3." && argline[1] == "RESULTS")
+          Phase = RESULTS;
       } else if (Phase == INPUT) {
         if (strncmp(ptr, "-----", 5) == 0) {
           Phase = UNKNOWN;
         } else {
           mprintf("DEBUG: [Input] %s\n", ptr);
         }
+      } else if (Phase == RESULTS) {
+        if (argline[0] == "Maximum")
+          Phase = UNKNOWN;
+        else if (argline[0] == "Cavity") {
+          Energy[AmberEterm::ECAVITY] = argline.getKeyDouble("energy", 0);
+          mprintf("DEBUG: Cavity term: %f\n", Energy[AmberEterm::ECAVITY]);
+          EnergyExists[AmberEterm::ECAVITY] = true;
+        } else if (strncmp(ptr," ----", 5) == 0) {
+          // END frame - store all energies present
+          for (int i = 0; i < AmberEterm::NenergyTerms(); i++) {
+            if (EnergyExists[i]) {
+              if (inputSets[i] == 0) {
+                MetaData md( dsname, AmberEterm::Ename(i) );
+                md.SetLegend( dsname + "_" + AmberEterm::Ename(i) );
+                inputSets[i] = new DataSet_double();
+                inputSets[i]->SetMeta( md );
+              }
+              // Since energy terms can appear and vanish over the course of the
+              // mdout file, resize if necessary.
+              if (frame > (int)inputSets[i]->Size())
+                ((DataSet_double*)inputSets[i])->Resize( frame );
+              ((DataSet_double*)inputSets[i])->AddElement( Energy[i] );
+            }
+          }
+          frame++;
+        } else if (strncmp(ptr, "-----", 5) != 0) {
+          mprintf("DEBUG: [Results] %s\n", ptr);
+          if (AEterm.GetAmberEterms(ptr, Energy, EnergyExists))
+            mprintf("Warning: Issue parsing line %i\n", infile.LineNumber());
+        }
       }
     } // END nargs > 0
     ptr = infile.Line();
   }
+  DataSetList::Darray TimeVals(1, 0);
+  if (dsl.AddOrAppendSets( "Set", TimeVals, inputSets )) return 1;
 
   return 0;
 }
