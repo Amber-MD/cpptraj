@@ -15,6 +15,8 @@ class AmberEterm {
                      PRESS, DVDL, CMAP, N_FIELDTYPES };
 
     AmberEterm();
+    Darray AllocEnergyArray();
+    std::vector<bool> AllocExistsArray();
     int GetAmberEterms(const char*, Darray&, std::vector<bool>&) const;
   private:
     static const char* Enames_[];

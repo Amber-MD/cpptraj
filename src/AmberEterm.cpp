@@ -4,7 +4,38 @@
 
 using namespace Cpptraj;
 
-AmberEterm::AmberEterm() { }
+AmberEterm::AmberEterm() {
+  // Populate the term name to index map. In some cases, multiple term names
+  // map to the same index.
+  termIdxMap_.insert(NameIdxPair("Etot", ETOT));
+  termIdxMap_.insert(NameIdxPair("EPtot", EPTOT));
+  termIdxMap_.insert(NameIdxPair("GMAX", GMAX)); // Not necessary?
+  termIdxMap_.insert(NameIdxPair("BOND", BOND));
+  termIdxMap_.insert(NameIdxPair("ANGLE", ANGLE));
+  termIdxMap_.insert(NameIdxPair("DIHED", DIHED));
+  termIdxMap_.insert(NameIdxPair("VDWAALS", VDWAALS));
+  termIdxMap_.insert(NameIdxPair("EEL", EEL));
+  termIdxMap_.insert(NameIdxPair("EELEC", EEL));
+  termIdxMap_.insert(NameIdxPair("EGB", EGB));
+  termIdxMap_.insert(NameIdxPair("EPB", EPB));
+  termIdxMap_.insert(NameIdxPair("ECAVITY", ECAVITY));
+  termIdxMap_.insert(NameIdxPair("EDISPER", EDISPER));
+  termIdxMap_.insert(NameIdxPair("1-4 VDW", VDW14));
+  termIdxMap_.insert(NameIdxPair("1-4 NB", VDW14));
+  termIdxMap_.insert(NameIdxPair("1-4 EEL", EEL14));
+  termIdxMap_.insert(NameIdxPair("RESTRAINT", RESTRAINT));
+  termIdxMap_.insert(NameIdxPair("EAMBER", EAMBER));
+  termIdxMap_.insert(NameIdxPair("Density", DENSITY));
+  termIdxMap_.insert(NameIdxPair("RMS", RMS)); // Not necessary?
+  termIdxMap_.insert(NameIdxPair("EKtot", EKTOT));
+  termIdxMap_.insert(NameIdxPair("ESURF", ESURF));
+  termIdxMap_.insert(NameIdxPair("EAMD_BOOST", EAMD_BOOST));
+  termIdxMap_.insert(NameIdxPair("VOLUME", VOLUME));
+  termIdxMap_.insert(NameIdxPair("TEMP(K)", TEMP));
+  termIdxMap_.insert(NameIdxPair("PRESS", PRESS));
+  termIdxMap_.insert(NameIdxPair("DV/DL", DVDL));
+  termIdxMap_.insert(NameIdxPair("CMAP", CMAP));
+}
 
 /** Names corresponding to FieldType. */
 const char* AmberEterm::Enames_[] = {
@@ -27,6 +58,15 @@ AmberEterm::FieldType AmberEterm::getTermIdx(std::string const& name) const {
   }
 }
 
+/** Allocate an array with enough space for all energy terms. */
+AmberEterm::Darray AmberEterm::AllocEnergyArray() {
+  return Darray(N_FIELDTYPES, 0);
+}
+
+/** Allocate a boolean array to indicate whether the term was seen by GetAmberEterms. */
+std::vector<bool> AmberEterm::AllocExistsArray() {
+  return std::vector<bool>(N_FIELDTYPES, false);
+}
 
 /** Parse the given line for energy terms of format <name>=<value>. */
 int AmberEterm::GetAmberEterms(const char* ptr, Darray& Energy, std::vector<bool>& EnergyExists) const {
