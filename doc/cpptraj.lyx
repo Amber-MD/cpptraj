@@ -3141,7 +3141,7 @@ status open
 \begin_layout Plain Layout
 \align center
 \begin_inset Tabular
-<lyxtabular version="3" rows="27" columns="5">
+<lyxtabular version="3" rows="28" columns="5">
 <features tabularvalignment="middle">
 <column alignment="center" valignment="top" width="20text%">
 <column alignment="center" valignment="top" width="20text%">
@@ -3676,6 +3676,54 @@ pH data only
 
 \begin_layout Plain Layout
 
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Amber GBNSR6 output
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+.gbnsr6
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+gbnsr6
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+-
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Energy information,
+ Read Only
 \end_layout
 
 \end_inset
@@ -44909,7 +44957,8 @@ surftension
 \end_layout
 
 \begin_layout Description
-<mask> Atoms used to build the instantaneous interface (typically heavy atoms of the liquid, e.g.
+<mask> Atoms used to build the instantaneous interface (typically heavy atoms of the liquid,
+ e.g.
  :WAT@O).
 \end_layout
 
@@ -44962,7 +45011,8 @@ interface
 \begin_inset space ~
 \end_inset
 
-{willard|itim} Instantaneous interface: Willard–Chandler density isosurface (default) or ITIM per-column min/max.
+{willard|itim} Instantaneous interface:
+ Willard–Chandler density isosurface (default) or ITIM per-column min/max.
 \end_layout
 
 \begin_layout Description
@@ -44996,8 +45046,7 @@ qmin / qmax
 \begin_inset space ~
 \end_inset
 
-Fit window in Ang.
-^-1.
+Fit window in Ang.^-1.
  If qmin is omitted it is 2*pi/max(L1,L2) from the first good frame.
 \end_layout
 
@@ -45015,7 +45064,8 @@ nblock / dt / blocktime
 \end_inset
 
 Block averaging.
- blocktime (ps) with dt (analyzed-frame spacing, ps) sets nblock.
+ blocktime (ps) with dt (analyzed-frame spacing,
+ ps) sets nblock.
 \end_layout
 
 \begin_layout Description
@@ -45041,7 +45091,9 @@ Optional output files.
 \begin_inset space ~
 \end_inset
 
-Force Grace or gnuplot format for spectrum, roughness, or block files.
+Force Grace or gnuplot format for spectrum,
+ roughness,
+ or block files.
 \end_layout
 
 \end_deeper
@@ -45058,7 +45110,9 @@ literal "true"
  Frames are recentered so the film sits at mid-box along the chosen normal.
  The default interface is a Willard–Chandler isosurface of a Gaussian-smoothed number-density field;
  interface itim uses per-column min/max of <mask> (probe radius to 0).
- The height field is Fourier transformed (numpy fft2 convention), shell-averaged to S(q), and gamma (mN/m) is taken from the small-q plateau of q^2 S(q).
+ The height field is Fourier transformed (numpy fft2 convention),
+ shell-averaged to S(q),
+ and gamma (mN/m) is taken from the small-q plateau of q^2 S(q).
  A Helfrich fit of 1/(q^2 S) vs q^2 on the same window gives kappa in kT.
  The trajectory is assumed NVT (fixed lateral box lengths).
  The 3-D Gaussian filter is OpenMP-parallel.
@@ -48984,6 +49038,10 @@ avg <dset0> [<dset1> ...] [torsion] [out <file>] [oversets]
 
 \end_layout
 
+\begin_layout LyX-Code
+    [ffmt {GEN|DBL|SCI}] [fwidth <width>] [fprec <precision>]
+\end_layout
+
 \begin_deeper
 \begin_layout Description
 <dsetX> Data set(s) to calculate the average for.
@@ -49018,6 +49076,32 @@ avg <dset0> [<dset1> ...] [torsion] [out <file>] [oversets]
 
 \begin_layout Description
 [nostdout] If 'nostdout' specified do not write averages to STDOUT when 'out' not specified.
+\end_layout
+
+\begin_layout Description
+[ffmt
+\begin_inset space ~
+\end_inset
+
+{GEN|DBL|SCI}] Change the default floating point output format to GEN=general,
+ DBL=double,
+ or SCI=scientific.
+\end_layout
+
+\begin_layout Description
+[fwidth
+\begin_inset space ~
+\end_inset
+
+<width>] Change the default floating point output width to <width>.
+\end_layout
+
+\begin_layout Description
+[fprec
+\begin_inset space ~
+\end_inset
+
+<precision>] Change the default floating point output precision to <precision>.
 \end_layout
 
 \begin_layout Standard

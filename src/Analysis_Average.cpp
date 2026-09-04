@@ -14,15 +14,22 @@ Analysis_Average::Analysis_Average() :
   data_ymaxIdx_(0),
   data_names_(0),
   calcAvgOverSets_(false),
-  toStdout_(false)
+  toStdout_(false),
+  ffmt_(TextFormat::GDOUBLE),
+  fwidth_(10),
+  fprec_(4)
 {}
 
 void Analysis_Average::Help() const {
   mprintf("\t<dset0> [<dset1> ...] [torsion] [out <file>] [oversets]\n"
           "\t[name <output setname>] [nostdout]\n"
+          "\t[ffmt {GEN|DBL|SCI}] [fwidth <width>] [fprec <precision>]\n"
           "  Calculate the average, standard deviation, min, and max of given data sets.\n"
           "  If 'oversets' is specified calculate the average over all sets.\n"
-          "  If 'nostdout' specified do not write averages to STDOUT when 'out' not specified.\n");
+          "  If 'nostdout' specified do not write averages to STDOUT when 'out' not specified.\n"
+          "  The 'ffmt' keyword can be used to change the default floating point output format\n"
+          "  to GEN=general, DBL=double, or SCI=scientific. The 'fwidth' and 'fprec' keywords\n"
+          "  can be used to change the default floating point output width and precision.\n");
 }
 
 // Analysis_Average::Setup()
@@ -36,6 +43,24 @@ Analysis::RetType Analysis_Average::Setup(ArgList& analyzeArgs, AnalysisSetup& s
   std::string dsname = analyzeArgs.GetStringKey("name");
   if (dsname.empty())
     dsname = setup.DSL().GenerateDefaultName("AVERAGE");
+  // Output format
+  std::string ffmtstr = analyzeArgs.GetStringKey("ffmt");
+  if (ffmtstr.empty())
+    ffmt_ = TextFormat::GDOUBLE;
+  else {
+    if (ffmtstr == "GEN")
+      ffmt_ = TextFormat::GDOUBLE;
+    else if (ffmtstr == "DBL")
+      ffmt_ = TextFormat::DOUBLE;
+    else if (ffmtstr == "SCI")
+      ffmt_ = TextFormat::SCIENTIFIC;
+    else {
+      mprinterr("Error: Unrecognized keyword for 'ffmt': %s\n", ffmtstr.c_str());
+      return Analysis::ERR;
+    }
+  }
+  fwidth_ = analyzeArgs.getKeyInt("fwidth", 10);
+  fprec_ = analyzeArgs.getKeyInt("fprec", 4);
   // Select datasets from remaining args
   if (input_dsets_.AddSetsFromArgs( analyzeArgs.RemainingArgs(), setup.DSL() )) {
     mprinterr("Error: Could not add data sets.\n");
@@ -105,6 +130,7 @@ Analysis::RetType Analysis_Average::Setup(ArgList& analyzeArgs, AnalysisSetup& s
       mprintf("\tData sets will be marked as torsions\n");
   }
   if (outfile != 0) mprintf("\tOutput to to '%s'\n", outfile->DataFilename().full());
+  mprintf("\tFloating point output format: %s %i.%i\n", TextFormat::typeDescription(ffmt_), fwidth_, fprec_);
   //for (Array1D::const_iterator set = input_dsets_.begin(); set != input_dsets_.end(); ++set)
   //  mprintf("\t%s\n", (*set)->legend());
 
@@ -161,12 +187,12 @@ Analysis::RetType Analysis_Average::Analyze() {
     data_ymaxIdx_->SetDim(Dimension::X, Xdim);
     data_names_->SetDim(Dimension::X, Xdim);
     // Default to better format for very large/small numbers
-    TextFormat Fmt(TextFormat::GDOUBLE, 10, 4);
+    TextFormat Fmt(ffmt_, fwidth_, fprec_);
     data_avg_->SetupFormat() = Fmt;
     data_sd_->SetupFormat() = Fmt;
     data_ymin_->SetupFormat() = Fmt;
     data_ymax_->SetupFormat() = Fmt;
-    Fmt = TextFormat(TextFormat::INTEGER, 10);
+    Fmt = TextFormat(TextFormat::INTEGER, fwidth_);
     data_yminIdx_->SetupFormat() = Fmt;
     data_ymaxIdx_->SetupFormat() = Fmt;
     int set = 0;
