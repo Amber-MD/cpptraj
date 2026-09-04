@@ -1,7 +1,7 @@
 #ifndef INC_DATAIO_GBNSR6_H
 #define INC_DATAIO_GBNSR6_H
 #include "DataIO.h"
-/// <Enter description of DataIO_GBNSR6 here>
+/// Read energies from Amber GBNSR6 output files. 
 class DataIO_GBNSR6 : public DataIO {
   public:
     DataIO_GBNSR6();

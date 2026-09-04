@@ -6,38 +6,11 @@
 #include "CpptrajStdio.h"
 #include "StringRoutines.h" // convertToDouble
 #include "DataSet_double.h"
+#include "AmberEterm.h"
 
-DataIO_Mdout::DataIO_Mdout() {
-  // Populate the term name to index map. In some cases, multiple term names
-  // map to the same index.
-  termIdxMap_.insert(NameIdxPair("Etot", ETOT));
-  termIdxMap_.insert(NameIdxPair("EPtot", EPTOT));
-  termIdxMap_.insert(NameIdxPair("GMAX", GMAX)); // Not necessary?
-  termIdxMap_.insert(NameIdxPair("BOND", BOND));
-  termIdxMap_.insert(NameIdxPair("ANGLE", ANGLE));
-  termIdxMap_.insert(NameIdxPair("DIHED", DIHED));
-  termIdxMap_.insert(NameIdxPair("VDWAALS", VDWAALS));
-  termIdxMap_.insert(NameIdxPair("EEL", EEL));
-  termIdxMap_.insert(NameIdxPair("EELEC", EEL));
-  termIdxMap_.insert(NameIdxPair("EGB", EGB));
-  termIdxMap_.insert(NameIdxPair("EPB", EPB));
-  termIdxMap_.insert(NameIdxPair("ECAVITY", ECAVITY));
-  termIdxMap_.insert(NameIdxPair("EDISPER", EDISPER));
-  termIdxMap_.insert(NameIdxPair("1-4 VDW", VDW14));
-  termIdxMap_.insert(NameIdxPair("1-4 NB", VDW14));
-  termIdxMap_.insert(NameIdxPair("1-4 EEL", EEL14));
-  termIdxMap_.insert(NameIdxPair("RESTRAINT", RESTRAINT));
-  termIdxMap_.insert(NameIdxPair("EAMBER", EAMBER));
-  termIdxMap_.insert(NameIdxPair("Density", DENSITY));
-  termIdxMap_.insert(NameIdxPair("RMS", RMS)); // Not necessary?
-  termIdxMap_.insert(NameIdxPair("EKtot", EKTOT));
-  termIdxMap_.insert(NameIdxPair("ESURF", ESURF));
-  termIdxMap_.insert(NameIdxPair("EAMD_BOOST", EAMD_BOOST));
-  termIdxMap_.insert(NameIdxPair("VOLUME", VOLUME));
-  termIdxMap_.insert(NameIdxPair("TEMP(K)", TEMP));
-  termIdxMap_.insert(NameIdxPair("PRESS", PRESS));
-  termIdxMap_.insert(NameIdxPair("DV/DL", DVDL));
-  termIdxMap_.insert(NameIdxPair("CMAP", CMAP));
+DataIO_Mdout::DataIO_Mdout()
+{
+
 }
 
 // DataIO_Mdout::ID_DataFormat()
@@ -60,85 +33,6 @@ bool DataIO_Mdout::ID_DataFormat(CpptrajFile& infile) {
 static inline int EOF_ERROR() {
   mprinterr("Error: Unexpected EOF in MDOUT file.\n");
   return 1;
-}
-
-/** Names corresponding to FieldType. */
-const char* DataIO_Mdout::Enames_[] = {
-  "Etot",   "EPtot",  "GMAX",  "BOND",
-  "ANGLE",  "DIHED",  "VDW",   "EELEC",      "EGB",     "EPB", "ECAVITY", "EDISPER",
-  "VDW1-4", "EEL1-4", "RST",   "EAMBER",     "Density",
-  "RMS",    "EKtot",  "ESURF", "EAMD_BOOST", "VOLUME",  "TEMP",
-  "PRESS",  "DVDL",   "CMAP",  0
-};
-
-/** \return FieldType corresponding to given term name, or N_FIELDTYPES if
-  *         not recognized.
-  */
-DataIO_Mdout::FieldType DataIO_Mdout::getTermIdx(std::string const& name) const {
-  NameIdxMap::const_iterator it = termIdxMap_.find( name );
-  if (it == termIdxMap_.end()) {
-    return (FieldType)N_FIELDTYPES;
-  } else {
-    return (FieldType)it->second;
-  }
-}
-
-/** Parse the given line for energy terms of format <name>=<value>. */
-int DataIO_Mdout::GetAmberEterms(const char* ptr, Darray& Energy, std::vector<bool>& EnergyExists) {
-  //mprintf("DBG: [%s]\n", ptr);
-  if (ptr == 0 || ptr[0] == '|') return 0;
-  const char* beg = ptr;
-  //          111111111122222222223
-  //0123456789012345678901234567890
-  // NSTEP =        0   TIME(PS) =       0.000  TEMP(K) =   435.99  PRESS =-10207.6
-  bool eol = false;
-  while (!eol) {
-    // Skip leading whitespace
-    while (*beg == ' ' && *beg != '\0') ++beg;
-    if (*beg == '\0') {
-      // Line is blank or no more terms. Bail out.
-      break;
-    }
-    //mprintf("DBG: beg= %c\n", *beg);
-    // Search for next '='
-    const char* eq = beg + 1;
-    while (*eq != '=' && *eq != '\0') ++eq;
-    if (*eq == '\0')
-      eol = true;
-    else {
-      // Search for end token. Start just after '='.
-      const char* val = eq + 1;
-      // Skip leading whitespace
-      while (*val == ' ' && *val != '\0') ++val;
-      if (*val == '\0') {
-        eol = true;
-        mprintf("Warning: EOL encountered before energy term could be read.\n");
-        return 1;
-      } else {
-        //mprintf("DBG: val= %c\n", *val);
-        // Search for next whitespace or line end.
-        const char* end = val + 1;
-        while (*end != ' ' && *end != '\0' && *end != '\n' && *end != '\r') ++end;
-        // Term is now complete. Convert.
-        std::string valstr(val, end);
-        //mprintf("DBG: valstr= '%s'\n", valstr.c_str());
-        std::string termName = NoTrailingWhitespace(std::string(beg,eq));
-        FieldType Eindex = getTermIdx(termName);
-        if (Eindex != N_FIELDTYPES) {
-          if (!validDouble(valstr)) {
-            mprintf("Warning: Invalid number detected: %s = %s\n", termName.c_str(), valstr.c_str());
-          } else {
-            //mprintf("DBG: %s = %s\n", termName.c_str(), valstr.c_str());
-            Energy[Eindex] = atof( valstr.c_str() );
-            EnergyExists[Eindex] = true;
-          }
-        }
-        beg = end;
-      }
-    }
-  } // END loop over line
-  
-  return 0;
 }
 
 // DataIO_Mdout::ReadData()
@@ -227,10 +121,12 @@ int DataIO_Mdout::ReadData(FileName const& fname,
     nstep = 0;
   else
     nstep = ntpr;
-  Darray Energy(N_FIELDTYPES, 0);
-  std::vector<bool> EnergyExists(N_FIELDTYPES, false);
+  using namespace Cpptraj;
+  AmberEterm AEterm;
+  AmberEterm::Darray Energy = AEterm.AllocEnergyArray();
+  std::vector<bool> EnergyExists = AEterm.AllocExistsArray();
   DataSetList::Darray TimeVals;
-  DataSetList::DataListType inputSets(N_FIELDTYPES, 0);
+  DataSetList::DataListType inputSets(AmberEterm::NenergyTerms(), 0);
   double time = 0.0;
   while (ptr != 0) {
     // Check for end of imin 0 or 1 run; do not record Average and Stdevs
@@ -254,11 +150,11 @@ int DataIO_Mdout::ReadData(FileName const& fname,
     if ( strncmp(ptr, Trigger, 8) == 0 || finalE ) {
       if (frame > -1) {
         // Store all energies present.
-        for (int i = 0; i < (int)N_FIELDTYPES; i++) {
+        for (int i = 0; i < AmberEterm::NenergyTerms(); i++) {
           if (EnergyExists[i]) {
             if (inputSets[i] == 0) {
-              MetaData md( dsname, Enames_[i] );
-              md.SetLegend( dsname + "_" + Enames_[i] );
+              MetaData md( dsname, AmberEterm::Ename(i) );
+              md.SetLegend( dsname + "_" + AmberEterm::Ename(i) );
               inputSets[i] = new DataSet_double();
               inputSets[i]->SetMeta( md );
             }
@@ -281,14 +177,14 @@ int DataIO_Mdout::ReadData(FileName const& fname,
       ptr = buffer.Line(); // Get next line
       //sscanf(ptr, " %6lf    %13lE  %13lE  %13lE", Energy+NSTEP, Energy+EPtot, Energy+RMS, Energy+GMAX);
       double* Eptr = &(Energy[0]);
-      sscanf(ptr, " %i %lE %lE %lE", &minStep, Eptr+EPTOT, Eptr+RMS, Eptr+GMAX);
-      EnergyExists[EPTOT] = true;
-      EnergyExists[RMS] = true;
-      EnergyExists[GMAX] = true;
+      sscanf(ptr, " %i %lE %lE %lE", &minStep, Eptr+AmberEterm::EPTOT, Eptr+AmberEterm::RMS, Eptr+AmberEterm::GMAX);
+      EnergyExists[AmberEterm::EPTOT] = true;
+      EnergyExists[AmberEterm::RMS] = true;
+      EnergyExists[AmberEterm::GMAX] = true;
       ptr = buffer.Line();
     }
     // Tokenize line, scan through until '=' is reached; value after is target.
-    if (GetAmberEterms(buffer.CurrentLine(), Energy, EnergyExists))
+    if (AEterm.GetAmberEterms(buffer.CurrentLine(), Energy, EnergyExists))
       mprintf("Warning: Issue parsing line %i\n", buffer.LineNumber());
     // Set time
     switch (imin) {

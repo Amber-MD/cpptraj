@@ -14,8 +14,19 @@ DataIO_GBNSR6::DataIO_GBNSR6()
 // DataIO_GBNSR6::ID_DataFormat()
 bool DataIO_GBNSR6::ID_DataFormat(CpptrajFile& infile)
 {
-
-  return false;
+  if (infile.OpenFile()) return false;
+  bool isGbnsr6 = false;
+  std::string line = infile.GetLine();
+  if (line[0] == '\n') {
+    line = infile.GetLine();
+    if (line.compare(0, 15, "          -----") == 0) {
+      line = infile.GetLine();
+      if (line.compare(0, 16, "          GBNSR6") == 0)
+        isGbnsr6 = true;
+    }
+  }
+  infile.CloseFile();
+  return isGbnsr6;
 }
 
 // DataIO_GBNSR6::ReadHelp()
