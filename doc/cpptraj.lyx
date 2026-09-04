@@ -49038,6 +49038,10 @@ avg <dset0> [<dset1> ...] [torsion] [out <file>] [oversets]
 
 \end_layout
 
+\begin_layout LyX-Code
+    [ffmt {GEN|DBL|SCI}] [fwidth <width>] [fprec <precision>]
+\end_layout
+
 \begin_deeper
 \begin_layout Description
 <dsetX> Data set(s) to calculate the average for.
@@ -49072,6 +49076,32 @@ avg <dset0> [<dset1> ...] [torsion] [out <file>] [oversets]
 
 \begin_layout Description
 [nostdout] If 'nostdout' specified do not write averages to STDOUT when 'out' not specified.
+\end_layout
+
+\begin_layout Description
+[ffmt
+\begin_inset space ~
+\end_inset
+
+{GEN|DBL|SCI}] Change the default floating point output format to GEN=general,
+ DBL=double,
+ or SCI=scientific.
+\end_layout
+
+\begin_layout Description
+[fwidth
+\begin_inset space ~
+\end_inset
+
+<width>] Change the default floating point output width to <width>.
+\end_layout
+
+\begin_layout Description
+[fprec
+\begin_inset space ~
+\end_inset
+
+<precision>] Change the default floating point output precision to <precision>.
 \end_layout
 
 \begin_layout Standard
