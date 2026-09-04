@@ -23,5 +23,8 @@ class Analysis_Average : public Analysis {
     DataSet* data_names_;   ///< Legend of each input data set.
     bool calcAvgOverSets_;  ///< If true calculate avg/stdev over all input sets at each point.
     bool toStdout_;         ///< If true write avg results to STDOUT when no outfile specified
+    TextFormat::FmtType ffmt_; ///< Default format for floating point output
+    int fwidth_;               ///< Default width for floating point output
+    int fprec_;                ///< Default precision for floating point output
 };
 #endif
