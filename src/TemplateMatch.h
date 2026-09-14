@@ -1,0 +1,74 @@
+#ifndef INC_TEMPLATEMATCH_H
+#define INC_TEMPLATEMATCH_H
+#include <string>
+#include <vector>
+class Topology;
+/// Map a target topology onto a user-supplied template for TI atom alignment.
+/** Source encoding is UTF-8. Unicode (O5′, χ, λ, 2′) appears in comments only;
+  * string literals in the implementation stay ASCII so the file compiles
+  * without a compiler UTF-8 flag.
+  *
+  * The template atom order *is* the thermodynamic-integration (TI) shared-atom
+  * order. Target atoms that correspond to a template atom occupy that same
+  * slot. Extra atoms on the target — a 2′-OH on RNA vs DNA, a phenolic OH,
+  * selenium in place of sulfur — are insertions. Insertions that are bonded
+  * to a mapped parent are emitted immediately after that parent. Completely
+  * unmatched leftovers are placed just before an anchor atom (default O3′).
+  *
+  * Matching is graph-based and is expected to be partial (unlike atommap,
+  * which requires a 1:1 correspondence):
+  *   1. Seed by unique atom names, and (for nucleic acids) scaffold roles
+  *      P / O5′ / C5′ / C4′ / O4′ / C1′ / C3′ / C2′ / O3′ / glycosidic N (χ).
+  *   2. Grow by pairing unmatched neighbors that share a unique signature
+  *      (element, heavy degree, sorted neighbor elements).
+  *   3. Attach hydrogens to already-mapped heavy atoms, ordered by name.
+  *
+  * The same engine is used for nucleotides, amino acids, and small molecules.
+  * Nucleic-acid scaffold detection is opportunistic: if no furanose / χ is
+  * found, the residue is kind "unknown" and unique-name seeding is used.
+  */
+class TemplateMatch {
+  public:
+    typedef std::vector<int> Iarray;
+    /// How the correspondence is started before the grow pass.
+    enum SeedType { SEED_AUTO = 0, SEED_NAMES, SEED_NA, SEED_NONE };
+
+    /// Outcome of Match(): correspondence plus the permutation of the target.
+    class Result {
+      public:
+        Result() : nMapped_(0), nInsertion_(0), nUnmappedTpl_(0) {}
+        Iarray mapping_;     ///< tgt index → template index; −1 = insertion
+        Iarray outputOrder_; ///< Map[newatom] = old tgt atom (full permutation)
+        int nMapped_;        ///< target atoms that correspond to a template atom
+        int nInsertion_;     ///< target atoms with no template partner
+        int nUnmappedTpl_;   ///< template atoms with no target partner
+        std::string tgtKind_; ///< nucleotide | sugar | base | unknown
+        std::string tplKind_;
+        std::vector<std::string> notes_; ///< scaffold warnings (empty sugar, …)
+    };
+
+    TemplateMatch();
+
+    void SetSeed(SeedType s)                 { seed_ = s; }
+    void SetDebug(int d)                     { debug_ = d; }
+    void SetUseNaOrder(bool b)               { useNaOrder_ = b; }
+    void SetAnchorName(std::string const& n) { anchorName_ = n; }
+
+    /// Map tgt onto tpl. Partial maps are success (return 0) as long as the
+    /// output order is a permutation of the target.
+    int Match(Topology const& tgt, Topology const& tpl, Result& out) const;
+    /// Nucleic-acid canonical walk of top: P → OP → O5′ → C5′ → C4′ → O4′ →
+    /// C1′ → base from χ → C3′ → C2′ (+ 2′ substituents) → O3′.
+    int CanonicalNaOrder(Topology const& top, Iarray& order) const;
+
+    static const char* SeedStr(SeedType);
+    static SeedType SeedFromString(std::string const&);
+
+  private:
+    SeedType seed_;
+    int debug_;
+    bool useNaOrder_;
+    std::string anchorName_;
+};
+#endif
+

@@ -25171,6 +25171,35 @@ Calculate system temperature using velocities of specified atoms.
 \begin_inset Text
 
 \begin_layout Plain Layout
+templatematch
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Map a residue onto a user template so shared atoms occupy the same indices (TI; nucleic acids, amino acids, ligands).
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
 time
 \end_layout
 
@@ -26422,6 +26451,307 @@ run
 \begin_layout LyX-Code
 crdout MyAvg mypdb.pdb adpdata MyFluct[ADP] bfacdata MyFluct
 \end_layout
+
+\begin_layout Subsection
+templatematch
+\end_layout
+
+\begin_layout LyX-Code
+templatematch
+\begin_inset Index idx
+range none
+pageformat default
+status collapsed
+
+\begin_layout Plain Layout
+templatematch
+\end_layout
+
+\end_inset
+
+ <tgt> [template <name>] [mapout <file>] [name <newparm>]
+\begin_inset Newline newline
+\end_inset
+
+        [maponly] [replace] [naorder]
+\end_layout
+
+\begin_layout LyX-Code
+        [seed {auto|names|na|none}] [anchor <atomname>]
+\end_layout
+
+\begin_deeper
+\begin_layout Standard
+Align atoms in topology 
+\series bold
+<tgt>
+\series default
+ to a user-supplied template so shared atoms occupy the same indices.
+ This is intended for preparing residue libraries for thermodynamic integration (TI) of nucleic acids, amino acids, and small molecules,
+ where two (or more) end states must list common atoms in the same order.
+ Unlike 
+\series bold
+atommap
+\series default
+, a one-to-one correspondence is not required: extra atoms on the target are insertions.
+ Partial maps are expected and useful.
+\end_layout
+
+\begin_layout Standard
+The template atom order 
+\series emph
+is
+\series default
+ the TI shared-atom order.
+ Any topology can be a template (mol2, Amber OFF unit loaded with 
+\series bold
+readdata
+\series default
+, and so on).
+ Official ModXNA parent fragments shipped with cpptraj live in 
+\series bold
+$CPPTRAJHOME/dat/templatematch/
+\series default
+ (see PARENTS.txt there).
+ Use those as-is for ModXNA-class nucleic-acid fragments; for everything else, generate your own template as below.
+\end_layout
+
+\begin_layout Description
+<tgt> Topology (or COORDS set) whose atoms will be reordered.
+\end_layout
+
+\begin_layout Description
+template
+\begin_inset space ~
+\end_inset
+
+<name> Template topology.
+ If omitted, 
+\series bold
+<tgt>
+\series default
+ is matched to itself (useful with 
+\series bold
+naorder
+\series default
+).
+\end_layout
+
+\begin_layout Description
+mapout
+\begin_inset space ~
+\end_inset
+
+<file> Write the atom map (output index, target atom, template atom, insertion flag).
+\end_layout
+
+\begin_layout Description
+name
+\begin_inset space ~
+\end_inset
+
+<newparm> Store the remapped topology as a new topology set.
+\end_layout
+
+\begin_layout Description
+maponly Write the map but do not create a remapped topology.
+\end_layout
+
+\begin_layout Description
+replace Overwrite 
+\series bold
+<tgt>
+\series default
+ with the remapped atom order.
+\end_layout
+
+\begin_layout Description
+naorder Walk the template as P 
+\begin_inset Formula $\rightarrow$
+\end_inset
+
+ O5' 
+\begin_inset Formula $\rightarrow$
+\end_inset
+
+ C5' 
+\begin_inset Formula $\rightarrow$
+\end_inset
+
+ C4' 
+\begin_inset Formula $\rightarrow$
+\end_inset
+
+ O4' 
+\begin_inset Formula $\rightarrow$
+\end_inset
+
+ C1' 
+\begin_inset Formula $\rightarrow$
+\end_inset
+
+ base 
+\begin_inset Formula $\rightarrow$
+\end_inset
+
+ C3' 
+\begin_inset Formula $\rightarrow$
+\end_inset
+
+ C2' 
+\begin_inset Formula $\rightarrow$
+\end_inset
+
+ O3' instead of using the file atom order.
+ Use this to 
+\series emph
+generate
+\series default
+ a nucleic-acid template from an existing residue.
+\end_layout
+
+\begin_layout Description
+seed How the correspondence is started.
+ 
+\series bold
+auto
+\series default
+ (default) uses nucleic-acid scaffold roles when they are detected, otherwise unique atom names.
+ 
+\series bold
+names
+\series default
+ uses unique names only.
+ 
+\series bold
+na
+\series default
+ forces scaffold seeding.
+ 
+\series bold
+none
+\series default
+ performs no matching (not generally useful).
+ The map is then grown by neighbor element/degree signatures.
+ Partial maps are expected.
+\end_layout
+
+\begin_layout Description
+anchor
+\begin_inset space ~
+\end_inset
+
+<atomname> Name of the template atom before which completely unmatched leftovers are inserted (default O3').
+ Atoms that are bonded to a mapped parent are inserted immediately after that parent instead.
+\end_layout
+
+\begin_layout Standard
+\series bold
+Generating your own templates
+\series default
+.
+ The parent is the 
+\begin_inset Formula $\lambda=0$
+\end_inset
+
+ analog whose 
+\series emph
+current atom order
+\series default
+ you want every other analog to share.
+ cpptraj does not invent that order; you freeze it, then map.
+\end_layout
+
+\begin_layout LyX-Code
+# 1. Choose the parent analog (unmodified residue, ligand core, ...).
+\end_layout
+
+\begin_layout LyX-Code
+# 2. Load it. Nucleic acids: optionally freeze the sugar-phosphate walk.
+\end_layout
+
+\begin_layout LyX-Code
+#    Ligands / amino acids: the file order *is* the TI order -- skip naorder.
+\end_layout
+
+\begin_layout LyX-Code
+# 3. Map each analog onto that parent. Inspect mapout for insertions.
+\end_layout
+
+\begin_layout LyX-Code
+# 4. Build both TI end-state libraries from the aligned units.
+\end_layout
+
+\begin_layout Standard
+Nucleic acids (example: FLE = unmodified rA onto ERN = unmodified dA).
+ Shared atoms keep the dA indices; the 2'-OH is an insertion next to C2'; dA H2'' is unmatched on the template.
+\end_layout
+
+\begin_layout LyX-Code
+readdata ERN.lib name ERN
+\end_layout
+
+\begin_layout LyX-Code
+templatematch ERN[ERN] naorder name ERN.ti
+\end_layout
+
+\begin_layout LyX-Code
+readdata FLE.lib name FLE
+\end_layout
+
+\begin_layout LyX-Code
+templatematch FLE[FLE] template ERN.ti mapout fle.map name FLE.ti
+\end_layout
+
+\begin_layout Standard
+Small molecules (example: phenol onto benzene).
+ The ring maps by unique names; OH inserts after C1; benzene H1 is unmatched.
+\end_layout
+
+\begin_layout LyX-Code
+parm benzene.mol2 name benzene
+\end_layout
+
+\begin_layout LyX-Code
+parm phenol.mol2 name phenol
+\end_layout
+
+\begin_layout LyX-Code
+templatematch phenol template benzene mapout phenol.map name phenol.ti
+\end_layout
+
+\begin_layout Standard
+Amino acids (example: selenocysteine onto cysteine).
+ Use Amber OFF so selenium is 
+\series bold
+elmnt 34
+\series default
+.
+ Mol2 atom name SE is read as sulfur.
+ Backbone names map; SE is an insertion at CB; cysteine SG is unmatched.
+\end_layout
+
+\begin_layout LyX-Code
+readdata cys.lib name CYS
+\end_layout
+
+\begin_layout LyX-Code
+readdata sec.lib name SEC
+\end_layout
+
+\begin_layout LyX-Code
+templatematch SEC[SEC] template CYS[CYS] mapout sec.map name SEC.ti
+\end_layout
+
+\begin_layout Standard
+Alias: 
+\series bold
+timap
+\series default
+.
+\end_layout
+
+\end_deeper
 
 \begin_layout Subsection
 atommap

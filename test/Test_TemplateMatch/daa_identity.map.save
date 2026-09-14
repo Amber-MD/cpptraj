@@ -1,0 +1,26 @@
+# templatematch tgt='DAA' template='DAA'
+# kind tgt=base template=base
+# mapped= 22  insertion= 0  unmapped_template= 0  n_tgt= 22  n_tpl= 22
+#Out    TgtAt TgtName  TplAt TplName Ins
+     1      1 O4'         1 O4'    0
+     2      2 C1'         2 C1'    0
+     3      3 H1'         3 H1'    0
+     4      4 N9          4 N9     0
+     5      5 C8          5 C8     0
+     6      6 H8          6 H8     0
+     7      7 N7          7 N7     0
+     8      8 C5          8 C5     0
+     9      9 C6          9 C6     0
+    10     10 N6         10 N6     0
+    11     11 H61        11 H61    0
+    12     12 H62        12 H62    0
+    13     13 N1         13 N1     0
+    14     14 C2         14 C2     0
+    15     15 H2         15 H2     0
+    16     16 N3         16 N3     0
+    17     17 C4         17 C4     0
+    18     18 C2'        18 C2'    0
+    19     19 H2'1       19 H2'1   0
+    20     20 HHO4       20 HHO4   0
+    21     21 H2'2       21 H2'2   0
+    22     22 H2'3       22 H2'3   0

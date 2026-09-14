@@ -346,6 +346,7 @@ CPPTRAJ_HEADERS = \
         ./Exec_Source.h \
         ./Exec_SplitCoords.h \
         ./Exec_System.h \
+        ./Exec_TemplateMatch.h \
         ./Exec_Top.h \
         ./Exec_Traj.h \
         ./Exec_UpdateParameters.h \
@@ -487,6 +488,7 @@ CPPTRAJ_HEADERS = \
         ./StringRoutines.h \
         ./StructureCheck.h \
         ./StructureMapper.h \
+        ./TemplateMatch.h \
         ./SymbolExporting.h \
         ./SymmetricRmsdCalc.h \
         ./SymmetricTensor.h \

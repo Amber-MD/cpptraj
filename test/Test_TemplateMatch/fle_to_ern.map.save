@@ -1,0 +1,39 @@
+# templatematch tgt='FLE[FLE]' template='ERN[ERN]'
+# kind tgt=nucleotide template=nucleotide
+# mapped= 31  insertion= 2  unmapped_template= 1  n_tgt= 33  n_tpl= 32
+#Out    TgtAt TgtName  TplAt TplName Ins
+     1      1 N9          1 N9     0
+     2      2 C8          2 C8     0
+     3      3 H8          3 H8     0
+     4      4 N7          4 N7     0
+     5      5 C5          5 C5     0
+     6      6 C6          6 C6     0
+     7      7 N6          7 N6     0
+     8      8 H61         8 H61    0
+     9      9 H62         9 H62    0
+    10     10 N1         10 N1     0
+    11     11 C2         11 C2     0
+    12     12 H2         12 H2     0
+    13     13 N3         13 N3     0
+    14     14 C4         14 C4     0
+    15     15 P          15 P      0
+    16     16 OP1        16 OP1    0
+    17     17 OP2        17 OP2    0
+    18     18 O5'        18 O5'    0
+    19     19 C5'        19 C5'    0
+    20     20 H5'        20 H5'    0
+    21     21 H5''       21 H5''   0
+    22     22 C4'        22 C4'    0
+    23     23 H4'        23 H4'    0
+    24     24 O4'        24 O4'    0
+    25     25 C1'        25 C1'    0
+    26     26 C3'        26 C3'    0
+    27     27 H3'        27 H3'    0
+    28     28 C2'        28 C2'    0
+    29     30 O2'       --- ---    1
+    30     33 HO2'      --- ---    1
+    31     29 H2'        29 H2'    0
+    32     31 O3'        30 O3'    0
+    33     32 H1'        31 H1'    0
+# unmapped template atoms:
+#   32 H2''
