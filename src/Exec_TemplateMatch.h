@@ -5,7 +5,9 @@
 /** Alias: timap. Source encoding is UTF-8 (comments may use O5′, χ, λ).
   * Looks up <tgt> / template as a TOPOLOGY set, then a COORDS set (Amber
   * OFF units loaded with readdata appear as Name[Unit], e.g. FLE[FLE]),
-  * then a numeric parm index. See TemplateMatch for the matching algorithm.
+  * then a numeric parm index. Optional tiout <prefix> writes dual-topology
+  * mol2/lib (same NATOM, charge-0 dummies) plus scmask for pmemd.
+  * See TemplateMatch for the matching algorithm.
   */
 class Exec_TemplateMatch : public Exec {
   public:

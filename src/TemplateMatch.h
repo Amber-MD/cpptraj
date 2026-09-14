@@ -39,6 +39,17 @@ class TemplateMatch {
         Result() : nMapped_(0), nInsertion_(0), nUnmappedTpl_(0) {}
         Iarray mapping_;     ///< tgt index → template index; −1 = insertion
         Iarray outputOrder_; ///< Map[newatom] = old tgt atom (full permutation)
+        /// Dual-topology slots: tpl-only (dummy on λ=1), tgt-only (dummy on λ=0), or shared.
+        struct DualSlot {
+          DualSlot() : tpl_(-1), tgt_(-1) {}
+          DualSlot(int r, int n) : tpl_(r), tgt_(n) {}
+          int tpl_; ///< template atom, or −1 if this slot is a target insertion
+          int tgt_; ///< target atom, or −1 if this slot is an unmatched template atom
+          bool IsShared()  const { return tpl_ >= 0 && tgt_ >= 0; }
+          bool IsTplOnly() const { return tpl_ >= 0 && tgt_ <  0; }
+          bool IsTgtOnly() const { return tpl_ <  0 && tgt_ >= 0; }
+        };
+        std::vector<DualSlot> dual_;
         int nMapped_;        ///< target atoms that correspond to a template atom
         int nInsertion_;     ///< target atoms with no template partner
         int nUnmappedTpl_;   ///< template atoms with no target partner

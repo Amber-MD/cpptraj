@@ -1,0 +1,15 @@
+# templatematch dual-topology atoms
+# Kind: SHARED = real in both; TPL_ONLY = dummy in lambda 1; TGT_ONLY = dummy in lambda 0
+#Idx Kind     Name0            Q0 Name1            Q1
+   1 SHARED   N          0.000000 N          0.000000
+   2 SHARED   H          0.000000 H          0.000000
+   3 SHARED   CA         0.000000 CA         0.000000
+   4 SHARED   HA         0.000000 HA         0.000000
+   5 SHARED   CB         0.000000 CB         0.000000
+   6 TGT_ONLY SE         0.000000 SE         0.000000
+   7 SHARED   HB2        0.000000 HB2        0.000000
+   8 SHARED   HB3        0.000000 HB3        0.000000
+   9 TPL_ONLY SG         0.000000 SG         0.000000
+  10 SHARED   HG         0.000000 HG         0.000000
+  11 SHARED   C          0.000000 C          0.000000
+  12 SHARED   O          0.000000 O          0.000000

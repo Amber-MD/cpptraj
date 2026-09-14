@@ -5,7 +5,13 @@
 CleanFiles templatematch.in \
            fle_to_ern.map ern_naorder.map \
            phenol_to_benzene.map sec_to_cys.map \
-           daa_identity.map
+           daa_identity.map \
+           fle_ern.0.mol2 fle_ern.1.mol2 fle_ern.0.lib fle_ern.1.lib \
+           fle_ern.scmask fle_ern.atoms fle_ern.map \
+           phenol_bnz.0.mol2 phenol_bnz.1.mol2 phenol_bnz.0.lib phenol_bnz.1.lib \
+           phenol_bnz.scmask phenol_bnz.atoms phenol_bnz.map \
+           sec_cys.0.mol2 sec_cys.1.mol2 sec_cys.0.lib sec_cys.1.lib \
+           sec_cys.scmask sec_cys.atoms sec_cys.map
 
 TESTNAME='Template match tests'
 Requires maxthreads 1
@@ -75,6 +81,47 @@ templatematch DAA template DAA mapout daa_identity.map maponly
 EOF
   RunCpptraj "$UNITNAME"
   DoTest daa_identity.map.save daa_identity.map
+fi
+
+# Dual-topology TI export: dummies, matching atom counts, mol2+lib+scmask.
+# FLE (rA) onto ERN (dA): 31 shared + dummy O2'/HO2' on lambda 0 + dummy H2'' on lambda 1 = 34.
+UNITNAME='TI export: FLE onto ERN (dummies, mol2, lib, scmask)'
+CheckFor maxthreads 1
+if [ $? -eq 0 ] ; then
+  cat > templatematch.in <<EOF
+readdata FLE.lib name FLE
+readdata ERN.lib name ERN
+templatematch FLE[FLE] template ERN[ERN] tiout fle_ern maponly
+EOF
+  RunCpptraj "$UNITNAME"
+  DoTest fle_ern.atoms.save fle_ern.atoms
+  DoTest fle_ern.scmask.save fle_ern.scmask
+fi
+
+UNITNAME='TI export: phenol onto benzene'
+CheckFor maxthreads 1
+if [ $? -eq 0 ] ; then
+  cat > templatematch.in <<EOF
+parm benzene.mol2 name benzene
+parm phenol.mol2 name phenol
+templatematch phenol template benzene tiout phenol_bnz maponly
+EOF
+  RunCpptraj "$UNITNAME"
+  DoTest phenol_bnz.atoms.save phenol_bnz.atoms
+  DoTest phenol_bnz.scmask.save phenol_bnz.scmask
+fi
+
+UNITNAME='TI export: selenocysteine onto cysteine'
+CheckFor maxthreads 1
+if [ $? -eq 0 ] ; then
+  cat > templatematch.in <<EOF
+readdata cys.lib name CYS
+readdata sec.lib name SEC
+templatematch SEC[SEC] template CYS[CYS] tiout sec_cys maponly
+EOF
+  RunCpptraj "$UNITNAME"
+  DoTest sec_cys.atoms.save sec_cys.atoms
+  DoTest sec_cys.scmask.save sec_cys.scmask
 fi
 
 EndTest

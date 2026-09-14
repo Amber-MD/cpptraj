@@ -1021,6 +1021,88 @@ Iarray OutputOrder(Graph const& tgt, Graph const& tpl,
   return order;
 }
 
+/// Dual-topology layout: every template atom keeps a slot; insertions are extra slots.
+/** SHARED: both real. TPL_ONLY: real on λ=0, dummy on λ=1. TGT_ONLY: dummy on λ=0,
+  * real on λ=1. Slot order matches OutputOrder for target atoms, with unmatched
+  * template atoms inserted at their parent-order positions (not skipped).
+  */
+static std::vector<TemplateMatch::Result::DualSlot>
+DualOrder(Graph const& tgt, Graph const& tpl,
+          Scaffold const& tplSc,
+          Iarray const& mapping,
+          Iarray const& parentOrder,
+          std::string const& anchorName)
+{
+  typedef TemplateMatch::Result::DualSlot Slot;
+  Iarray refToNew(tpl.Natom(), -1);
+  Iarray mappedNew(tgt.Natom(), 0);
+  for (int n = 0; n < tgt.Natom(); n++) {
+    if (mapping[n] >= 0) {
+      refToNew[mapping[n]] = n;
+      mappedNew[n] = 1;
+    }
+  }
+  std::vector<char> used(tgt.Natom(), 0);
+  std::vector<Slot> dual;
+  int o3slot = -1;
+  int o3 = tplSc.Get(Scaffold::O3p);
+  if (o3 < 0 && !anchorName.empty()) {
+    Iarray hits = tpl.FindByName(anchorName);
+    if (hits.size() == 1) o3 = hits[0];
+  }
+
+  for (Iarray::const_iterator pr = parentOrder.begin(); pr != parentOrder.end(); ++pr) {
+    int r = *pr;
+    if (r == o3) o3slot = (int)dual.size();
+    if (r < 0 || r >= tpl.Natom()) continue;
+    if (refToNew[r] < 0) {
+      dual.push_back(Slot(r, -1));
+      continue;
+    }
+    int n = refToNew[r];
+    if (used[n]) continue;
+    used[n] = 1;
+    dual.push_back(Slot(r, n));
+    Iarray kids;
+    Iarray const& nbr = tgt.Nbr(n);
+    for (Iarray::const_iterator j = nbr.begin(); j != nbr.end(); ++j) {
+      if (!used[*j] && !mappedNew[*j]) kids.push_back(*j);
+    }
+    std::sort(kids.begin(), kids.end(), [&tgt](int a, int b) {
+      if (tgt.IsHydrogen(a) != tgt.IsHydrogen(b))
+        return !tgt.IsHydrogen(a) && tgt.IsHydrogen(b);
+      if (tgt.Elt(a) != tgt.Elt(b)) return tgt.Elt(a) < tgt.Elt(b);
+      return tgt.Name(a) < tgt.Name(b);
+    });
+    Iarray tree;
+    for (Iarray::const_iterator j = kids.begin(); j != kids.end(); ++j)
+      EmitTree(tgt, *j, n, used, mappedNew, tree);
+    for (Iarray::const_iterator j = tree.begin(); j != tree.end(); ++j)
+      dual.push_back(Slot(-1, *j));
+  }
+
+  Iarray leftover;
+  for (int i = 0; i < tgt.Natom(); i++) {
+    if (!used[i]) leftover.push_back(i);
+  }
+  std::sort(leftover.begin(), leftover.end(), [&tgt](int a, int b) {
+    if (tgt.IsHydrogen(a) != tgt.IsHydrogen(b))
+      return !tgt.IsHydrogen(a) && tgt.IsHydrogen(b);
+    if (tgt.Elt(a) != tgt.Elt(b)) return tgt.Elt(a) < tgt.Elt(b);
+    if (tgt.Name(a) != tgt.Name(b)) return tgt.Name(a) < tgt.Name(b);
+    return a < b;
+  });
+  if (!leftover.empty()) {
+    int insertAt = (o3slot >= 0) ? o3slot : (int)dual.size();
+    std::vector<Slot> extra;
+    extra.reserve(leftover.size());
+    for (Iarray::const_iterator j = leftover.begin(); j != leftover.end(); ++j)
+      extra.push_back(Slot(-1, *j));
+    dual.insert(dual.begin() + insertAt, extra.begin(), extra.end());
+  }
+  return dual;
+}
+
 /// Mark atom i used and append it; no-op if i < 0 or already emitted.
 static void EmitIdx(int i, std::vector<char>& used, Iarray& order) {
   if (i < 0 || used[i]) return;
@@ -1210,6 +1292,7 @@ int TemplateMatch::Match(Topology const& tgtTop, Topology const& tplTop, Result&
   MapGraphs(tgt, tpl, tgtSc, tplSc, out.mapping_, seed_);
   Iarray parent = ParentOrder(tpl, tplSc, useNaOrder_);
   out.outputOrder_ = OutputOrder(tgt, tpl, tplSc, out.mapping_, parent, anchorName_);
+  out.dual_ = DualOrder(tgt, tpl, tplSc, out.mapping_, parent, anchorName_);
 
   if ((int)out.outputOrder_.size() != tgt.Natom()) {
     mprinterr("Error: templatematch: output order size %zu != %i atoms.\n",
@@ -1236,6 +1319,12 @@ int TemplateMatch::Match(Topology const& tgtTop, Topology const& tplTop, Result&
   }
   for (int r = 0; r < tpl.Natom(); r++) {
     if (!usedTpl[r]) out.nUnmappedTpl_++;
+  }
+  int expectDual = out.nMapped_ + out.nInsertion_ + out.nUnmappedTpl_;
+  if ((int)out.dual_.size() != expectDual) {
+    mprinterr("Error: templatematch: dual-topology size %zu != %i (mapped+ins+unmapped).\n",
+              out.dual_.size(), expectDual);
+    return 1;
   }
   return 0;
 }
