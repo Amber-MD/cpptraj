@@ -43,7 +43,8 @@ void Exec_TemplateMatch::Help() const {
           "    <prefix>.1.mol2 / <prefix>.1.lib  lambda=1 target + dummy unmatched atoms\n"
           "    <prefix>.scmask                   pmemd scmask1 / scmask2\n"
           "    <prefix>.atoms                    per-slot kind, names, and charges\n"
-          "  Dummy atoms copy the partner's name/type/coords and have charge 0.\n"
+          "  Dummy atoms copy the partner's name and coords, have charge 0, mass 0,\n"
+          "  and Amber type DUM.\n"
           "  Both files have the same atom count so residue indices match in TI.\n"
           "  With tiout, a remapped target topology is added only if 'name' or 'replace'\n"
           "  is also given.\n"
@@ -51,23 +52,28 @@ void Exec_TemplateMatch::Help() const {
           "  to freeze a nucleic-acid template from an existing residue).\n"
           "  Official ModXNA parent fragments ship in $CPPTRAJHOME/dat/templatematch/.\n"
           "\n"
-          "  Complete run (Amber OFF libraries parent.lib and analog.lib):\n"
-          "    readdata parent.lib name parent\n"
-          "    readdata analog.lib name analog\n"
-          "    templatematch analog[analog] template parent[parent] tiout analog_ti\n"
+          "  Complete run (Amber OFF libraries parent.lib and analog.lib).\n"
+          "  readdata, parm, and templatematch run when entered (immediate commands).\n"
+          "  Use go if the input also has trajin/actions; it is safe to include either way:\n"
+          "    > readdata parent.lib name parent\n"
+          "    > readdata analog.lib name analog\n"
+          "    > templatematch analog[analog] template parent[parent] tiout analog_ti\n"
+          "    > go\n"
           "  Use readdata (not parm) for .lib files. The COORDS set is Name[Unit];\n"
           "  if the unit inside parent.lib is not 'parent', use parent[UnitName].\n"
-          "  For nucleic acids add 'naorder' so the shared-atom walk is\n"
+          "  For nucleic acids add naorder so the shared-atom walk is\n"
           "  P -> OP -> O5' -> C5' -> C4' -> O4' -> C1' -> base -> C3' -> C2' -> O3':\n"
-          "    templatematch analog[analog] template parent[parent] naorder tiout analog_ti\n"
+          "    > templatematch analog[analog] template parent[parent] naorder tiout analog_ti\n"
+          "    > go\n"
           "  That writes analog_ti.0.mol2/.lib (lambda=0 parent + dummy analog-only atoms),\n"
           "  analog_ti.1.mol2/.lib (lambda=1 analog + dummy parent-only atoms),\n"
           "  analog_ti.scmask (pmemd scmask1 / scmask2), analog_ti.atoms, and analog_ti.map.\n"
           "  Load analog_ti.0.lib and analog_ti.1.lib in LEaP; copy scmask1/scmask2 into mdin.\n"
           "  Mol2 inputs instead of OFF:\n"
-          "    parm parent.mol2 name parent\n"
-          "    parm analog.mol2 name analog\n"
-          "    templatematch analog template parent tiout analog_ti\n");
+          "    > parm parent.mol2 name parent\n"
+          "    > parm analog.mol2 name analog\n"
+          "    > templatematch analog template parent tiout analog_ti\n"
+          "    > go\n");
 }
 
 /** Look up a topology by the name the user typed.
@@ -166,7 +172,7 @@ static NameType ResNameOf(Topology const& top, const char* fallback)
 }
 
 /** Build one TI end-state topology+frame from the dual-slot list.
-  * lambda0: template atoms real, target insertions dummy (charge 0).
+  * lambda0: template atoms real, target insertions dummy (charge 0, mass 0, type DUM).
   * lambda1: target atoms real, unmatched template atoms dummy.
   */
 static int BuildTiUnit(bool lambda0,
@@ -217,8 +223,11 @@ static int BuildTiUnit(bool lambda0,
       }
     }
     src.ClearBonds();
-    if (dummy)
+    if (dummy) {
       src.SetCharge(0.0);
+      src.SetMass(0.0);
+      src.SetTypeName("DUM");
+    }
     outTop.AddTopAtom(src, res);
     if (xyzSrc != 0)
       CopyXyz(*xyzSrc, xyzFrom, outFrm, i);

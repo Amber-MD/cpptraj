@@ -26688,7 +26688,7 @@ tiout
 <prefix>.atoms
 \series default
 .
- Dummy atoms copy the partner's name, type, and coordinates.
+ Dummy atoms copy the partner's name and coordinates, have charge 0, mass 0, and Amber type DUM.
  With 
 \series bold
 tiout
@@ -26744,15 +26744,19 @@ Nucleic acids (example: FLE = unmodified rA onto ERN = unmodified dA).
 \end_layout
 
 \begin_layout LyX-Code
-readdata ERN.lib name ERN
+> readdata ERN.lib name ERN
 \end_layout
 
 \begin_layout LyX-Code
-readdata FLE.lib name FLE
+> readdata FLE.lib name FLE
 \end_layout
 
 \begin_layout LyX-Code
-templatematch FLE[FLE] template ERN[ERN] naorder tiout fle_ern
+> templatematch FLE[FLE] template ERN[ERN] naorder tiout fle_ern
+\end_layout
+
+\begin_layout LyX-Code
+> go
 \end_layout
 
 \begin_layout Standard
@@ -26761,15 +26765,19 @@ Small molecules (example: phenol onto benzene).
 \end_layout
 
 \begin_layout LyX-Code
-parm benzene.mol2 name benzene
+> parm benzene.mol2 name benzene
 \end_layout
 
 \begin_layout LyX-Code
-parm phenol.mol2 name phenol
+> parm phenol.mol2 name phenol
 \end_layout
 
 \begin_layout LyX-Code
-templatematch phenol template benzene tiout phenol_ti
+> templatematch phenol template benzene tiout phenol_ti
+\end_layout
+
+\begin_layout LyX-Code
+> go
 \end_layout
 
 \begin_layout Standard
@@ -26784,15 +26792,19 @@ elmnt 34
 \end_layout
 
 \begin_layout LyX-Code
-readdata cys.lib name CYS
+> readdata cys.lib name CYS
 \end_layout
 
 \begin_layout LyX-Code
-readdata sec.lib name SEC
+> readdata sec.lib name SEC
 \end_layout
 
 \begin_layout LyX-Code
-templatematch SEC[SEC] template CYS[CYS] tiout sec_ti
+> templatematch SEC[SEC] template CYS[CYS] tiout sec_ti
+\end_layout
+
+\begin_layout LyX-Code
+> go
 \end_layout
 
 \begin_layout Standard
