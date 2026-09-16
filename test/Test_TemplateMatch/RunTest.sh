@@ -2,10 +2,11 @@
 
 . ../MasterTest.sh
 
-CleanFiles templatematch.in \
+CleanFiles timatch.in \
            fle_to_ern.map ern_naorder.map \
            phenol_to_benzene.map sec_to_cys.map \
            daa_identity.map \
+           fle.sorted.lib FLE.sorted.lib \
            fle_ern.0.mol2 fle_ern.1.mol2 fle_ern.0.lib fle_ern.1.lib \
            fle_ern.scmask fle_ern.atoms fle_ern.map \
            phenol_bnz.0.mol2 phenol_bnz.1.mol2 phenol_bnz.0.lib phenol_bnz.1.lib \
@@ -13,20 +14,20 @@ CleanFiles templatematch.in \
            sec_cys.0.mol2 sec_cys.1.mol2 sec_cys.0.lib sec_cys.1.lib \
            sec_cys.scmask sec_cys.atoms sec_cys.map
 
-TESTNAME='Template match tests'
+TESTNAME='TI match tests'
 Requires maxthreads 1
 
-INPUT='-i templatematch.in'
+INPUT='-i timatch.in'
 
 # Nucleic acids: unmodified rA (FLE) onto unmodified dA (ERN).
 # Shared atoms keep ERN indices; 2'-OH is an insertion; ERN H2'' is unmatched.
 UNITNAME='Nucleic acid: FLE (rA) onto ERN (dA)'
 CheckFor maxthreads 1
 if [ $? -eq 0 ] ; then
-  cat > templatematch.in <<EOF
+  cat > timatch.in <<EOF
 readdata FLE.lib name FLE
 readdata ERN.lib name ERN
-templatematch FLE[FLE] template ERN[ERN] mapout fle_to_ern.map maponly
+timatch FLE[FLE] template ERN[ERN] mapout fle_to_ern.map maponly
 EOF
   RunCpptraj "$UNITNAME"
   DoTest fle_to_ern.map.save fle_to_ern.map
@@ -36,9 +37,9 @@ fi
 UNITNAME='Nucleic acid: ERN naorder template walk'
 CheckFor maxthreads 1
 if [ $? -eq 0 ] ; then
-  cat > templatematch.in <<EOF
+  cat > timatch.in <<EOF
 readdata ERN.lib name ERN
-templatematch ERN[ERN] naorder mapout ern_naorder.map maponly
+timatch ERN[ERN] naorder mapout ern_naorder.map maponly
 EOF
   RunCpptraj "$UNITNAME"
   DoTest ern_naorder.map.save ern_naorder.map
@@ -48,10 +49,10 @@ fi
 UNITNAME='Small molecule: phenol onto benzene'
 CheckFor maxthreads 1
 if [ $? -eq 0 ] ; then
-  cat > templatematch.in <<EOF
+  cat > timatch.in <<EOF
 parm benzene.mol2 name benzene
 parm phenol.mol2 name phenol
-templatematch phenol template benzene mapout phenol_to_benzene.map maponly
+timatch phenol template benzene mapout phenol_to_benzene.map maponly
 EOF
   RunCpptraj "$UNITNAME"
   DoTest phenol_to_benzene.map.save phenol_to_benzene.map
@@ -62,10 +63,10 @@ fi
 UNITNAME='Amino acid: selenocysteine onto cysteine'
 CheckFor maxthreads 1
 if [ $? -eq 0 ] ; then
-  cat > templatematch.in <<EOF
+  cat > timatch.in <<EOF
 readdata cys.lib name CYS
 readdata sec.lib name SEC
-templatematch SEC[SEC] template CYS[CYS] mapout sec_to_cys.map maponly
+timatch SEC[SEC] template CYS[CYS] mapout sec_to_cys.map maponly
 EOF
   RunCpptraj "$UNITNAME"
   DoTest sec_to_cys.map.save sec_to_cys.map
@@ -75,23 +76,35 @@ fi
 UNITNAME='Shipped ModXNA parent: DAA identity map'
 CheckFor maxthreads 1
 if [ $? -eq 0 ] ; then
-  cat > templatematch.in <<EOF
+  cat > timatch.in <<EOF
 parm ../../dat/templatematch/DAA.mol2 name DAA
-templatematch DAA template DAA mapout daa_identity.map maponly
+timatch DAA template DAA mapout daa_identity.map maponly
 EOF
   RunCpptraj "$UNITNAME"
   DoTest daa_identity.map.save daa_identity.map
 fi
 
-# Dual-topology TI export: dummies, matching atom counts, mol2+lib+scmask.
+# Default product: analog OFF library in parent atom order. No dummy atoms.
+UNITNAME='Default: aligned OFF library (no TI)'
+CheckFor maxthreads 1
+if [ $? -eq 0 ] ; then
+  cat > timatch.in <<EOF
+readdata FLE.lib name FLE
+readdata ERN.lib name ERN
+timatch FLE[FLE] template ERN[ERN] out fle.sorted.lib
+EOF
+  RunCpptraj "$UNITNAME"
+fi
+
+# Dual-topology TI export: opt-in via tiout. Dummies, matching atom counts, mol2+lib+scmask.
 # FLE (rA) onto ERN (dA): 31 shared + dummy O2'/HO2' on lambda 0 + dummy H2'' on lambda 1 = 34.
 UNITNAME='TI export: FLE onto ERN (dummies, mol2, lib, scmask)'
 CheckFor maxthreads 1
 if [ $? -eq 0 ] ; then
-  cat > templatematch.in <<EOF
+  cat > timatch.in <<EOF
 readdata FLE.lib name FLE
 readdata ERN.lib name ERN
-templatematch FLE[FLE] template ERN[ERN] tiout fle_ern maponly
+timatch FLE[FLE] template ERN[ERN] tiout fle_ern maponly
 EOF
   RunCpptraj "$UNITNAME"
   DoTest fle_ern.atoms.save fle_ern.atoms
@@ -101,10 +114,10 @@ fi
 UNITNAME='TI export: phenol onto benzene'
 CheckFor maxthreads 1
 if [ $? -eq 0 ] ; then
-  cat > templatematch.in <<EOF
+  cat > timatch.in <<EOF
 parm benzene.mol2 name benzene
 parm phenol.mol2 name phenol
-templatematch phenol template benzene tiout phenol_bnz maponly
+timatch phenol template benzene tiout phenol_bnz maponly
 EOF
   RunCpptraj "$UNITNAME"
   DoTest phenol_bnz.atoms.save phenol_bnz.atoms
@@ -114,10 +127,10 @@ fi
 UNITNAME='TI export: selenocysteine onto cysteine'
 CheckFor maxthreads 1
 if [ $? -eq 0 ] ; then
-  cat > templatematch.in <<EOF
+  cat > timatch.in <<EOF
 readdata cys.lib name CYS
 readdata sec.lib name SEC
-templatematch SEC[SEC] template CYS[CYS] tiout sec_cys maponly
+timatch SEC[SEC] template CYS[CYS] tiout sec_cys maponly
 EOF
   RunCpptraj "$UNITNAME"
   DoTest sec_cys.atoms.save sec_cys.atoms

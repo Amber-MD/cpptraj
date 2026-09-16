@@ -1,4 +1,4 @@
-# templatematch dual-topology TI masks
+# timatch dual-topology TI masks
 # n_dual= 34  n_shared= 31  dummy_in_lambda0= 2  dummy_in_lambda1= 1
 # lambda 0 = template (real unmatched, dummy insertions)
 # lambda 1 = target   (real insertions, dummy unmatched)

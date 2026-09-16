@@ -1,4 +1,4 @@
-# templatematch tgt='phenol' template='benzene'
+# timatch tgt='phenol' template='benzene'
 # kind tgt=unknown template=unknown
 # mapped= 11  insertion= 2  unmapped_template= 1  n_tgt= 13  n_tpl= 12
 #Out    TgtAt TgtName  TplAt TplName Ins

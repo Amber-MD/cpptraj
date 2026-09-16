@@ -1,4 +1,4 @@
-# templatematch dual-topology atoms
+# timatch dual-topology atoms
 # Kind: SHARED = real in both; TPL_ONLY = dummy in lambda 1; TGT_ONLY = dummy in lambda 0
 #Idx Kind     Name0            Q0 Name1            Q1
    1 SHARED   C1         0.000000 C1         0.000000

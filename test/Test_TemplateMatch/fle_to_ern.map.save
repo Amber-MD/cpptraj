@@ -1,4 +1,4 @@
-# templatematch tgt='FLE[FLE]' template='ERN[ERN]'
+# timatch tgt='FLE[FLE]' template='ERN[ERN]'
 # kind tgt=nucleotide template=nucleotide
 # mapped= 31  insertion= 2  unmapped_template= 1  n_tgt= 33  n_tpl= 32
 #Out    TgtAt TgtName  TplAt TplName Ins

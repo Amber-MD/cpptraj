@@ -73,8 +73,8 @@
 #include "Exec_ParmStrip.h"
 #include "Exec_ParmWrite.h"
 #include "Exec_ScaleDihedralK.h"
+#include "Exec_TIMatch.h"
 #include "Exec_Top.h"
-#include "Exec_TemplateMatch.h"
 #include "Exec_UpdateParameters.h"
 #include "Exec_Desc.h"
 // ----- ACTION ----------------------------------------------------------------
@@ -315,7 +315,6 @@ void Command::Init() {
   Command::AddCmd( new Exec_Change(),        Cmd::EXE, 1, "change" );
   Command::AddCmd( new Exec_ChargeInfo(),    Cmd::EXE, 1, "charge" );
   Command::AddCmd( new Exec_CompareTop(),    Cmd::EXE, 1, "comparetop" );
-  Command::AddCmd( new Exec_TemplateMatch(), Cmd::EXE, 2, "templatematch", "timap" );
   Command::AddCmd( new Exec_Desc(),          Cmd::EXE, 1, "desc" ); // HIDDEN
   Command::AddCmd( new Exec_DihedralInfo(),Cmd::EXE, 3,"dihedrals","dihedralinfo","printdihedrals");
   Command::AddCmd( new Exec_HmassRepartition(),Cmd::EXE, 1, "hmassrepartition" );
@@ -330,6 +329,7 @@ void Command::Init() {
   Command::AddCmd( new Exec_ParmWrite(),     Cmd::EXE, 1, "parmwrite" );
   Command::AddCmd( new Exec_ResInfo(),       Cmd::EXE, 1, "resinfo" );
   Command::AddCmd( new Exec_ScaleDihedralK(),Cmd::EXE, 1, "scaledihedralk" );
+  Command::AddCmd( new Exec_TIMatch(),       Cmd::EXE, 3, "timatch", "templatematch", "timap" );
   Command::AddCmd( new Exec_UBInfo(),        Cmd::EXE, 2, "ubinfo", "printub" );
   Command::AddCmd( new Exec_UpdateParameters(), Cmd::EXE, 1, "updateparameters");
   // ACTION

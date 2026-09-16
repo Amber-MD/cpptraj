@@ -25171,7 +25171,7 @@ Calculate system temperature using velocities of specified atoms.
 \begin_inset Text
 
 \begin_layout Plain Layout
-templatematch
+timatch
 \end_layout
 
 \end_inset
@@ -25180,7 +25180,7 @@ templatematch
 \begin_inset Text
 
 \begin_layout Plain Layout
-Map a residue onto a user template so shared atoms occupy the same indices (TI; nucleic acids, amino acids, ligands).
+Map a residue onto a user template and write a sorted Amber OFF library; optional dual-topology TI pair.
 \end_layout
 
 \end_inset
@@ -26453,35 +26453,35 @@ crdout MyAvg mypdb.pdb adpdata MyFluct[ADP] bfacdata MyFluct
 \end_layout
 
 \begin_layout Subsection
-templatematch
+timatch
 \end_layout
 
 \begin_layout LyX-Code
-templatematch
+timatch
 \begin_inset Index idx
 range none
 pageformat default
 status collapsed
 
 \begin_layout Plain Layout
-templatematch
+timatch
 \end_layout
 
 \end_inset
 
- <tgt> [template <name>] [mapout <file>] [name <newparm>]
+ <tgt> [template <name>] [out <file>] [tiout <prefix>]
 \begin_inset Newline newline
 \end_inset
 
+        [mapout <file>] [name <newparm>]
+\end_layout
+
+\begin_layout LyX-Code
         [maponly] [replace] [naorder]
 \end_layout
 
 \begin_layout LyX-Code
         [seed {auto|names|na|none}] [anchor <atomname>]
-\end_layout
-
-\begin_layout LyX-Code
-        [tiout <prefix>]
 \end_layout
 
 \begin_deeper
@@ -26491,6 +26491,20 @@ Align atoms in topology
 <tgt>
 \series default
  to a user-supplied template so shared atoms occupy the same indices.
+ By default this writes 
+\series bold
+<tgt>
+\series default
+ as an Amber OFF 
+\series bold
+.lib
+\series default
+ in template atom order (no dummy atoms).
+ Dual-topology TI files are written only if 
+\series bold
+tiout
+\series default
+ is given.
  This is intended for preparing residue libraries for thermodynamic integration (TI) of nucleic acids, amino acids, and small molecules,
  where two (or more) end states must list common atoms in the same order.
  Unlike 
@@ -26506,7 +26520,7 @@ The template atom order
 \series emph
 is
 \series default
- the TI shared-atom order.
+ the shared-atom order used for mapping.
  Any topology can be a template (mol2, Amber OFF unit loaded with 
 \series bold
 readdata
@@ -26542,6 +26556,27 @@ naorder
 \end_layout
 
 \begin_layout Description
+out
+\begin_inset space ~
+\end_inset
+
+<file> Write 
+\series bold
+<tgt>
+\series default
+ as an Amber OFF library in template atom order.
+ Default (when 
+\series bold
+maponly
+\series default
+ is not given): 
+\series bold
+<residue>.sorted.lib
+\series default
+.
+\end_layout
+
+\begin_layout Description
 mapout
 \begin_inset space ~
 \end_inset
@@ -26558,12 +26593,15 @@ name
 \end_layout
 
 \begin_layout Description
-maponly Write the map but do not create a remapped topology.
- Dual-topology files are still written if 
+maponly Write the map (and 
 \series bold
 tiout
 \series default
- is given.
+ files, if requested) but do not write the default aligned 
+\series bold
+.lib
+\series default
+ and do not store a remapped topology.
 \end_layout
 
 \begin_layout Description
@@ -26659,7 +26697,8 @@ tiout
 \begin_inset space ~
 \end_inset
 
-<prefix> Write a dual-topology TI pair of equal size.
+<prefix> Optional.
+ Write a dual-topology TI pair of equal size.
  Lambda 0 is the template with charge-0 dummy atoms for target insertions;
  lambda 1 is the target with charge-0 dummy atoms for unmatched template atoms.
  Shared atoms occupy the same indices in both files.
@@ -26689,11 +26728,16 @@ tiout
 \series default
 .
  Dummy atoms copy the partner's name and coordinates, have charge 0, mass 0, and Amber type DUM.
- With 
+ Does not suppress the default aligned 
 \series bold
-tiout
+.lib
 \series default
-, a remapped target topology is stored only if 
+ unless 
+\series bold
+maponly
+\series default
+ is also given.
+ A remapped target topology is stored only if 
 \series bold
 name
 \series default
@@ -26734,13 +26778,13 @@ current atom order
 \end_layout
 
 \begin_layout LyX-Code
-# 3. Map the analog onto that parent. Use tiout to write both TI end states.
+# 3. Map the analog onto that parent (writes a sorted .lib). Add tiout for TI files.
 \end_layout
 
 \begin_layout Standard
 Nucleic acids (example: FLE = unmodified rA onto ERN = unmodified dA).
  Shared atoms keep the dA indices; the 2'-OH is an insertion next to C2'; dA H2'' is unmatched on the template.
- One command writes both dual-topology libraries (34 atoms each) and pmemd scmask lines.
+ Default: write FLE in ERN atom order as an OFF library.
 \end_layout
 
 \begin_layout LyX-Code
@@ -26752,7 +26796,23 @@ Nucleic acids (example: FLE = unmodified rA onto ERN = unmodified dA).
 \end_layout
 
 \begin_layout LyX-Code
-> templatematch FLE[FLE] template ERN[ERN] naorder tiout fle_ern
+> timatch FLE[FLE] template ERN[ERN] naorder out FLE.lib
+\end_layout
+
+\begin_layout LyX-Code
+> go
+\end_layout
+
+\begin_layout Standard
+Add 
+\series bold
+tiout
+\series default
+ to also write dual-topology libraries (34 atoms each) and pmemd scmask lines.
+\end_layout
+
+\begin_layout LyX-Code
+> timatch FLE[FLE] template ERN[ERN] naorder tiout fle_ern
 \end_layout
 
 \begin_layout LyX-Code
@@ -26773,7 +26833,7 @@ Small molecules (example: phenol onto benzene).
 \end_layout
 
 \begin_layout LyX-Code
-> templatematch phenol template benzene tiout phenol_ti
+> timatch phenol template benzene out phenol.lib
 \end_layout
 
 \begin_layout LyX-Code
@@ -26800,7 +26860,7 @@ elmnt 34
 \end_layout
 
 \begin_layout LyX-Code
-> templatematch SEC[SEC] template CYS[CYS] tiout sec_ti
+> timatch SEC[SEC] template CYS[CYS] out SEC.lib
 \end_layout
 
 \begin_layout LyX-Code
@@ -26808,7 +26868,11 @@ elmnt 34
 \end_layout
 
 \begin_layout Standard
-Alias: 
+Aliases: 
+\series bold
+templatematch
+\series default
+, 
 \series bold
 timap
 \series default

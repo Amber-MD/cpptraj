@@ -1,4 +1,4 @@
-#include "Exec_TemplateMatch.h"
+#include "Exec_TIMatch.h"
 #include "TemplateMatch.h"
 #include "CpptrajStdio.h"
 #include "CpptrajFile.h"
@@ -22,57 +22,60 @@
  *
  * Workflow:
  *   1. Match target onto template (partial map).
- *   2. If tiout <prefix> is given, build a dual-topology pair of the same
- *      size: shared atoms occupy the same indices; unique atoms are real in
- *      one end state and charge-0 dummies in the other. Write prefix.0/1
- *      mol2 + lib and prefix.scmask for pmemd.
+ *   2. Write the target as an Amber OFF .lib in template atom order (out).
+ *   3. If tiout <prefix> is given, also build a dual-topology pair of the
+ *      same size: unique atoms are real in one end state and charge-0 /
+ *      mass-0 / type-DUM dummies in the other.
  */
 
-void Exec_TemplateMatch::Help() const {
-  mprintf("\t<tgt> [template <name>] [mapout <file>] [name <newparm>]\n"
-          "\t[maponly] [replace] [naorder]\n"
+// Exec_TIMatch::Help()
+void Exec_TIMatch::Help() const {
+  mprintf("\t<tgt> [template <name>] [out <file>] [tiout <prefix>]\n"
+          "\t[mapout <file>] [name <newparm>] [maponly] [replace] [naorder]\n"
           "\t[seed {auto|names|na|none}] [anchor <atomname>]\n"
-          "\t[tiout <prefix>]\n"
-          "  Align atoms in topology <tgt> to a user-supplied <template> so that\n"
+          "  Align atoms in topology <tgt> to a user-supplied template so that\n"
           "  shared atoms occupy the same indices. Intended for thermodynamic\n"
           "  integration (TI) of nucleotides, amino acids, and small molecules.\n"
           "  Partial maps are expected (unlike atommap).\n"
           "  The template is lambda=0; <tgt> is lambda=1.\n"
-          "  'tiout <prefix>' writes a dual-topology pair ready for LEaP/pmemd:\n"
+          "  Default: write <tgt> as an Amber OFF .lib in template atom order\n"
+          "  (out <file>; default <residue>.sorted.lib). No dummy atoms.\n"
+          "  'maponly' skips that library (and in-memory parm) but still writes\n"
+          "  mapout / tiout files if those keywords are given.\n"
+          "  'tiout <prefix>' additionally writes a dual-topology TI pair:\n"
           "    <prefix>.0.mol2 / <prefix>.0.lib  lambda=0 template + dummy insertions\n"
           "    <prefix>.1.mol2 / <prefix>.1.lib  lambda=1 target + dummy unmatched atoms\n"
           "    <prefix>.scmask                   pmemd scmask1 / scmask2\n"
           "    <prefix>.atoms                    per-slot kind, names, and charges\n"
           "  Dummy atoms copy the partner's name and coords, have charge 0, mass 0,\n"
           "  and Amber type DUM.\n"
-          "  Both files have the same atom count so residue indices match in TI.\n"
-          "  With tiout, a remapped target topology is added only if 'name' or 'replace'\n"
-          "  is also given.\n"
+          "  Both TI files have the same atom count so residue indices match in pmemd.\n"
+          "  'name' stores a remapped topology in memory; 'replace' overwrites <tgt>.\n"
           "  If 'template' is omitted, <tgt> is matched to itself (use with 'naorder'\n"
           "  to freeze a nucleic-acid template from an existing residue).\n"
           "  Official ModXNA parent fragments ship in $CPPTRAJHOME/dat/templatematch/.\n"
+          "  Aliases: templatematch, timap.\n"
           "\n"
           "  Complete run (Amber OFF libraries parent.lib and analog.lib).\n"
-          "  readdata, parm, and templatematch run when entered (immediate commands).\n"
+          "  readdata, parm, and timatch run when entered (immediate commands).\n"
           "  Use go if the input also has trajin/actions; it is safe to include either way:\n"
           "    > readdata parent.lib name parent\n"
           "    > readdata analog.lib name analog\n"
-          "    > templatematch analog[analog] template parent[parent] tiout analog_ti\n"
+          "    > timatch analog[analog] template parent[parent] out analog.lib\n"
           "    > go\n"
           "  Use readdata (not parm) for .lib files. The COORDS set is Name[Unit];\n"
           "  if the unit inside parent.lib is not 'parent', use parent[UnitName].\n"
           "  For nucleic acids add naorder so the shared-atom walk is\n"
           "  P -> OP -> O5' -> C5' -> C4' -> O4' -> C1' -> base -> C3' -> C2' -> O3':\n"
-          "    > templatematch analog[analog] template parent[parent] naorder tiout analog_ti\n"
+          "    > timatch analog[analog] template parent[parent] naorder out analog.lib\n"
           "    > go\n"
-          "  That writes analog_ti.0.mol2/.lib (lambda=0 parent + dummy analog-only atoms),\n"
-          "  analog_ti.1.mol2/.lib (lambda=1 analog + dummy parent-only atoms),\n"
-          "  analog_ti.scmask (pmemd scmask1 / scmask2), analog_ti.atoms, and analog_ti.map.\n"
-          "  Load analog_ti.0.lib and analog_ti.1.lib in LEaP; copy scmask1/scmask2 into mdin.\n"
+          "  Dual-topology TI (opt-in; dummy atoms, matching NATOM):\n"
+          "    > timatch analog[analog] template parent[parent] naorder tiout analog_ti\n"
+          "    > go\n"
           "  Mol2 inputs instead of OFF:\n"
           "    > parm parent.mol2 name parent\n"
           "    > parm analog.mol2 name analog\n"
-          "    > templatematch analog template parent tiout analog_ti\n"
+          "    > timatch analog template parent out analog.lib\n"
           "    > go\n");
 }
 
@@ -145,6 +148,16 @@ static void CopyXyz(Frame const& src, int oldat, Frame& dst, int newat)
   dst[newat * 3    ] = src[oldat * 3    ];
   dst[newat * 3 + 1] = src[oldat * 3 + 1];
   dst[newat * 3 + 2] = src[oldat * 3 + 2];
+}
+
+/** Permute src coordinates into dst using Map[new] = old. */
+static void ApplyOrderToFrame(Frame const& src, std::vector<int> const& order, Frame& dst)
+{
+  dst.SetupFrame((int)order.size());
+  for (int i = 0; i < (int)order.size() * 3; i++)
+    dst[i] = 0.0;
+  for (int i = 0; i < (int)order.size(); i++)
+    CopyXyz(src, order[i], dst, i);
 }
 
 /** Amber OFF unit names: letters, digits, underscore only. */
@@ -256,7 +269,7 @@ static int BuildTiUnit(bool lambda0,
       if (attach >= 0)
         outTop.AddBond(i, attach, -1);
       else
-        mprintf("Warning: templatematch: dummy %s has no bonded neighbor in the dual layout.\n",
+        mprintf("Warning: timatch: dummy %s has no bonded neighbor in the dual layout.\n",
                 outTop[i].c_str());
     }
   } else {
@@ -282,7 +295,7 @@ static int BuildTiUnit(bool lambda0,
       if (attach >= 0)
         outTop.AddBond(i, attach, -1);
       else
-        mprintf("Warning: templatematch: dummy %s has no bonded neighbor in the dual layout.\n",
+        mprintf("Warning: timatch: dummy %s has no bonded neighbor in the dual layout.\n",
                 outTop[i].c_str());
     }
   }
@@ -298,11 +311,11 @@ static int WriteMol2File(std::string const& fname, Topology& top, Frame const& f
   if (out.PrepareTrajWrite(fname, empty, dsl, &top, CoordinateInfo(), 1,
                            TrajectoryFile::MOL2FILE))
   {
-    mprinterr("Error: templatematch: could not set up mol2 '%s'\n", fname.c_str());
+    mprinterr("Error: timatch: could not set up mol2 '%s'\n", fname.c_str());
     return 1;
   }
   if (out.WriteSingle(0, frm)) {
-    mprinterr("Error: templatematch: writing mol2 '%s'\n", fname.c_str());
+    mprinterr("Error: timatch: writing mol2 '%s'\n", fname.c_str());
     return 1;
   }
   out.EndTraj();
@@ -436,7 +449,7 @@ static int WriteScmask(std::string const& fname,
     else if (dual[i].IsTgtOnly()) nD0++;
     else nD1++;
   }
-  out.Printf("# templatematch dual-topology TI masks\n");
+  out.Printf("# timatch dual-topology TI masks\n");
   out.Printf("# n_dual= %zu  n_shared= %i  dummy_in_lambda0= %i  dummy_in_lambda1= %i\n",
              dual.size(), nShared, nD0, nD1);
   out.Printf("# lambda 0 = template (real unmatched, dummy insertions)\n");
@@ -474,7 +487,7 @@ static int WriteDualAtoms(std::string const& fname,
     mprinterr("Error: Could not open '%s'\n", fname.c_str());
     return 1;
   }
-  out.Printf("# templatematch dual-topology atoms\n");
+  out.Printf("# timatch dual-topology atoms\n");
   out.Printf("# Kind: SHARED = real in both; TPL_ONLY = dummy in lambda 1; "
              "TGT_ONLY = dummy in lambda 0\n");
   out.Printf("%-4s %-8s %-8s %10s %-8s %10s\n",
@@ -503,7 +516,7 @@ static int WriteMapFile(std::string const& fname, Topology const& tgt, Topology 
     mprinterr("Error: Could not open map file '%s'\n", fname.c_str());
     return 1;
   }
-  out.Printf("# templatematch tgt='%s' template='%s'\n", tgtName.c_str(), tplName.c_str());
+  out.Printf("# timatch tgt='%s' template='%s'\n", tgtName.c_str(), tplName.c_str());
   out.Printf("# kind tgt=%s template=%s\n", R.tgtKind_.c_str(), R.tplKind_.c_str());
   out.Printf("# mapped= %i  insertion= %i  unmapped_template= %i  n_tgt= %i  n_tpl= %i\n",
              R.nMapped_, R.nInsertion_, R.nUnmappedTpl_, tgt.Natom(), tpl.Natom());
@@ -556,11 +569,13 @@ static int WriteMapFile(std::string const& fname, Topology const& tgt, Topology 
   return 0;
 }
 
-/** Parse arguments, run TemplateMatch::Match, optionally write the map,
-  * dual-topology mol2/lib, and a remapped topology.
+/** Parse arguments, run TemplateMatch::Match, write an aligned OFF library,
+  * and optionally dual-topology TI files.
   */
-Exec::RetType Exec_TemplateMatch::Execute(CpptrajState& State, ArgList& argIn) {
+// Exec_TIMatch::Execute()
+Exec::RetType Exec_TIMatch::Execute(CpptrajState& State, ArgList& argIn) {
   std::string mapout = argIn.GetStringKey("mapout");
+  std::string libout = argIn.GetStringKey("out");
   std::string newname = argIn.GetStringKey("name");
   std::string tplName = argIn.GetStringKey("template");
   std::string seedStr = argIn.GetStringKey("seed");
@@ -572,7 +587,7 @@ Exec::RetType Exec_TemplateMatch::Execute(CpptrajState& State, ArgList& argIn) {
 
   std::string tgtName = argIn.GetStringNext();
   if (tgtName.empty()) {
-    mprinterr("Error: templatematch: no target topology specified.\n");
+    mprinterr("Error: timatch: no target topology specified.\n");
     return CpptrajState::ERR;
   }
   if (tplName.empty())
@@ -581,7 +596,7 @@ Exec::RetType Exec_TemplateMatch::Execute(CpptrajState& State, ArgList& argIn) {
   DataSet* tgtDs = 0;
   Topology* tgt = FindNamedTop(State.DSL(), tgtName, &tgtDs);
   if (tgt == 0) {
-    mprinterr("Error: templatematch: target '%s' not found.\n", tgtName.c_str());
+    mprinterr("Error: timatch: target '%s' not found.\n", tgtName.c_str());
     return CpptrajState::ERR;
   }
   Topology* tpl = tgt;
@@ -590,7 +605,7 @@ Exec::RetType Exec_TemplateMatch::Execute(CpptrajState& State, ArgList& argIn) {
   if (!tplName.empty()) {
     tpl = FindNamedTop(State.DSL(), tplName, &tplDs);
     if (tpl == 0) {
-      mprinterr("Error: templatematch: template '%s' not found.\n", tplName.c_str());
+      mprinterr("Error: timatch: template '%s' not found.\n", tplName.c_str());
       return CpptrajState::ERR;
     }
     tplUsed = tplName;
@@ -606,13 +621,19 @@ Exec::RetType Exec_TemplateMatch::Execute(CpptrajState& State, ArgList& argIn) {
   if (!seedStr.empty()) {
     std::string l = ToLower(seedStr);
     if (l != "auto" && l != "names" && l != "na" && l != "none") {
-      mprinterr("Error: templatematch: unrecognized seed '%s'\n", seedStr.c_str());
+      mprinterr("Error: timatch: unrecognized seed '%s'\n", seedStr.c_str());
       return CpptrajState::ERR;
     }
     matcher.SetSeed(TemplateMatch::SeedFromString(seedStr));
   }
 
-  mprintf("    TEMPLATEMATCH: Aligning '%s' (%i atoms) to template '%s' (%i atoms).\n",
+  bool writeLib = !libout.empty() || !maponly;
+  if (writeLib && libout.empty()) {
+    libout = OffUnitName(ResNameOf(*tgt, "TGT").Truncated(), 'T');
+    libout += ".sorted.lib";
+  }
+
+  mprintf("    TIMATCH: Aligning '%s' (%i atoms) to template '%s' (%i atoms).\n",
           tgtName.c_str(), tgt->Natom(), tplUsed.c_str(), tpl->Natom());
   mprintf("\tSeed: %s\n", TemplateMatch::SeedStr(
             seedStr.empty() ? TemplateMatch::SEED_AUTO
@@ -620,11 +641,15 @@ Exec::RetType Exec_TemplateMatch::Execute(CpptrajState& State, ArgList& argIn) {
   if (naorder)
     mprintf("\tUsing nucleic-acid canonical walk as the template order.\n");
   else
-    mprintf("\tUsing template file atom order as the TI shared-atom order.\n");
+    mprintf("\tUsing template file atom order as the shared-atom order.\n");
   mprintf("\tLeftover insertion anchor: %s\n",
           anchor.empty() ? "O3'" : anchor.c_str());
   if (!tiout.empty())
     mprintf("\tTI dual-topology prefix: %s\n", tiout.c_str());
+  if (writeLib)
+    mprintf("\tAligned OFF library: %s\n", libout.c_str());
+  else if (maponly)
+    mprintf("\tmaponly: not writing an aligned OFF library.\n");
 
   TemplateMatch::Result R;
   if (matcher.Match(*tgt, *tpl, R)) return CpptrajState::ERR;
@@ -650,7 +675,7 @@ Exec::RetType Exec_TemplateMatch::Execute(CpptrajState& State, ArgList& argIn) {
 
   if (!tiout.empty()) {
     if (R.dual_.empty()) {
-      mprinterr("Error: templatematch: empty dual-topology layout.\n");
+      mprinterr("Error: timatch: empty dual-topology layout.\n");
       return CpptrajState::ERR;
     }
     Frame tgtX, tplX;
@@ -669,11 +694,11 @@ Exec::RetType Exec_TemplateMatch::Execute(CpptrajState& State, ArgList& argIn) {
     if (BuildTiUnit(true,  *tgt, *tpl, tgtX, tplX, R.dual_, top0, frm0, rn0) ||
         BuildTiUnit(false, *tgt, *tpl, tgtX, tplX, R.dual_, top1, frm1, rn1))
     {
-      mprinterr("Error: templatematch: failed to build TI units.\n");
+      mprinterr("Error: timatch: failed to build TI units.\n");
       return CpptrajState::ERR;
     }
     if (top0.Natom() != top1.Natom()) {
-      mprinterr("Error: templatematch: lambda-0/1 atom counts differ (%i vs %i).\n",
+      mprinterr("Error: timatch: lambda-0/1 atom counts differ (%i vs %i).\n",
                 top0.Natom(), top1.Natom());
       return CpptrajState::ERR;
     }
@@ -708,40 +733,43 @@ Exec::RetType Exec_TemplateMatch::Execute(CpptrajState& State, ArgList& argIn) {
     }
   }
 
-  if (maponly || (!tiout.empty() && newname.empty() && !replace))
+  if (!writeLib && newname.empty() && !replace)
     return CpptrajState::OK;
 
   Topology* aligned = tgt->ModifyByMap(R.outputOrder_);
   if (aligned == 0) {
-    mprinterr("Error: templatematch: failed to apply atom order.\n");
+    mprinterr("Error: timatch: failed to apply atom order.\n");
     return CpptrajState::ERR;
   }
-  aligned->SetParmName(newname.empty() ? (tgtName + ".aligned") : newname,
-                       tgt->OriginalFilename());
+  if (writeLib) {
+    Frame tgtX, alignedX;
+    LoadCoords(*tgt, tgtDs, tgtX);
+    ApplyOrderToFrame(tgtX, R.outputOrder_, alignedX);
+    std::string unit = OffUnitName(ResNameOf(*aligned, "TGT").Truncated(), 'T');
+    aligned->SetParmName(unit, FileName(libout));
+    if (WriteAmberLib(libout, unit, *aligned, alignedX)) {
+      delete aligned;
+      return CpptrajState::ERR;
+    }
+  }
 
   if (replace) {
     if (tgtDs != 0 && tgtDs->Type() == DataSet::TOPOLOGY) {
       ((DataSet_Topology*)tgtDs)->SetTop(*aligned);
       mprintf("\tReplaced topology '%s' with aligned atom order.\n", tgtName.c_str());
     } else {
-      mprinterr("Error: replace requires <tgt> to be a topology set.\n");
+      mprinterr("Error: timatch: replace requires <tgt> to be a topology set.\n");
       delete aligned;
       return CpptrajState::ERR;
     }
   }
   if (!newname.empty()) {
+    aligned->SetParmName(newname, tgt->OriginalFilename());
     if (State.AddTopology(*aligned, newname)) {
       delete aligned;
       return CpptrajState::ERR;
     }
     mprintf("\tAligned topology added as '%s'\n", newname.c_str());
-  } else if (!replace) {
-    std::string autoName = tgtName + ".aligned";
-    if (State.AddTopology(*aligned, autoName)) {
-      delete aligned;
-      return CpptrajState::ERR;
-    }
-    mprintf("\tAligned topology added as '%s'\n", autoName.c_str());
   }
   delete aligned;
   return CpptrajState::OK;

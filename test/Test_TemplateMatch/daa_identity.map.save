@@ -1,4 +1,4 @@
-# templatematch tgt='DAA' template='DAA'
+# timatch tgt='DAA' template='DAA'
 # kind tgt=base template=base
 # mapped= 22  insertion= 0  unmapped_template= 0  n_tgt= 22  n_tpl= 22
 #Out    TgtAt TgtName  TplAt TplName Ins

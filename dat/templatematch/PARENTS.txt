@@ -8,13 +8,16 @@
 # Load with:
 #   parm $CPPTRAJHOME/dat/templatematch/DAA.mol2 name DAA
 #
-# Then map an analog:
-#   templatematch analog template DAA mapout analog.map name analog.ti
+# Then map an analog onto that parent (default: sorted Amber OFF library):
+#   timatch analog template DAA out analog.lib
+#
+# Dual-topology TI files (dummy atoms) are opt-in:
+#   timatch analog template DAA tiout analog_ti
 #
 # Combined nucleotides are mapped to a user residue (for example FLE = rA
 # onto ERN = dA), not to these fragments. Use naorder on that residue to
 # freeze a full-nucleotide template. For amino acids and small molecules
-# generate your own parent (cysteine, benzene, ...) -- see the templatematch
+# generate your own parent (cysteine, benzene, ...) -- see the timatch
 # section of the cpptraj manual.
 #
 # file   class                    notes

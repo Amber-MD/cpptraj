@@ -346,7 +346,7 @@ CPPTRAJ_HEADERS = \
         ./Exec_Source.h \
         ./Exec_SplitCoords.h \
         ./Exec_System.h \
-        ./Exec_TemplateMatch.h \
+        ./Exec_TIMatch.h \
         ./Exec_Top.h \
         ./Exec_Traj.h \
         ./Exec_UpdateParameters.h \
