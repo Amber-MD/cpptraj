@@ -3,7 +3,7 @@
 #include <string>
 #include <vector>
 class Topology;
-/// Map a target topology onto a user-supplied template (engine for the timatch command).
+/// Map a target topology onto a user-supplied template (engine for the timap command).
 /** Source encoding is UTF-8. Unicode (O5′, χ, λ, 2′) appears in comments only;
   * string literals in the implementation stay ASCII so the file compiles
   * without a compiler UTF-8 flag.

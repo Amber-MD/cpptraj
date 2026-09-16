@@ -1,4 +1,4 @@
-"""Generate Test_TemplateMatch *.map.save files matching Exec_TIMatch printf.
+"""Generate Test_TemplateMatch *.map.save files matching Exec_TIMap printf.
 
 Regenerates expected maps for:
   FLE.lib (rA) onto ERN.lib (dA)
@@ -49,7 +49,7 @@ def write_map(path: Path, tgt_name: str, tpl_name: str, tgt, tpl,
     for nm in tgt_names + tpl_names:
         n_width = max(n_width, len(nm))
     lines = [
-        f"# timatch tgt='{tgt_name}' template='{tpl_name}'",
+        f"# timap tgt='{tgt_name}' template='{tpl_name}'",
         f"# kind tgt={tgt_kind} template={tpl_kind}",
         f"# mapped= {n_mapped}  insertion= {n_ins}  unmapped_template= {n_unmap}"
         f"  n_tgt= {tgt.n_atom()}  n_tpl= {tpl.n_atom()}",

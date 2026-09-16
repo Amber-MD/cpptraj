@@ -25171,7 +25171,7 @@ Calculate system temperature using velocities of specified atoms.
 \begin_inset Text
 
 \begin_layout Plain Layout
-timatch
+timap
 \end_layout
 
 \end_inset
@@ -26453,18 +26453,18 @@ crdout MyAvg mypdb.pdb adpdata MyFluct[ADP] bfacdata MyFluct
 \end_layout
 
 \begin_layout Subsection
-timatch
+timap
 \end_layout
 
 \begin_layout LyX-Code
-timatch
+timap
 \begin_inset Index idx
 range none
 pageformat default
 status collapsed
 
 \begin_layout Plain Layout
-timatch
+timap
 \end_layout
 
 \end_inset
@@ -26796,7 +26796,7 @@ Nucleic acids (example: FLE = unmodified rA onto ERN = unmodified dA).
 \end_layout
 
 \begin_layout LyX-Code
-> timatch FLE[FLE] template ERN[ERN] naorder out FLE.lib
+> timap FLE[FLE] template ERN[ERN] naorder out FLE.lib
 \end_layout
 
 \begin_layout LyX-Code
@@ -26812,7 +26812,7 @@ tiout
 \end_layout
 
 \begin_layout LyX-Code
-> timatch FLE[FLE] template ERN[ERN] naorder tiout fle_ern
+> timap FLE[FLE] template ERN[ERN] naorder tiout fle_ern
 \end_layout
 
 \begin_layout LyX-Code
@@ -26833,7 +26833,7 @@ Small molecules (example: phenol onto benzene).
 \end_layout
 
 \begin_layout LyX-Code
-> timatch phenol template benzene out phenol.lib
+> timap phenol template benzene out phenol.lib
 \end_layout
 
 \begin_layout LyX-Code
@@ -26860,7 +26860,7 @@ elmnt 34
 \end_layout
 
 \begin_layout LyX-Code
-> timatch SEC[SEC] template CYS[CYS] out SEC.lib
+> timap SEC[SEC] template CYS[CYS] out SEC.lib
 \end_layout
 
 \begin_layout LyX-Code
@@ -26874,7 +26874,7 @@ templatematch
 \series default
 , 
 \series bold
-timap
+timatch
 \series default
 .
 \end_layout

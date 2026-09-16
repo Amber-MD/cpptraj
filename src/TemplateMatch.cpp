@@ -1263,7 +1263,7 @@ int TemplateMatch::CanonicalNaOrder(Topology const& top, Iarray& order) const {
 int TemplateMatch::Match(Topology const& tgtTop, Topology const& tplTop, Result& out) const {
   out = Result();
   if (tgtTop.Natom() < 1 || tplTop.Natom() < 1) {
-    mprinterr("Error: timatch: empty topology.\n");
+    mprinterr("Error: timap: empty topology.\n");
     return 1;
   }
   Graph tgt(tgtTop);
@@ -1276,9 +1276,9 @@ int TemplateMatch::Match(Topology const& tgtTop, Topology const& tplTop, Result&
   out.notes_.insert(out.notes_.end(), tgtSc.notes_.begin(), tgtSc.notes_.end());
 
   if (debug_ > 0) {
-    mprintf("DEBUG: timatch tgt kind=%s family=%s 2'=%s ok=%i\n",
+    mprintf("DEBUG: timap tgt kind=%s family=%s 2'=%s ok=%i\n",
             tgtSc.kind_.c_str(), tgtSc.family_.c_str(), tgtSc.twoPrime_.c_str(), (int)tgtSc.ok_);
-    mprintf("DEBUG: timatch tpl kind=%s family=%s 2'=%s ok=%i\n",
+    mprintf("DEBUG: timap tpl kind=%s family=%s 2'=%s ok=%i\n",
             tplSc.kind_.c_str(), tplSc.family_.c_str(), tplSc.twoPrime_.c_str(), (int)tplSc.ok_);
     for (int r = 0; r < Scaffold::NROLES; r++) {
       int ti = tgtSc.Get((Scaffold::Role)r);
@@ -1295,14 +1295,14 @@ int TemplateMatch::Match(Topology const& tgtTop, Topology const& tplTop, Result&
   out.dual_ = DualOrder(tgt, tpl, tplSc, out.mapping_, parent, anchorName_);
 
   if ((int)out.outputOrder_.size() != tgt.Natom()) {
-    mprinterr("Error: timatch: output order size %zu != %i atoms.\n",
+    mprinterr("Error: timap: output order size %zu != %i atoms.\n",
               out.outputOrder_.size(), tgt.Natom());
     return 1;
   }
   std::vector<char> seen(tgt.Natom(), 0);
   for (Iarray::const_iterator it = out.outputOrder_.begin(); it != out.outputOrder_.end(); ++it) {
     if (*it < 0 || *it >= tgt.Natom() || seen[*it]) {
-      mprinterr("Error: timatch: output order is not a permutation.\n");
+      mprinterr("Error: timap: output order is not a permutation.\n");
       return 1;
     }
     seen[*it] = 1;
@@ -1322,7 +1322,7 @@ int TemplateMatch::Match(Topology const& tgtTop, Topology const& tplTop, Result&
   }
   int expectDual = out.nMapped_ + out.nInsertion_ + out.nUnmappedTpl_;
   if ((int)out.dual_.size() != expectDual) {
-    mprinterr("Error: timatch: dual-topology size %zu != %i (mapped+ins+unmapped).\n",
+    mprinterr("Error: timap: dual-topology size %zu != %i (mapped+ins+unmapped).\n",
               out.dual_.size(), expectDual);
     return 1;
   }

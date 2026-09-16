@@ -329,7 +329,7 @@ COMMON_SOURCES= \
         Exec_Source.cpp \
         Exec_SplitCoords.cpp \
         Exec_System.cpp \
-        Exec_TIMatch.cpp \
+        Exec_TIMap.cpp \
         Exec_Top.cpp \
         Exec_Traj.cpp \
         Exec_UpdateParameters.cpp \

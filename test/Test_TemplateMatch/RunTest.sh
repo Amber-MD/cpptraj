@@ -2,7 +2,7 @@
 
 . ../MasterTest.sh
 
-CleanFiles timatch.in \
+CleanFiles timap.in \
            fle_to_ern.map ern_naorder.map \
            phenol_to_benzene.map sec_to_cys.map \
            daa_identity.map \
@@ -14,20 +14,20 @@ CleanFiles timatch.in \
            sec_cys.0.mol2 sec_cys.1.mol2 sec_cys.0.lib sec_cys.1.lib \
            sec_cys.scmask sec_cys.atoms sec_cys.map
 
-TESTNAME='TI match tests'
+TESTNAME='TI map tests'
 Requires maxthreads 1
 
-INPUT='-i timatch.in'
+INPUT='-i timap.in'
 
 # Nucleic acids: unmodified rA (FLE) onto unmodified dA (ERN).
 # Shared atoms keep ERN indices; 2'-OH is an insertion; ERN H2'' is unmatched.
 UNITNAME='Nucleic acid: FLE (rA) onto ERN (dA)'
 CheckFor maxthreads 1
 if [ $? -eq 0 ] ; then
-  cat > timatch.in <<EOF
+  cat > timap.in <<EOF
 readdata FLE.lib name FLE
 readdata ERN.lib name ERN
-timatch FLE[FLE] template ERN[ERN] mapout fle_to_ern.map maponly
+timap FLE[FLE] template ERN[ERN] mapout fle_to_ern.map maponly
 EOF
   RunCpptraj "$UNITNAME"
   DoTest fle_to_ern.map.save fle_to_ern.map
@@ -37,9 +37,9 @@ fi
 UNITNAME='Nucleic acid: ERN naorder template walk'
 CheckFor maxthreads 1
 if [ $? -eq 0 ] ; then
-  cat > timatch.in <<EOF
+  cat > timap.in <<EOF
 readdata ERN.lib name ERN
-timatch ERN[ERN] naorder mapout ern_naorder.map maponly
+timap ERN[ERN] naorder mapout ern_naorder.map maponly
 EOF
   RunCpptraj "$UNITNAME"
   DoTest ern_naorder.map.save ern_naorder.map
@@ -49,10 +49,10 @@ fi
 UNITNAME='Small molecule: phenol onto benzene'
 CheckFor maxthreads 1
 if [ $? -eq 0 ] ; then
-  cat > timatch.in <<EOF
+  cat > timap.in <<EOF
 parm benzene.mol2 name benzene
 parm phenol.mol2 name phenol
-timatch phenol template benzene mapout phenol_to_benzene.map maponly
+timap phenol template benzene mapout phenol_to_benzene.map maponly
 EOF
   RunCpptraj "$UNITNAME"
   DoTest phenol_to_benzene.map.save phenol_to_benzene.map
@@ -63,10 +63,10 @@ fi
 UNITNAME='Amino acid: selenocysteine onto cysteine'
 CheckFor maxthreads 1
 if [ $? -eq 0 ] ; then
-  cat > timatch.in <<EOF
+  cat > timap.in <<EOF
 readdata cys.lib name CYS
 readdata sec.lib name SEC
-timatch SEC[SEC] template CYS[CYS] mapout sec_to_cys.map maponly
+timap SEC[SEC] template CYS[CYS] mapout sec_to_cys.map maponly
 EOF
   RunCpptraj "$UNITNAME"
   DoTest sec_to_cys.map.save sec_to_cys.map
@@ -76,9 +76,9 @@ fi
 UNITNAME='Shipped ModXNA parent: DAA identity map'
 CheckFor maxthreads 1
 if [ $? -eq 0 ] ; then
-  cat > timatch.in <<EOF
+  cat > timap.in <<EOF
 parm ../../dat/templatematch/DAA.mol2 name DAA
-timatch DAA template DAA mapout daa_identity.map maponly
+timap DAA template DAA mapout daa_identity.map maponly
 EOF
   RunCpptraj "$UNITNAME"
   DoTest daa_identity.map.save daa_identity.map
@@ -88,10 +88,10 @@ fi
 UNITNAME='Default: aligned OFF library (no TI)'
 CheckFor maxthreads 1
 if [ $? -eq 0 ] ; then
-  cat > timatch.in <<EOF
+  cat > timap.in <<EOF
 readdata FLE.lib name FLE
 readdata ERN.lib name ERN
-timatch FLE[FLE] template ERN[ERN] out fle.sorted.lib
+timap FLE[FLE] template ERN[ERN] out fle.sorted.lib
 EOF
   RunCpptraj "$UNITNAME"
 fi
@@ -101,10 +101,10 @@ fi
 UNITNAME='TI export: FLE onto ERN (dummies, mol2, lib, scmask)'
 CheckFor maxthreads 1
 if [ $? -eq 0 ] ; then
-  cat > timatch.in <<EOF
+  cat > timap.in <<EOF
 readdata FLE.lib name FLE
 readdata ERN.lib name ERN
-timatch FLE[FLE] template ERN[ERN] tiout fle_ern maponly
+timap FLE[FLE] template ERN[ERN] tiout fle_ern maponly
 EOF
   RunCpptraj "$UNITNAME"
   DoTest fle_ern.atoms.save fle_ern.atoms
@@ -114,10 +114,10 @@ fi
 UNITNAME='TI export: phenol onto benzene'
 CheckFor maxthreads 1
 if [ $? -eq 0 ] ; then
-  cat > timatch.in <<EOF
+  cat > timap.in <<EOF
 parm benzene.mol2 name benzene
 parm phenol.mol2 name phenol
-timatch phenol template benzene tiout phenol_bnz maponly
+timap phenol template benzene tiout phenol_bnz maponly
 EOF
   RunCpptraj "$UNITNAME"
   DoTest phenol_bnz.atoms.save phenol_bnz.atoms
@@ -127,10 +127,10 @@ fi
 UNITNAME='TI export: selenocysteine onto cysteine'
 CheckFor maxthreads 1
 if [ $? -eq 0 ] ; then
-  cat > timatch.in <<EOF
+  cat > timap.in <<EOF
 readdata cys.lib name CYS
 readdata sec.lib name SEC
-timatch SEC[SEC] template CYS[CYS] tiout sec_cys maponly
+timap SEC[SEC] template CYS[CYS] tiout sec_cys maponly
 EOF
   RunCpptraj "$UNITNAME"
   DoTest sec_cys.atoms.save sec_cys.atoms

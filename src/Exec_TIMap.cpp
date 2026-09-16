@@ -1,4 +1,4 @@
-#include "Exec_TIMatch.h"
+#include "Exec_TIMap.h"
 #include "TemplateMatch.h"
 #include "CpptrajStdio.h"
 #include "CpptrajFile.h"
@@ -28,8 +28,8 @@
  *      mass-0 / type-DUM dummies in the other.
  */
 
-// Exec_TIMatch::Help()
-void Exec_TIMatch::Help() const {
+// Exec_TIMap::Help()
+void Exec_TIMap::Help() const {
   mprintf("\t<tgt> [template <name>] [out <file>] [tiout <prefix>]\n"
           "\t[mapout <file>] [name <newparm>] [maponly] [replace] [naorder]\n"
           "\t[seed {auto|names|na|none}] [anchor <atomname>]\n"
@@ -54,28 +54,28 @@ void Exec_TIMatch::Help() const {
           "  If 'template' is omitted, <tgt> is matched to itself (use with 'naorder'\n"
           "  to freeze a nucleic-acid template from an existing residue).\n"
           "  Official ModXNA parent fragments ship in $CPPTRAJHOME/dat/templatematch/.\n"
-          "  Aliases: templatematch, timap.\n"
+          "  Aliases: templatematch, timatch.\n"
           "\n"
           "  Complete run (Amber OFF libraries parent.lib and analog.lib).\n"
-          "  readdata, parm, and timatch run when entered (immediate commands).\n"
+          "  readdata, parm, and timap run when entered (immediate commands).\n"
           "  Use go if the input also has trajin/actions; it is safe to include either way:\n"
           "    > readdata parent.lib name parent\n"
           "    > readdata analog.lib name analog\n"
-          "    > timatch analog[analog] template parent[parent] out analog.lib\n"
+          "    > timap analog[analog] template parent[parent] out analog.lib\n"
           "    > go\n"
           "  Use readdata (not parm) for .lib files. The COORDS set is Name[Unit];\n"
           "  if the unit inside parent.lib is not 'parent', use parent[UnitName].\n"
           "  For nucleic acids add naorder so the shared-atom walk is\n"
           "  P -> OP -> O5' -> C5' -> C4' -> O4' -> C1' -> base -> C3' -> C2' -> O3':\n"
-          "    > timatch analog[analog] template parent[parent] naorder out analog.lib\n"
+          "    > timap analog[analog] template parent[parent] naorder out analog.lib\n"
           "    > go\n"
           "  Dual-topology TI (opt-in; dummy atoms, matching NATOM):\n"
-          "    > timatch analog[analog] template parent[parent] naorder tiout analog_ti\n"
+          "    > timap analog[analog] template parent[parent] naorder tiout analog_ti\n"
           "    > go\n"
           "  Mol2 inputs instead of OFF:\n"
           "    > parm parent.mol2 name parent\n"
           "    > parm analog.mol2 name analog\n"
-          "    > timatch analog template parent out analog.lib\n"
+          "    > timap analog template parent out analog.lib\n"
           "    > go\n");
 }
 
@@ -269,7 +269,7 @@ static int BuildTiUnit(bool lambda0,
       if (attach >= 0)
         outTop.AddBond(i, attach, -1);
       else
-        mprintf("Warning: timatch: dummy %s has no bonded neighbor in the dual layout.\n",
+        mprintf("Warning: timap: dummy %s has no bonded neighbor in the dual layout.\n",
                 outTop[i].c_str());
     }
   } else {
@@ -295,7 +295,7 @@ static int BuildTiUnit(bool lambda0,
       if (attach >= 0)
         outTop.AddBond(i, attach, -1);
       else
-        mprintf("Warning: timatch: dummy %s has no bonded neighbor in the dual layout.\n",
+        mprintf("Warning: timap: dummy %s has no bonded neighbor in the dual layout.\n",
                 outTop[i].c_str());
     }
   }
@@ -311,11 +311,11 @@ static int WriteMol2File(std::string const& fname, Topology& top, Frame const& f
   if (out.PrepareTrajWrite(fname, empty, dsl, &top, CoordinateInfo(), 1,
                            TrajectoryFile::MOL2FILE))
   {
-    mprinterr("Error: timatch: could not set up mol2 '%s'\n", fname.c_str());
+    mprinterr("Error: timap: could not set up mol2 '%s'\n", fname.c_str());
     return 1;
   }
   if (out.WriteSingle(0, frm)) {
-    mprinterr("Error: timatch: writing mol2 '%s'\n", fname.c_str());
+    mprinterr("Error: timap: writing mol2 '%s'\n", fname.c_str());
     return 1;
   }
   out.EndTraj();
@@ -449,7 +449,7 @@ static int WriteScmask(std::string const& fname,
     else if (dual[i].IsTgtOnly()) nD0++;
     else nD1++;
   }
-  out.Printf("# timatch dual-topology TI masks\n");
+  out.Printf("# timap dual-topology TI masks\n");
   out.Printf("# n_dual= %zu  n_shared= %i  dummy_in_lambda0= %i  dummy_in_lambda1= %i\n",
              dual.size(), nShared, nD0, nD1);
   out.Printf("# lambda 0 = template (real unmatched, dummy insertions)\n");
@@ -487,7 +487,7 @@ static int WriteDualAtoms(std::string const& fname,
     mprinterr("Error: Could not open '%s'\n", fname.c_str());
     return 1;
   }
-  out.Printf("# timatch dual-topology atoms\n");
+  out.Printf("# timap dual-topology atoms\n");
   out.Printf("# Kind: SHARED = real in both; TPL_ONLY = dummy in lambda 1; "
              "TGT_ONLY = dummy in lambda 0\n");
   out.Printf("%-4s %-8s %-8s %10s %-8s %10s\n",
@@ -516,7 +516,7 @@ static int WriteMapFile(std::string const& fname, Topology const& tgt, Topology 
     mprinterr("Error: Could not open map file '%s'\n", fname.c_str());
     return 1;
   }
-  out.Printf("# timatch tgt='%s' template='%s'\n", tgtName.c_str(), tplName.c_str());
+  out.Printf("# timap tgt='%s' template='%s'\n", tgtName.c_str(), tplName.c_str());
   out.Printf("# kind tgt=%s template=%s\n", R.tgtKind_.c_str(), R.tplKind_.c_str());
   out.Printf("# mapped= %i  insertion= %i  unmapped_template= %i  n_tgt= %i  n_tpl= %i\n",
              R.nMapped_, R.nInsertion_, R.nUnmappedTpl_, tgt.Natom(), tpl.Natom());
@@ -572,8 +572,8 @@ static int WriteMapFile(std::string const& fname, Topology const& tgt, Topology 
 /** Parse arguments, run TemplateMatch::Match, write an aligned OFF library,
   * and optionally dual-topology TI files.
   */
-// Exec_TIMatch::Execute()
-Exec::RetType Exec_TIMatch::Execute(CpptrajState& State, ArgList& argIn) {
+// Exec_TIMap::Execute()
+Exec::RetType Exec_TIMap::Execute(CpptrajState& State, ArgList& argIn) {
   std::string mapout = argIn.GetStringKey("mapout");
   std::string libout = argIn.GetStringKey("out");
   std::string newname = argIn.GetStringKey("name");
@@ -587,7 +587,7 @@ Exec::RetType Exec_TIMatch::Execute(CpptrajState& State, ArgList& argIn) {
 
   std::string tgtName = argIn.GetStringNext();
   if (tgtName.empty()) {
-    mprinterr("Error: timatch: no target topology specified.\n");
+    mprinterr("Error: timap: no target topology specified.\n");
     return CpptrajState::ERR;
   }
   if (tplName.empty())
@@ -596,7 +596,7 @@ Exec::RetType Exec_TIMatch::Execute(CpptrajState& State, ArgList& argIn) {
   DataSet* tgtDs = 0;
   Topology* tgt = FindNamedTop(State.DSL(), tgtName, &tgtDs);
   if (tgt == 0) {
-    mprinterr("Error: timatch: target '%s' not found.\n", tgtName.c_str());
+    mprinterr("Error: timap: target '%s' not found.\n", tgtName.c_str());
     return CpptrajState::ERR;
   }
   Topology* tpl = tgt;
@@ -605,7 +605,7 @@ Exec::RetType Exec_TIMatch::Execute(CpptrajState& State, ArgList& argIn) {
   if (!tplName.empty()) {
     tpl = FindNamedTop(State.DSL(), tplName, &tplDs);
     if (tpl == 0) {
-      mprinterr("Error: timatch: template '%s' not found.\n", tplName.c_str());
+      mprinterr("Error: timap: template '%s' not found.\n", tplName.c_str());
       return CpptrajState::ERR;
     }
     tplUsed = tplName;
@@ -621,7 +621,7 @@ Exec::RetType Exec_TIMatch::Execute(CpptrajState& State, ArgList& argIn) {
   if (!seedStr.empty()) {
     std::string l = ToLower(seedStr);
     if (l != "auto" && l != "names" && l != "na" && l != "none") {
-      mprinterr("Error: timatch: unrecognized seed '%s'\n", seedStr.c_str());
+      mprinterr("Error: timap: unrecognized seed '%s'\n", seedStr.c_str());
       return CpptrajState::ERR;
     }
     matcher.SetSeed(TemplateMatch::SeedFromString(seedStr));
@@ -633,7 +633,7 @@ Exec::RetType Exec_TIMatch::Execute(CpptrajState& State, ArgList& argIn) {
     libout += ".sorted.lib";
   }
 
-  mprintf("    TIMATCH: Aligning '%s' (%i atoms) to template '%s' (%i atoms).\n",
+  mprintf("    TIMAP: Aligning '%s' (%i atoms) to template '%s' (%i atoms).\n",
           tgtName.c_str(), tgt->Natom(), tplUsed.c_str(), tpl->Natom());
   mprintf("\tSeed: %s\n", TemplateMatch::SeedStr(
             seedStr.empty() ? TemplateMatch::SEED_AUTO
@@ -675,7 +675,7 @@ Exec::RetType Exec_TIMatch::Execute(CpptrajState& State, ArgList& argIn) {
 
   if (!tiout.empty()) {
     if (R.dual_.empty()) {
-      mprinterr("Error: timatch: empty dual-topology layout.\n");
+      mprinterr("Error: timap: empty dual-topology layout.\n");
       return CpptrajState::ERR;
     }
     Frame tgtX, tplX;
@@ -694,11 +694,11 @@ Exec::RetType Exec_TIMatch::Execute(CpptrajState& State, ArgList& argIn) {
     if (BuildTiUnit(true,  *tgt, *tpl, tgtX, tplX, R.dual_, top0, frm0, rn0) ||
         BuildTiUnit(false, *tgt, *tpl, tgtX, tplX, R.dual_, top1, frm1, rn1))
     {
-      mprinterr("Error: timatch: failed to build TI units.\n");
+      mprinterr("Error: timap: failed to build TI units.\n");
       return CpptrajState::ERR;
     }
     if (top0.Natom() != top1.Natom()) {
-      mprinterr("Error: timatch: lambda-0/1 atom counts differ (%i vs %i).\n",
+      mprinterr("Error: timap: lambda-0/1 atom counts differ (%i vs %i).\n",
                 top0.Natom(), top1.Natom());
       return CpptrajState::ERR;
     }
@@ -738,7 +738,7 @@ Exec::RetType Exec_TIMatch::Execute(CpptrajState& State, ArgList& argIn) {
 
   Topology* aligned = tgt->ModifyByMap(R.outputOrder_);
   if (aligned == 0) {
-    mprinterr("Error: timatch: failed to apply atom order.\n");
+    mprinterr("Error: timap: failed to apply atom order.\n");
     return CpptrajState::ERR;
   }
   if (writeLib) {
@@ -758,7 +758,7 @@ Exec::RetType Exec_TIMatch::Execute(CpptrajState& State, ArgList& argIn) {
       ((DataSet_Topology*)tgtDs)->SetTop(*aligned);
       mprintf("\tReplaced topology '%s' with aligned atom order.\n", tgtName.c_str());
     } else {
-      mprinterr("Error: timatch: replace requires <tgt> to be a topology set.\n");
+      mprinterr("Error: timap: replace requires <tgt> to be a topology set.\n");
       delete aligned;
       return CpptrajState::ERR;
     }

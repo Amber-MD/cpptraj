@@ -1,4 +1,4 @@
-# timatch tgt='SEC[SEC]' template='CYS[CYS]'
+# timap tgt='SEC[SEC]' template='CYS[CYS]'
 # kind tgt=unknown template=unknown
 # mapped= 10  insertion= 1  unmapped_template= 1  n_tgt= 11  n_tpl= 11
 #Out    TgtAt TgtName  TplAt TplName Ins
