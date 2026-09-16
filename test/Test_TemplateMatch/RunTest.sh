@@ -6,6 +6,7 @@ CleanFiles timap.in \
            fle_to_ern.map ern_naorder.map \
            phenol_to_benzene.map sec_to_cys.map \
            daa_identity.map \
+           cys_aaorder.map cys_shuffled.aaorder.map \
            fle.sorted.lib FLE.sorted.lib \
            fle_ern.0.mol2 fle_ern.1.mol2 fle_ern.0.lib fle_ern.1.lib \
            fle_ern.scmask fle_ern.atoms fle_ern.map \
@@ -70,6 +71,30 @@ timap SEC[SEC] template CYS[CYS] mapout sec_to_cys.map maponly
 EOF
   RunCpptraj "$UNITNAME"
   DoTest sec_to_cys.map.save sec_to_cys.map
+fi
+
+# ff19SB-like amino-acid walk: no parent. Identity if already Amber order;
+# shuffled C/O-first Cys is restored to N,H,CA,HA,CB,...,C,O.
+UNITNAME='Amino acid: CYS aaorder identity'
+CheckFor maxthreads 1
+if [ $? -eq 0 ] ; then
+  cat > timap.in <<EOF
+readdata cys.lib name CYS
+timap CYS[CYS] aaorder mapout cys_aaorder.map maponly
+EOF
+  RunCpptraj "$UNITNAME"
+  DoTest cys_aaorder.map.save cys_aaorder.map
+fi
+
+UNITNAME='Amino acid: shuffled CYS aaorder (noncanonical file order)'
+CheckFor maxthreads 1
+if [ $? -eq 0 ] ; then
+  cat > timap.in <<EOF
+readdata cys_shuffled.lib name CYS
+timap CYS[CYS] aaorder mapout cys_shuffled.aaorder.map maponly
+EOF
+  RunCpptraj "$UNITNAME"
+  DoTest cys_shuffled.aaorder.map.save cys_shuffled.aaorder.map
 fi
 
 # Smoke test: official ModXNA parent shipped in dat/templatematch/.

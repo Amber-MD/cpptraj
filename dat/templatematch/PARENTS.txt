@@ -16,9 +16,9 @@
 #
 # Combined nucleotides are mapped to a user residue (for example FLE = rA
 # onto ERN = dA), not to these fragments. Use naorder on that residue to
-# freeze a full-nucleotide template. For amino acids and small molecules
-# generate your own parent (cysteine, benzene, ...) -- see the timap
-# section of the cpptraj manual.
+# freeze a full-nucleotide template. For amino acids, aaorder walks the
+# residue in ff19SB amino19.lib order (see $CPPTRAJHOME/dat/timap/), or
+# map onto a parent with template. Small molecules: generate your own parent.
 #
 # file   class                    notes
 # -----  -----------------------  ------------------------------------------

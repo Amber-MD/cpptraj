@@ -38,6 +38,7 @@ TemplateMatch::TemplateMatch() :
   seed_(SEED_AUTO),
   debug_(0),
   useNaOrder_(false),
+  useAaOrder_(false),
   anchorName_("O3'")
 {}
 
@@ -46,6 +47,7 @@ const char* TemplateMatch::SeedStr(SeedType t) {
     case SEED_AUTO:  return "auto";
     case SEED_NAMES: return "names";
     case SEED_NA:    return "na";
+    case SEED_AA:    return "aa";
     case SEED_NONE:  return "none";
   }
   return "auto";
@@ -57,6 +59,7 @@ TemplateMatch::SeedType TemplateMatch::SeedFromString(std::string const& s) {
   if (l == "auto")  return SEED_AUTO;
   if (l == "names") return SEED_NAMES;
   if (l == "na")    return SEED_NA;
+  if (l == "aa")    return SEED_AA;
   if (l == "none")  return SEED_NONE;
   return SEED_AUTO;
 }
@@ -146,22 +149,28 @@ class Graph {
   * furanose (4 C + 1 O/S). base_ is the connected component hanging off χ,
   * excluding C1′. kind_ is nucleotide | sugar | base | unknown.
   *
-  * Amino acids and small molecules typically stay kind "unknown"; matching
-  * then relies on unique names + grow rather than these roles.
+  * Amino acids fill aa_ (N, CA, C, O, CB) and kind_ "amino" when the
+  * peptide N–CA–C=O motif is found. Small molecules stay kind "unknown".
   */
 class Scaffold {
   public:
     /// Canonical nucleotide roles. CHI is the glycosidic N (or C) of χ.
     enum Role { P = 0, O5p, C5p, C4p, O4p, C1p, C2p, C3p, O3p, CHI, NROLES };
+    enum AaRole { AA_N = 0, AA_CA, AA_C, AA_O, AA_CB, AA_NROLES };
     static const char* RoleStr(Role r) {
       static const char* n[NROLES] = {
         "P", "O5'", "C5'", "C4'", "O4'", "C1'", "C2'", "C3'", "O3'", "chi"
       };
       return n[r];
     }
+    static const char* AaRoleStr(AaRole r) {
+      static const char* n[AA_NROLES] = { "N", "CA", "C", "O", "CB" };
+      return n[r];
+    }
 
-    Scaffold() : hasP_(false), ok_(false) {
+    Scaffold() : hasP_(false), ok_(false), aaOk_(false), isPro_(false) {
       for (int i = 0; i < NROLES; i++) role_[i] = -1;
+      for (int i = 0; i < AA_NROLES; i++) aa_[i] = -1;
       kind_ = "unknown";
       family_ = "none";
       twoPrime_ = "unknown";
@@ -169,6 +178,8 @@ class Scaffold {
 
     int Get(Role r) const { return role_[r]; }
     void Set(Role r, int i) { role_[r] = i; }
+    int Aa(AaRole r) const { return aa_[r]; }
+    void SetAa(AaRole r, int i) { aa_[r] = i; }
     bool HasSugar() const { return !sugarRing_.empty(); }
     /// Combined nucleotide: furanose + glycosidic N + a nucleobase component.
     bool IsCombined() const {
@@ -184,6 +195,9 @@ class Scaffold {
     std::string twoPrime_;
     bool hasP_;
     bool ok_;
+    bool aaOk_;
+    bool isPro_;
+    int aa_[AA_NROLES];
     std::vector<std::string> notes_;
 };
 
@@ -624,9 +638,99 @@ static void AssignSugarRoles(Graph const& g, Scaffold& sc,
   }
 }
 
-/// Detect nucleotide / sugar / base / unknown and fill Scaffold roles.
-/** Amino acids (Cys, Sec) and ligands (benzene, phenol) have no furanose,
-  * so kind_ stays "unknown" and Match will unique-name seed instead of χ.
+/// Unique truncated name, or −1 if missing / not unique.
+static int UniqueName(Graph const& g, const char* nm) {
+  Iarray hits = g.FindByName(nm);
+  return (hits.size() == 1) ? hits[0] : -1;
+}
+
+/// Terminal oxygen (heavy degree 1): carbonyl O, carboxylate O, hydroxyl O.
+static bool IsTermO(Graph const& g, int i) {
+  return (g.Elt(i) == Atom::OXYGEN && g.HeavyDeg(i) == 1);
+}
+
+/// Fill peptide N / CA / C / O / CB from Amber names, then the N–CA–C=O motif.
+/** ff19SB amino19.lib is the baseline: N, H, CA, HA, side chain from CB, C, O
+  * (proline: N, CD … CB, CA, C, O). Noncanonical residues that keep backbone
+  * names are labeled the same way; graph backup handles renamed backbones.
+  */
+static void DetectAmino(Graph const& g, Scaffold& sc) {
+  sc.SetAa(Scaffold::AA_N,  UniqueName(g, "N"));
+  sc.SetAa(Scaffold::AA_CA, UniqueName(g, "CA"));
+  sc.SetAa(Scaffold::AA_C,  UniqueName(g, "C"));
+  sc.SetAa(Scaffold::AA_O,  UniqueName(g, "O"));
+  sc.SetAa(Scaffold::AA_CB, UniqueName(g, "CB"));
+
+  if (sc.Aa(Scaffold::AA_N) < 0 || sc.Aa(Scaffold::AA_CA) < 0 ||
+      sc.Aa(Scaffold::AA_C) < 0) {
+    for (int ni = 0; ni < g.Natom(); ni++) {
+      if (g.Elt(ni) != Atom::NITROGEN) continue;
+      Iarray const& nNbr = g.HeavyNbr(ni);
+      for (Iarray::const_iterator ca = nNbr.begin(); ca != nNbr.end(); ++ca) {
+        if (g.Elt(*ca) != Atom::CARBON) continue;
+        Iarray const& caNbr = g.HeavyNbr(*ca);
+        for (Iarray::const_iterator cj = caNbr.begin(); cj != caNbr.end(); ++cj) {
+          if (*cj == ni || g.Elt(*cj) != Atom::CARBON) continue;
+          int oIdx = -1;
+          int nTermO = 0;
+          Iarray const& cNbr = g.HeavyNbr(*cj);
+          for (Iarray::const_iterator oj = cNbr.begin(); oj != cNbr.end(); ++oj) {
+            if (IsTermO(g, *oj)) { nTermO++; oIdx = *oj; }
+          }
+          if (nTermO != 1 || (int)cNbr.size() > 3) continue;
+          if (sc.Aa(Scaffold::AA_N) < 0)  sc.SetAa(Scaffold::AA_N, ni);
+          if (sc.Aa(Scaffold::AA_CA) < 0) sc.SetAa(Scaffold::AA_CA, *ca);
+          if (sc.Aa(Scaffold::AA_C) < 0)  sc.SetAa(Scaffold::AA_C, *cj);
+          if (sc.Aa(Scaffold::AA_O) < 0)  sc.SetAa(Scaffold::AA_O, oIdx);
+        }
+      }
+    }
+  }
+
+  int n  = sc.Aa(Scaffold::AA_N);
+  int ca = sc.Aa(Scaffold::AA_CA);
+  int c  = sc.Aa(Scaffold::AA_C);
+  if (sc.Aa(Scaffold::AA_O) < 0 && c >= 0) {
+    Iarray const& cn = g.HeavyNbr(c);
+    for (Iarray::const_iterator j = cn.begin(); j != cn.end(); ++j) {
+      if (IsTermO(g, *j)) { sc.SetAa(Scaffold::AA_O, *j); break; }
+    }
+  }
+  if (sc.Aa(Scaffold::AA_CB) < 0 && ca >= 0) {
+    Iarray const& can = g.HeavyNbr(ca);
+    for (Iarray::const_iterator j = can.begin(); j != can.end(); ++j) {
+      if (g.Elt(*j) == Atom::CARBON && *j != c)
+        sc.SetAa(Scaffold::AA_CB, *j);
+    }
+  }
+
+  n  = sc.Aa(Scaffold::AA_N);
+  ca = sc.Aa(Scaffold::AA_CA);
+  c  = sc.Aa(Scaffold::AA_C);
+  sc.aaOk_ = (n >= 0 && ca >= 0 && c >= 0);
+  if (!sc.aaOk_) return;
+
+  sc.isPro_ = false;
+  if (n >= 0) {
+    int nC = 0;
+    Iarray const& nn = g.HeavyNbr(n);
+    for (Iarray::const_iterator j = nn.begin(); j != nn.end(); ++j) {
+      if (g.Elt(*j) == Atom::CARBON) nC++;
+    }
+    sc.isPro_ = (nC >= 2);
+  }
+
+  if (sc.kind_ == "unknown") {
+    sc.kind_ = "amino";
+    if (sc.isPro_) sc.family_ = "pro";
+    else if (sc.Aa(Scaffold::AA_CB) < 0) sc.family_ = "gly";
+    else sc.family_ = "std";
+  }
+}
+
+/// Detect nucleotide / sugar / base / amino / unknown and fill Scaffold roles.
+/** Amino acids without a furanose get kind "amino" (N–CA–C=O). Ligands
+  * (benzene, phenol) stay "unknown" and unique-name seed.
   */
 void DetectScaffold(Graph const& g, Scaffold& sc) {
   sc = Scaffold();
@@ -731,6 +835,9 @@ void DetectScaffold(Graph const& g, Scaffold& sc) {
       c5 = -1;
     }
   }
+
+  if (sc.kind_ == "unknown")
+    DetectAmino(g, sc);
 }
 
 // -----------------------------------------------------------------------------
@@ -888,8 +995,8 @@ void MatchHydrogens(Graph const& tgt, Graph const& tpl,
 }
 
 /// Seed, grow, unique-name, grow, hydrogens. mapping[tgt] = tpl or −1.
-/** SEED_AUTO uses nucleic-acid roles when either residue looks like NA
-  * (ok_, P, C1′, or χ found); otherwise unique names (amino acids, ligands).
+/** SEED_AUTO uses nucleic-acid roles when either residue looks like NA,
+  * amino-acid roles when the peptide N–CA–C=O motif is found, otherwise names.
   */
 void MapGraphs(Graph const& tgt, Graph const& tpl,
                Scaffold const& tgtSc, Scaffold const& tplSc,
@@ -904,7 +1011,10 @@ void MapGraphs(Graph const& tgt, Graph const& tpl,
               tgtSc.Get(Scaffold::P) >= 0 || tplSc.Get(Scaffold::P) >= 0 ||
               tgtSc.Get(Scaffold::C1p) >= 0 || tplSc.Get(Scaffold::C1p) >= 0 ||
               tgtSc.Get(Scaffold::CHI) >= 0 || tplSc.Get(Scaffold::CHI) >= 0;
-    mode = na ? TemplateMatch::SEED_NA : TemplateMatch::SEED_NAMES;
+    bool aa = tgtSc.aaOk_ || tplSc.aaOk_;
+    if (na)      mode = TemplateMatch::SEED_NA;
+    else if (aa) mode = TemplateMatch::SEED_AA;
+    else         mode = TemplateMatch::SEED_NAMES;
   }
 
   if (mode == TemplateMatch::SEED_NA) {
@@ -917,6 +1027,14 @@ void MapGraphs(Graph const& tgt, Graph const& tpl,
     size_t nop = std::min(tgtSc.op_.size(), tplSc.op_.size());
     for (size_t i = 0; i < nop; i++)
       AddMap(mapping, usedTpl, tgtSc.op_[i], tplSc.op_[i]);
+  }
+
+  if (mode == TemplateMatch::SEED_AA) {
+    static const Scaffold::AaRole SEED[] = {
+      Scaffold::AA_N, Scaffold::AA_CA, Scaffold::AA_C, Scaffold::AA_O, Scaffold::AA_CB
+    };
+    for (int k = 0; k < 5; k++)
+      AddMap(mapping, usedTpl, tgtSc.Aa(SEED[k]), tplSc.Aa(SEED[k]));
   }
 
   if (mode != TemplateMatch::SEED_NONE) {
@@ -1238,10 +1356,105 @@ Iarray CanonicalWalk(Graph const& g, Scaffold const& sc) {
   return order;
 }
 
-/// Template order for OutputOrder: file order, or CanonicalWalk if naorder.
-Iarray ParentOrder(Graph const& tpl, Scaffold const& sc, bool useNaOrder) {
+/// Count unused heavy atoms reachable from start without crossing parent or used.
+static int HeavySubtreeSize(Graph const& g, int start, int parent,
+                            std::vector<char> const& used)
+{
+  std::vector<char> seen(g.Natom(), 0);
+  Iarray stack(1, start);
+  seen[start] = 1;
+  int count = 0;
+  while (!stack.empty()) {
+    int i = stack.back();
+    stack.pop_back();
+    if (used[i] && i != start) continue;
+    if (!g.IsHydrogen(i)) count++;
+    Iarray const& nbr = g.Nbr(i);
+    for (Iarray::const_iterator j = nbr.begin(); j != nbr.end(); ++j) {
+      if (*j == parent || seen[*j] || (used[*j] && *j != start)) continue;
+      seen[*j] = 1;
+      stack.push_back(*j);
+    }
+  }
+  return count;
+}
+
+/// Walk a side-chain branch the way amino19.lib does: heavy, its hydrogens, then
+/// child heavies (smaller unused subtree first, then name).
+static void EmitAaBranch(Graph const& g, int i, int parent,
+                         std::vector<char>& used, Iarray& order,
+                         std::set<int> const& skip)
+{
+  if (i < 0 || used[i] || skip.find(i) != skip.end()) return;
+  EmitHeavyAndH(g, i, used, order);
+  Iarray kids;
+  Iarray const& hn = g.HeavyNbr(i);
+  for (Iarray::const_iterator j = hn.begin(); j != hn.end(); ++j) {
+    if (*j == parent || used[*j] || skip.find(*j) != skip.end()) continue;
+    kids.push_back(*j);
+  }
+  std::sort(kids.begin(), kids.end(), [&g, &used, i](int a, int b) {
+    int sa = HeavySubtreeSize(g, a, i, used);
+    int sb = HeavySubtreeSize(g, b, i, used);
+    if (sa != sb) return sa < sb;
+    return g.Name(a) < g.Name(b);
+  });
+  for (Iarray::const_iterator j = kids.begin(); j != kids.end(); ++j)
+    EmitAaBranch(g, *j, i, used, order, skip);
+}
+
+/// Canonical amino-acid walk used when the user requests aaorder (ff19SB).
+/** N (+ amide H) → [Pro: CD-ring to CB] → CA (+ HA) → CB side chain → C → O.
+  * Leftovers (OXT, caps) append in index order.
+  */
+Iarray CanonicalAaWalk(Graph const& g, Scaffold const& sc) {
+  std::vector<char> used(g.Natom(), 0);
+  Iarray order;
+  int n  = sc.Aa(Scaffold::AA_N);
+  int ca = sc.Aa(Scaffold::AA_CA);
+  int c  = sc.Aa(Scaffold::AA_C);
+  int o  = sc.Aa(Scaffold::AA_O);
+  int cb = sc.Aa(Scaffold::AA_CB);
+  std::set<int> skip;
+  if (n  >= 0) skip.insert(n);
+  if (ca >= 0) skip.insert(ca);
+  if (c  >= 0) skip.insert(c);
+  if (o  >= 0) skip.insert(o);
+
+  EmitHeavyAndH(g, n, used, order);
+  if (sc.isPro_ && n >= 0) {
+    Iarray const& nn = g.HeavyNbr(n);
+    for (Iarray::const_iterator j = nn.begin(); j != nn.end(); ++j) {
+      if (*j != ca && !used[*j])
+        EmitAaBranch(g, *j, n, used, order, skip);
+    }
+  }
+  EmitHeavyAndH(g, ca, used, order);
+  if (!sc.isPro_) {
+    if (cb >= 0)
+      EmitAaBranch(g, cb, ca, used, order, skip);
+    else if (ca >= 0) {
+      Iarray const& can = g.HeavyNbr(ca);
+      for (Iarray::const_iterator j = can.begin(); j != can.end(); ++j) {
+        if (*j != n && *j != c && !used[*j] && !g.IsHydrogen(*j))
+          EmitAaBranch(g, *j, ca, used, order, skip);
+      }
+    }
+  }
+  EmitHeavyAndH(g, c, used, order);
+  EmitHeavyAndH(g, o, used, order);
+  for (int i = 0; i < g.Natom(); i++) {
+    if (!used[i]) EmitIdx(i, used, order);
+  }
+  return order;
+}
+
+/// Template order: file order, NA walk, or amino-acid walk (ff19SB).
+Iarray ParentOrder(Graph const& tpl, Scaffold const& sc, bool useNaOrder, bool useAaOrder) {
   if (useNaOrder)
     return CanonicalWalk(tpl, sc);
+  if (useAaOrder)
+    return CanonicalAaWalk(tpl, sc);
   Iarray order(tpl.Natom());
   for (int i = 0; i < tpl.Natom(); i++)
     order[i] = i;
@@ -1256,6 +1469,14 @@ int TemplateMatch::CanonicalNaOrder(Topology const& top, Iarray& order) const {
   Scaffold sc;
   DetectScaffold(g, sc);
   order = CanonicalWalk(g, sc);
+  return 0;
+}
+
+int TemplateMatch::CanonicalAaOrder(Topology const& top, Iarray& order) const {
+  Graph g(top);
+  Scaffold sc;
+  DetectScaffold(g, sc);
+  order = CanonicalAaWalk(g, sc);
   return 0;
 }
 
@@ -1290,7 +1511,7 @@ int TemplateMatch::Match(Topology const& tgtTop, Topology const& tplTop, Result&
   }
 
   MapGraphs(tgt, tpl, tgtSc, tplSc, out.mapping_, seed_);
-  Iarray parent = ParentOrder(tpl, tplSc, useNaOrder_);
+  Iarray parent = ParentOrder(tpl, tplSc, useNaOrder_, useAaOrder_);
   out.outputOrder_ = OutputOrder(tgt, tpl, tplSc, out.mapping_, parent, anchorName_);
   out.dual_ = DualOrder(tgt, tpl, tplSc, out.mapping_, parent, anchorName_);
 

@@ -17,21 +17,22 @@ class Topology;
   *
   * Matching is graph-based and is expected to be partial (unlike atommap,
   * which requires a 1:1 correspondence):
-  *   1. Seed by unique atom names, and (for nucleic acids) scaffold roles
-  *      P / O5′ / C5′ / C4′ / O4′ / C1′ / C3′ / C2′ / O3′ / glycosidic N (χ).
+  *   1. Seed by unique atom names, nucleic-acid scaffold roles, or amino-acid
+  *      N / CA / C / O / CB (ff19SB amino19.lib baseline).
   *   2. Grow by pairing unmatched neighbors that share a unique signature
   *      (element, heavy degree, sorted neighbor elements).
   *   3. Attach hydrogens to already-mapped heavy atoms, ordered by name.
   *
   * The same engine is used for nucleotides, amino acids, and small molecules.
   * Nucleic-acid scaffold detection is opportunistic: if no furanose / χ is
-  * found, the residue is kind "unknown" and unique-name seeding is used.
+  * found, the residue is checked for a peptide N–CA–C=O motif (kind "amino");
+  * otherwise kind is "unknown" and unique-name seeding is used.
   */
 class TemplateMatch {
   public:
     typedef std::vector<int> Iarray;
     /// How the correspondence is started before the grow pass.
-    enum SeedType { SEED_AUTO = 0, SEED_NAMES, SEED_NA, SEED_NONE };
+    enum SeedType { SEED_AUTO = 0, SEED_NAMES, SEED_NA, SEED_AA, SEED_NONE };
 
     /// Outcome of Match(): correspondence plus the permutation of the target.
     class Result {
@@ -53,7 +54,7 @@ class TemplateMatch {
         int nMapped_;        ///< target atoms that correspond to a template atom
         int nInsertion_;     ///< target atoms with no template partner
         int nUnmappedTpl_;   ///< template atoms with no target partner
-        std::string tgtKind_; ///< nucleotide | sugar | base | unknown
+        std::string tgtKind_; ///< nucleotide | sugar | base | amino | unknown
         std::string tplKind_;
         std::vector<std::string> notes_; ///< scaffold warnings (empty sugar, …)
     };
@@ -63,6 +64,7 @@ class TemplateMatch {
     void SetSeed(SeedType s)                 { seed_ = s; }
     void SetDebug(int d)                     { debug_ = d; }
     void SetUseNaOrder(bool b)               { useNaOrder_ = b; }
+    void SetUseAaOrder(bool b)               { useAaOrder_ = b; }
     void SetAnchorName(std::string const& n) { anchorName_ = n; }
 
     /// Map tgt onto tpl. Partial maps are success (return 0) as long as the
@@ -71,6 +73,10 @@ class TemplateMatch {
     /// Nucleic-acid canonical walk of top: P → OP → O5′ → C5′ → C4′ → O4′ →
     /// C1′ → base from χ → C3′ → C2′ (+ 2′ substituents) → O3′.
     int CanonicalNaOrder(Topology const& top, Iarray& order) const;
+    /// Amino-acid canonical walk of top (ff19SB amino19.lib): N → H → CA → HA →
+    /// side chain from CB (each heavy, then its hydrogens) → C → O.
+    /// Proline walks N → CD → … → CB → CA → C → O.
+    int CanonicalAaOrder(Topology const& top, Iarray& order) const;
 
     static const char* SeedStr(SeedType);
     static SeedType SeedFromString(std::string const&);
@@ -79,6 +85,7 @@ class TemplateMatch {
     SeedType seed_;
     int debug_;
     bool useNaOrder_;
+    bool useAaOrder_;
     std::string anchorName_;
 };
 #endif

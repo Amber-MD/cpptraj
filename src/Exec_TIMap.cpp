@@ -31,14 +31,22 @@
 // Exec_TIMap::Help()
 void Exec_TIMap::Help() const {
   mprintf("\t<tgt> [template <name>] [out <file>] [tiout <prefix>]\n"
-          "\t[mapout <file>] [name <newparm>] [maponly] [replace] [naorder]\n"
-          "\t[seed {auto|names|na|none}] [anchor <atomname>]\n"
-          "  Align atoms in topology <tgt> to a user-supplied template so that\n"
-          "  shared atoms occupy the same indices. Intended for thermodynamic\n"
-          "  integration (TI) of nucleotides, amino acids, and small molecules.\n"
+          "\t[mapout <file>] [name <newparm>] [maponly] [replace] [naorder] [aaorder]\n"
+          "\t[seed {auto|names|na|aa|none}] [anchor <atomname>]\n"
+          "  Reorder topology <tgt> so shared atoms occupy a common index order.\n"
+          "  Intended for TI of nucleotides, amino acids, and small molecules.\n"
           "  Partial maps are expected (unlike atommap).\n"
-          "  The template is lambda=0; <tgt> is lambda=1.\n"
-          "  Default: write <tgt> as an Amber OFF .lib in template atom order\n"
+          "  Two ways to choose that order:\n"
+          "    template <name>  use the parent's current atom order (Amber .lib, mol2, ...).\n"
+          "    naorder          no parent needed; walk <tgt> itself in Amber NA order:\n"
+          "                     P -> OP -> O5' -> C5' -> C4' -> O4' -> C1' -> base ->\n"
+          "                     C3' -> C2' -> O3'.\n"
+          "    aaorder          no parent needed; walk <tgt> itself in ff19SB amino19.lib\n"
+          "                     order: N -> H -> CA -> HA -> side chain from CB -> C -> O\n"
+          "                     (proline: N -> CD -> ... -> CB -> CA -> C -> O).\n"
+          "  If template and naorder/aaorder are both given, the parent is walked first\n"
+          "  then <tgt> is mapped onto it (use when the parent file order is messy).\n"
+          "  Default: write <tgt> as an Amber OFF .lib in that order\n"
           "  (out <file>; default <residue>.sorted.lib). No dummy atoms.\n"
           "  'maponly' skips that library (and in-memory parm) but still writes\n"
           "  mapout / tiout files if those keywords are given.\n"
@@ -51,12 +59,11 @@ void Exec_TIMap::Help() const {
           "  and Amber type DUM.\n"
           "  Both TI files have the same atom count so residue indices match in pmemd.\n"
           "  'name' stores a remapped topology in memory; 'replace' overwrites <tgt>.\n"
-          "  If 'template' is omitted, <tgt> is matched to itself (use with 'naorder'\n"
-          "  to freeze a nucleic-acid template from an existing residue).\n"
           "  Official ModXNA parent fragments ship in $CPPTRAJHOME/dat/templatematch/.\n"
+          "  ff19SB amino-acid parents: $CPPTRAJHOME/dat/timap/amino19.lib.\n"
           "  Aliases: templatematch, timatch.\n"
           "\n"
-          "  Complete run (Amber OFF libraries parent.lib and analog.lib).\n"
+          "  Analog onto a parent (parent atom order; Amber OFF libraries):\n"
           "  readdata, parm, and timap run when entered (immediate commands).\n"
           "  Use go if the input also has trajin/actions; it is safe to include either way:\n"
           "    > readdata parent.lib name parent\n"
@@ -65,12 +72,16 @@ void Exec_TIMap::Help() const {
           "    > go\n"
           "  Use readdata (not parm) for .lib files. The COORDS set is Name[Unit];\n"
           "  if the unit inside parent.lib is not 'parent', use parent[UnitName].\n"
-          "  For nucleic acids add naorder so the shared-atom walk is\n"
-          "  P -> OP -> O5' -> C5' -> C4' -> O4' -> C1' -> base -> C3' -> C2' -> O3':\n"
-          "    > timap analog[analog] template parent[parent] naorder out analog.lib\n"
+          "  Canonical NA order with no parent (sort this residue the way Amber walks it):\n"
+          "    > readdata analog.lib name analog\n"
+          "    > timap analog[analog] naorder out analog.lib\n"
+          "    > go\n"
+          "  Canonical amino-acid order with no parent (ff19SB walk; for a noncanonical .lib):\n"
+          "    > readdata ncaa.lib name ncaa\n"
+          "    > timap ncaa[ncaa] aaorder out ncaa.lib\n"
           "    > go\n"
           "  Dual-topology TI (opt-in; dummy atoms, matching NATOM):\n"
-          "    > timap analog[analog] template parent[parent] naorder tiout analog_ti\n"
+          "    > timap analog[analog] template parent[parent] tiout analog_ti\n"
           "    > go\n"
           "  Mol2 inputs instead of OFF:\n"
           "    > parm parent.mol2 name parent\n"
@@ -584,6 +595,11 @@ Exec::RetType Exec_TIMap::Execute(CpptrajState& State, ArgList& argIn) {
   bool maponly = argIn.hasKey("maponly");
   bool replace = argIn.hasKey("replace");
   bool naorder = argIn.hasKey("naorder");
+  bool aaorder = argIn.hasKey("aaorder");
+  if (naorder && aaorder) {
+    mprinterr("Error: timap: specify naorder or aaorder, not both.\n");
+    return CpptrajState::ERR;
+  }
 
   std::string tgtName = argIn.GetStringNext();
   if (tgtName.empty()) {
@@ -617,10 +633,13 @@ Exec::RetType Exec_TIMap::Execute(CpptrajState& State, ArgList& argIn) {
   TemplateMatch matcher;
   matcher.SetDebug(State.Debug());
   matcher.SetUseNaOrder(naorder);
+  matcher.SetUseAaOrder(aaorder);
+  if (aaorder && anchor.empty())
+    matcher.SetAnchorName("C");
   if (!anchor.empty()) matcher.SetAnchorName(anchor);
   if (!seedStr.empty()) {
     std::string l = ToLower(seedStr);
-    if (l != "auto" && l != "names" && l != "na" && l != "none") {
+    if (l != "auto" && l != "names" && l != "na" && l != "aa" && l != "none") {
       mprinterr("Error: timap: unrecognized seed '%s'\n", seedStr.c_str());
       return CpptrajState::ERR;
     }
@@ -633,17 +652,31 @@ Exec::RetType Exec_TIMap::Execute(CpptrajState& State, ArgList& argIn) {
     libout += ".sorted.lib";
   }
 
-  mprintf("    TIMAP: Aligning '%s' (%i atoms) to template '%s' (%i atoms).\n",
-          tgtName.c_str(), tgt->Natom(), tplUsed.c_str(), tpl->Natom());
+  const char* walkMsg = "";
+  if (naorder) walkMsg = " with nucleic-acid canonical walk";
+  else if (aaorder) walkMsg = " with amino-acid canonical walk";
+  bool selfMap = (tgt == tpl);
+  if (selfMap)
+    mprintf("    TIMAP: Reordering '%s' (%i atoms)%s.\n",
+            tgtName.c_str(), tgt->Natom(), walkMsg);
+  else
+    mprintf("    TIMAP: Aligning '%s' (%i atoms) to template '%s' (%i atoms).\n",
+            tgtName.c_str(), tgt->Natom(), tplUsed.c_str(), tpl->Natom());
   mprintf("\tSeed: %s\n", TemplateMatch::SeedStr(
             seedStr.empty() ? TemplateMatch::SEED_AUTO
                             : TemplateMatch::SeedFromString(seedStr)));
   if (naorder)
-    mprintf("\tUsing nucleic-acid canonical walk as the template order.\n");
+    mprintf("\tOrder: nucleic-acid canonical walk%s.\n",
+            selfMap ? " of this residue" : " of the template");
+  else if (aaorder)
+    mprintf("\tOrder: amino-acid canonical walk (ff19SB)%s.\n",
+            selfMap ? " of this residue" : " of the template");
+  else if (selfMap)
+    mprintf("\tOrder: this residue's current atom order (no template, no walk).\n");
   else
-    mprintf("\tUsing template file atom order as the shared-atom order.\n");
+    mprintf("\tOrder: template file atom order.\n");
   mprintf("\tLeftover insertion anchor: %s\n",
-          anchor.empty() ? "O3'" : anchor.c_str());
+          !anchor.empty() ? anchor.c_str() : (aaorder ? "C" : "O3'"));
   if (!tiout.empty())
     mprintf("\tTI dual-topology prefix: %s\n", tiout.c_str());
   if (writeLib)
