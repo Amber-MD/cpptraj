@@ -8,6 +8,8 @@ CleanFiles timap.in \
            daa_identity.map \
            cys_aaorder.map cys_shuffled.aaorder.map \
            fle.sorted.lib FLE.sorted.lib \
+           series_parent.dat \
+           series_map_benzene.map series_map_phenol.map \
            fle_ern.0.mol2 fle_ern.1.mol2 fle_ern.0.lib fle_ern.1.lib \
            fle_ern.scmask fle_ern.atoms fle_ern.map \
            phenol_bnz.0.mol2 phenol_bnz.1.mol2 phenol_bnz.0.lib phenol_bnz.1.lib \
@@ -160,6 +162,21 @@ EOF
   RunCpptraj "$UNITNAME"
   DoTest sec_cys.atoms.save sec_cys.atoms
   DoTest sec_cys.scmask.save sec_cys.scmask
+fi
+
+# Series: auto-pick parent (benzene: same mapped total, fewer atoms than phenol),
+# then map every member onto that parent.
+UNITNAME='Series: phenol+benzene auto parent'
+CheckFor maxthreads 1
+if [ $? -eq 0 ] ; then
+  cat > timap.in <<EOF
+parm benzene.mol2 name benzene
+parm phenol.mol2 name phenol
+timap series phenol benzene mapoutprefix series_map_ parentout series_parent.dat maponly
+EOF
+  RunCpptraj "$UNITNAME"
+  DoTest series_parent.dat.save series_parent.dat
+  DoTest series_map_phenol.map.save series_map_phenol.map
 fi
 
 EndTest

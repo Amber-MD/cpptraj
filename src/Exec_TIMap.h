@@ -11,6 +11,7 @@
   * Optional tiout <prefix> writes dual-topology mol2/lib (same NATOM,
   * charge-0 / mass-0 / type DUM dummies) plus scmask for pmemd.
   * naorder / aaorder walk <tgt> itself when no template is given.
+  * series mode auto-selects a parent among many analogs (leadopt-inspired).
   * See TemplateMatch for the matching algorithm.
   */
 class Exec_TIMap : public Exec {

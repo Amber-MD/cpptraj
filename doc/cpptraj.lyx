@@ -26484,6 +26484,14 @@ timap
         [seed {auto|names|na|aa|none}] [anchor <atomname>]
 \end_layout
 
+\begin_layout LyX-Code
+        [series <a> <b> ...] [outprefix <pfx>] [tioutprefix <pfx>]
+\end_layout
+
+\begin_layout LyX-Code
+        [mapoutprefix <pfx>] [parentout <file>]
+\end_layout
+
 \begin_deeper
 \begin_layout Standard
 Align atoms in topology 
@@ -26507,6 +26515,11 @@ tiout
  is given.
  This is intended for preparing residue libraries for thermodynamic integration (TI) of nucleic acids, amino acids, and small molecules,
  where two (or more) end states must list common atoms in the same order.
+ For a series of analogs with no predetermined parent, 
+\series bold
+series
+\series default
+ auto-selects a minimum parent that shares the most with the rest, then maps every analog onto it.
  Unlike 
 \series bold
 atommap
@@ -26838,6 +26851,137 @@ replace
  is also given.
 \end_layout
 
+\begin_layout Description
+series
+\begin_inset space ~
+\end_inset
+
+<a> <b> ... List two or more analog topologies.
+ Chooses one parent that shares the most with the rest, then maps every listed analog onto that parent (star topology for TI).
+ Do not combine with 
+\series bold
+template
+\series default
+.
+ Parent selection: maximize the sum of mapped atoms when every other member is matched onto the candidate; on ties prefer the fewest atoms, then a leadopt-style similarity sum 
+\begin_inset Formula $\sum_{j}\exp(-0.1\cdot(\mathrm{insertions}_{j}+\mathrm{unmapped}_{j}))$
+\end_inset
+
+.
+ That score is adapted from 
+\series bold
+util/leadopt/similarity.py
+\series default
+ (
+\series emph
+exp_delta
+\series default
+ / 
+\series emph
+by_heavy_atom_count
+\series default
+; Summa Lab / Jonathan Redmann & Christopher Summa, University of New Orleans).
+ The common substructure is approximated by 
+\series bold
+TemplateMatch
+\series default
+'s partial map rather than an external MCS engine (
+\series bold
+util/leadopt/mcs.py
+\series default
+, 
+\series bold
+rule.py
+\series default
+, 
+\series bold
+graph.py
+\series default
+).
+ The star-parent use case is inspired by 
+\series bold
+util/leadopt/GraphGenerator4.py
+\series default
+ (Redmann & Summa) without importing that TI-path planner.
+ The 
+\series bold
+leadopt/
+\series default
+ tree is reference-only and is not linked into the cpptraj build.
+\end_layout
+
+\begin_layout Description
+outprefix
+\begin_inset space ~
+\end_inset
+
+<pfx> With 
+\series bold
+series
+\series default
+, write each aligned OFF library as 
+\series bold
+<pfx><name>.sorted.lib
+\series default
+ (default: 
+\series bold
+<name>.sorted.lib
+\series default
+).
+\end_layout
+
+\begin_layout Description
+tioutprefix
+\begin_inset space ~
+\end_inset
+
+<pfx> With 
+\series bold
+series
+\series default
+, write dual-topology TI files for every non-parent member as 
+\series bold
+<pfx><name>.{0,1}.{mol2,lib}
+\series default
+, 
+\series bold
+.scmask
+\series default
+, and 
+\series bold
+.atoms
+\series default
+.
+\end_layout
+
+\begin_layout Description
+mapoutprefix
+\begin_inset space ~
+\end_inset
+
+<pfx> With 
+\series bold
+series
+\series default
+, write each atom map as 
+\series bold
+<pfx><name>.map
+\series default
+.
+\end_layout
+
+\begin_layout Description
+parentout
+\begin_inset space ~
+\end_inset
+
+<file> With 
+\series bold
+series
+\series default
+, write the selected parent name and per-candidate scores.
+\end_layout
+
 \begin_layout Standard
 \series bold
 Generating your own templates
@@ -26852,15 +26996,15 @@ template
 \series bold
 naorder
 \series default
- invents Amber's nucleic-acid walk on 
-\series bold
-<tgt>
-\series default
- itself (a future 
+ or 
 \series bold
 aaorder
 \series default
- will do this from the amino-acid force field).
+ invents Amber's canonical walk on 
+\series bold
+<tgt>
+\series default
+ itself.
 \end_layout
 
 \begin_layout LyX-Code
@@ -26991,6 +27135,27 @@ Canonical amino-acid order, no parent (sort a noncanonical
 
 \begin_layout LyX-Code
 > timap ncaa[ncaa] aaorder out ncaa.lib
+\end_layout
+
+\begin_layout LyX-Code
+> go
+\end_layout
+
+\begin_layout Standard
+Series of analogs (auto-select parent, then map each onto it for TI).
+ Example: phenol and benzene; benzene is chosen (same mapped total, fewer atoms).
+\end_layout
+
+\begin_layout LyX-Code
+> parm benzene.mol2 name benzene
+\end_layout
+
+\begin_layout LyX-Code
+> parm phenol.mol2 name phenol
+\end_layout
+
+\begin_layout LyX-Code
+> timap series phenol benzene outprefix series_ tioutprefix series_ti_ parentout series_parent.dat
 \end_layout
 
 \begin_layout LyX-Code

@@ -16,6 +16,7 @@
 #include "Topology.h"
 #include <algorithm>
 #include <cctype>
+#include <cmath>
 #include <vector>
 
 /* Source encoding: UTF-8. Unicode (O5′, 2′, λ) is comments-only.
@@ -26,6 +27,19 @@
  *   3. If tiout <prefix> is given, also build a dual-topology pair of the
  *      same size: unique atoms are real in one end state and charge-0 /
  *      mass-0 / type-DUM dummies in the other.
+ *   4. series mode: choose one parent among many analogs (leadopt-inspired
+ *      pairwise score), then map every other analog onto that parent.
+ *
+ * Series parent selection cites ideas from util/leadopt/ (not linked into the
+ * build). Authors / sources:
+ *   - Jonathan Redmann & Christopher Summa, Summa Lab, University of New
+ *     Orleans — GraphGenerator4.py (TI graph planning from similarity).
+ *   - leadopt/similarity.py — exp(-BETA * delta) similarity from atom-count
+ *     differences relative to a common substructure (BETA = 0.1).
+ *   - leadopt/mcs.py, rule.py, graph.py — pairwise MCS / common-substructure
+ *     scoring used to decide which compounds share the most.
+ * Here we approximate the common substructure with TemplateMatch's partial
+ * map (nMapped / insertions / unmatched) rather than an external MCS engine.
  */
 
 // Exec_TIMap::Help()
@@ -33,6 +47,8 @@ void Exec_TIMap::Help() const {
   mprintf("\t<tgt> [template <name>] [out <file>] [tiout <prefix>]\n"
           "\t[mapout <file>] [name <newparm>] [maponly] [replace] [naorder] [aaorder]\n"
           "\t[seed {auto|names|na|aa|none}] [anchor <atomname>]\n"
+          "\t[series <a> <b> ...] [outprefix <pfx>] [tioutprefix <pfx>]\n"
+          "\t[mapoutprefix <pfx>] [parentout <file>]\n"
           "  Reorder topology <tgt> so shared atoms occupy a common index order.\n"
           "  Intended for TI of nucleotides, amino acids, and small molecules.\n"
           "  Partial maps are expected (unlike atommap).\n"
@@ -59,6 +75,11 @@ void Exec_TIMap::Help() const {
           "  and Amber type DUM.\n"
           "  Both TI files have the same atom count so residue indices match in pmemd.\n"
           "  'name' stores a remapped topology in memory; 'replace' overwrites <tgt>.\n"
+          "  series <a> <b> ... : choose one parent among the listed topologies that\n"
+          "  shares the most with the rest (leadopt-style pairwise score; see manual),\n"
+          "  preferring the smallest structure on ties, then map every other analog\n"
+          "  onto that parent. Writes <outprefix><name>.sorted.lib (and optional\n"
+          "  tioutprefix / mapoutprefix / parentout). Do not combine with template.\n"
           "  Official ModXNA parent fragments ship in $CPPTRAJHOME/dat/templatematch/.\n"
           "  ff19SB amino-acid parents: $CPPTRAJHOME/dat/timap/amino19.lib.\n"
           "  Aliases: templatematch, timatch.\n"
@@ -79,6 +100,12 @@ void Exec_TIMap::Help() const {
           "  Canonical amino-acid order with no parent (ff19SB walk; for a noncanonical .lib):\n"
           "    > readdata ncaa.lib name ncaa\n"
           "    > timap ncaa[ncaa] aaorder out ncaa.lib\n"
+          "    > go\n"
+          "  Series of analogs (auto parent, then map each onto it):\n"
+          "    > parm a.mol2 name A\n"
+          "    > parm b.mol2 name B\n"
+          "    > parm c.mol2 name C\n"
+          "    > timap series A B C outprefix series_ tioutprefix series_ti_\n"
           "    > go\n"
           "  Dual-topology TI (opt-in; dummy atoms, matching NATOM):\n"
           "    > timap analog[analog] template parent[parent] tiout analog_ti\n"
@@ -580,8 +607,116 @@ static int WriteMapFile(std::string const& fname, Topology const& tgt, Topology 
   return 0;
 }
 
+/** Filename-safe token from a dataset name (FLE[FLE] -> FLE_FLE). */
+static std::string SafeFileToken(std::string const& in)
+{
+  std::string out;
+  for (size_t i = 0; i < in.size(); i++) {
+    char c = in[i];
+    if (std::isalnum((unsigned char)c) || c == '_' || c == '-' || c == '.')
+      out += c;
+    else
+      out += '_';
+  }
+  if (out.empty()) out = "mol";
+  return out;
+}
+
+/** Append comma-split tokens from one user string into names. */
+static void PushSeriesName(std::vector<std::string>& names, std::string const& raw)
+{
+  if (raw.empty()) return;
+  if (raw.find(',') == std::string::npos) {
+    names.push_back(raw);
+    return;
+  }
+  ArgList parts(raw, ",");
+  for (int i = 0; i < parts.Nargs(); i++) {
+    std::string s = parts[i];
+    // Trim spaces
+    size_t b = 0;
+    while (b < s.size() && (s[b] == ' ' || s[b] == '\t')) b++;
+    size_t e = s.size();
+    while (e > b && (s[e - 1] == ' ' || s[e - 1] == '\t')) e--;
+    if (e > b) names.push_back(s.substr(b, e - b));
+  }
+}
+
+/**
+ * leadopt-style pairwise similarity in [0,1].
+ * Adapted from util/leadopt/similarity.py::exp_delta / by_heavy_atom_count
+ * (Summa Lab / Redmann & Summa): score = exp(-BETA * delta), BETA = 0.1,
+ * where delta counts atoms not in the common substructure. Here delta is
+ * TemplateMatch insertions + unmatched template atoms (partial map proxy for MCS).
+ */
+static double LeadoptSimScore(int nInsertion, int nUnmappedTpl)
+{
+  const double BETA = 0.1;
+  return std::exp(-BETA * (double)(nInsertion + nUnmappedTpl));
+}
+
+struct SeriesMember {
+  std::string name;
+  Topology* top;
+  DataSet* ds;
+};
+
+/**
+ * Choose the series parent: maximize total mapped atoms when every other
+ * member is mapped onto the candidate ("shares the most"); on ties prefer
+ * the minimum structure (fewest atoms), then the leadopt-style similarity sum.
+ * Inspired by util/leadopt pairwise MCS scoring (mcs.py / similarity.py /
+ * graph.py) and the star-parent use case of GraphGenerator4.py (Redmann &
+ * Summa, U. New Orleans) without importing that TI-path planner.
+ * \return parent index, or -1 on failure.
+ */
+static int SelectSeriesParent(TemplateMatch const& matcher,
+                              std::vector<SeriesMember> const& mem,
+                              std::vector<double>& outSimSum,
+                              std::vector<int>& outMappedSum)
+{
+  int n = (int)mem.size();
+  outSimSum.assign(n, 0.0);
+  outMappedSum.assign(n, 0);
+  if (n < 2) return -1;
+  int best = -1;
+  for (int i = 0; i < n; i++) {
+    double simSum = 0.0;
+    int mappedSum = 0;
+    for (int j = 0; j < n; j++) {
+      if (j == i) continue;
+      TemplateMatch::Result R;
+      if (matcher.Match(*mem[j].top, *mem[i].top, R)) {
+        mprinterr("Error: timap: series match of '%s' onto candidate '%s' failed.\n",
+                  mem[j].name.c_str(), mem[i].name.c_str());
+        return -1;
+      }
+      mappedSum += R.nMapped_;
+      simSum += LeadoptSimScore(R.nInsertion_, R.nUnmappedTpl_);
+    }
+    outSimSum[i] = simSum;
+    outMappedSum[i] = mappedSum;
+    if (best < 0) {
+      best = i;
+      continue;
+    }
+    bool better = false;
+    if (mappedSum > outMappedSum[best])
+      better = true;
+    else if (mappedSum == outMappedSum[best]) {
+      if (mem[i].top->Natom() < mem[best].top->Natom())
+        better = true;
+      else if (mem[i].top->Natom() == mem[best].top->Natom() &&
+               simSum > outSimSum[best] + 1.0e-12)
+        better = true;
+    }
+    if (better) best = i;
+  }
+  return best;
+}
+
 /** Parse arguments, run TemplateMatch::Match, write an aligned OFF library,
-  * and optionally dual-topology TI files.
+  * and optionally dual-topology TI files. series mode auto-selects a parent.
   */
 // Exec_TIMap::Execute()
 Exec::RetType Exec_TIMap::Execute(CpptrajState& State, ArgList& argIn) {
@@ -592,22 +727,219 @@ Exec::RetType Exec_TIMap::Execute(CpptrajState& State, ArgList& argIn) {
   std::string seedStr = argIn.GetStringKey("seed");
   std::string anchor = argIn.GetStringKey("anchor");
   std::string tiout = argIn.GetStringKey("tiout");
+  std::string outprefix = argIn.GetStringKey("outprefix");
+  std::string tioutprefix = argIn.GetStringKey("tioutprefix");
+  std::string mapoutprefix = argIn.GetStringKey("mapoutprefix");
+  std::string parentout = argIn.GetStringKey("parentout");
   bool maponly = argIn.hasKey("maponly");
   bool replace = argIn.hasKey("replace");
   bool naorder = argIn.hasKey("naorder");
   bool aaorder = argIn.hasKey("aaorder");
+  bool series = argIn.hasKey("series");
   if (naorder && aaorder) {
     mprinterr("Error: timap: specify naorder or aaorder, not both.\n");
     return CpptrajState::ERR;
   }
 
-  std::string tgtName = argIn.GetStringNext();
-  if (tgtName.empty()) {
+  // Collect remaining unmarked names (series members, or tgt [/ template]).
+  std::vector<std::string> names;
+  std::string next = argIn.GetStringNext();
+  while (!next.empty()) {
+    PushSeriesName(names, next);
+    next = argIn.GetStringNext();
+  }
+  // Legacy: template <name> already consumed; if no series and template empty,
+  // second positional was historically the optional template without the keyword.
+  // That form is: timap <tgt> <tpl> — already collected into names.
+
+  if (series) {
+    if (!tplName.empty()) {
+      mprinterr("Error: timap: series chooses the parent; do not also give template.\n");
+      return CpptrajState::ERR;
+    }
+    if (replace || !newname.empty()) {
+      mprinterr("Error: timap: series does not support replace / name.\n");
+      return CpptrajState::ERR;
+    }
+    if (names.size() < 2) {
+      mprinterr("Error: timap: series needs at least two topologies.\n");
+      return CpptrajState::ERR;
+    }
+
+    TemplateMatch matcher;
+    matcher.SetDebug(State.Debug());
+    matcher.SetUseNaOrder(naorder);
+    matcher.SetUseAaOrder(aaorder);
+    if (aaorder && anchor.empty())
+      matcher.SetAnchorName("C");
+    if (!anchor.empty()) matcher.SetAnchorName(anchor);
+    if (!seedStr.empty()) {
+      std::string l = ToLower(seedStr);
+      if (l != "auto" && l != "names" && l != "na" && l != "aa" && l != "none") {
+        mprinterr("Error: timap: unrecognized seed '%s'\n", seedStr.c_str());
+        return CpptrajState::ERR;
+      }
+      matcher.SetSeed(TemplateMatch::SeedFromString(seedStr));
+    }
+
+    std::vector<SeriesMember> mem;
+    mem.reserve(names.size());
+    for (size_t i = 0; i < names.size(); i++) {
+      SeriesMember m;
+      m.name = names[i];
+      m.ds = 0;
+      m.top = FindNamedTop(State.DSL(), m.name, &m.ds);
+      if (m.top == 0) {
+        mprinterr("Error: timap: series member '%s' not found.\n", m.name.c_str());
+        return CpptrajState::ERR;
+      }
+      mem.push_back(m);
+    }
+
+    mprintf("    TIMAP: Series of %zu topologies; selecting parent.\n", mem.size());
+    mprintf("\tSeed: %s\n", TemplateMatch::SeedStr(
+              seedStr.empty() ? TemplateMatch::SEED_AUTO
+                              : TemplateMatch::SeedFromString(seedStr)));
+    if (naorder)
+      mprintf("\tOrder: nucleic-acid canonical walk of the selected parent.\n");
+    else if (aaorder)
+      mprintf("\tOrder: amino-acid canonical walk (ff19SB) of the selected parent.\n");
+    else
+      mprintf("\tOrder: selected parent's current atom order.\n");
+    mprintf("\tParent score: maximize total mapped atoms; ties prefer fewer atoms,\n"
+            "\t  then leadopt-style exp(-0.1*(ins+unmap)) (see util/leadopt citation).\n");
+
+    std::vector<double> simSum;
+    std::vector<int> mappedSum;
+    int pIdx = SelectSeriesParent(matcher, mem, simSum, mappedSum);
+    if (pIdx < 0) return CpptrajState::ERR;
+
+    SeriesMember const& parent = mem[pIdx];
+    mprintf("\tSelected parent: '%s' (%i atoms, sim-sum=%.6f, mapped-sum=%i).\n",
+            parent.name.c_str(), parent.top->Natom(), simSum[pIdx], mappedSum[pIdx]);
+    for (size_t i = 0; i < mem.size(); i++) {
+      mprintf("\t  candidate %-16s atoms=%4i  sim-sum=%.6f  mapped-sum=%i%s\n",
+              mem[i].name.c_str(), mem[i].top->Natom(),
+              simSum[i], mappedSum[i],
+              ((int)i == pIdx) ? "  <-- parent" : "");
+    }
+
+    if (!parentout.empty()) {
+      CpptrajFile pout;
+      if (pout.OpenWrite(parentout)) {
+        mprinterr("Error: timap: could not write parentout '%s'\n", parentout.c_str());
+        return CpptrajState::ERR;
+      }
+      pout.Printf("# timap series parent selection\n");
+      pout.Printf("# score = sum_j exp(-0.1*(insertions+unmapped)) mapping j onto candidate\n");
+      pout.Printf("# adapted from util/leadopt/similarity.py (Redmann & Summa / Summa Lab)\n");
+      pout.Printf("parent %s\n", parent.name.c_str());
+      pout.Printf("#Idx Name                 Natom   SimSum  MappedSum\n");
+      for (size_t i = 0; i < mem.size(); i++) {
+        pout.Printf(" %3zu %-20s %5i %10.6f %10i%s\n",
+                    i + 1, mem[i].name.c_str(), mem[i].top->Natom(),
+                    simSum[i], mappedSum[i],
+                    ((int)i == pIdx) ? " parent" : "");
+      }
+      pout.CloseFile();
+      mprintf("\tWrote parent selection to '%s'\n", parentout.c_str());
+    }
+
+    bool writeLib = !maponly;
+    for (size_t i = 0; i < mem.size(); i++) {
+      SeriesMember const& tgt = mem[i];
+      TemplateMatch::Result R;
+      if (matcher.Match(*tgt.top, *parent.top, R)) return CpptrajState::ERR;
+
+      mprintf("\t[%zu/%zu] '%s' onto parent '%s': mapped %i / %i "
+              "(%i insertions, %i parent unmatched).\n",
+              i + 1, mem.size(), tgt.name.c_str(), parent.name.c_str(),
+              R.nMapped_, tgt.top->Natom(), R.nInsertion_, R.nUnmappedTpl_);
+
+      std::string tok = SafeFileToken(tgt.name);
+      std::string thisMap = mapoutprefix.empty() ? std::string()
+                                                 : mapoutprefix + tok + ".map";
+      if (!mapoutprefix.empty()) {
+        if (WriteMapFile(thisMap, *tgt.top, *parent.top, R, tgt.name, parent.name))
+          return CpptrajState::ERR;
+        mprintf("\t  Map written to '%s'\n", thisMap.c_str());
+      }
+
+      // TI dual files for every non-parent member (or all if tioutprefix set).
+      if (!tioutprefix.empty() && (int)i != pIdx) {
+        std::string tip = tioutprefix + tok;
+        Frame tgtX, tplX;
+        LoadCoords(*tgt.top, tgt.ds, tgtX);
+        LoadCoords(*parent.top, parent.ds, tplX);
+        Topology top0, top1;
+        Frame frm0, frm1;
+        NameType rn0 = ResNameOf(*parent.top, "L0");
+        NameType rn1 = ResNameOf(*tgt.top, "L1");
+        if (BuildTiUnit(true,  *tgt.top, *parent.top, tgtX, tplX, R.dual_, top0, frm0, rn0) ||
+            BuildTiUnit(false, *tgt.top, *parent.top, tgtX, tplX, R.dual_, top1, frm1, rn1))
+        {
+          mprinterr("Error: timap: failed to build TI units for '%s'.\n", tgt.name.c_str());
+          return CpptrajState::ERR;
+        }
+        std::string f0m = tip + ".0.mol2";
+        std::string f1m = tip + ".1.mol2";
+        std::string f0l = tip + ".0.lib";
+        std::string f1l = tip + ".1.lib";
+        std::string fsc = tip + ".scmask";
+        std::string fat = tip + ".atoms";
+        std::string u0 = OffUnitName(rn0.Truncated(), '0');
+        std::string u1 = OffUnitName(rn1.Truncated(), '1');
+        if (u0 == u1) { u0 += "0"; u1 += "1"; }
+        top0.SetParmName(u0, FileName(f0m));
+        top1.SetParmName(u1, FileName(f1m));
+        if (WriteMol2File(f0m, top0, frm0, State.DSL())) return CpptrajState::ERR;
+        if (WriteMol2File(f1m, top1, frm1, State.DSL())) return CpptrajState::ERR;
+        if (WriteAmberLib(f0l, u0, top0, frm0)) return CpptrajState::ERR;
+        if (WriteAmberLib(f1l, u1, top1, frm1)) return CpptrajState::ERR;
+        if (WriteScmask(fsc, top0, top1, R.dual_)) return CpptrajState::ERR;
+        if (WriteDualAtoms(fat, top0, top1, R.dual_)) return CpptrajState::ERR;
+        if (mapoutprefix.empty()) {
+          std::string fmap = tip + ".map";
+          if (WriteMapFile(fmap, *tgt.top, *parent.top, R, tgt.name, parent.name))
+            return CpptrajState::ERR;
+        }
+        mprintf("\t  TI dual-topology prefix: %s\n", tip.c_str());
+      }
+
+      if (!writeLib) continue;
+      Topology* aligned = tgt.top->ModifyByMap(R.outputOrder_);
+      if (aligned == 0) {
+        mprinterr("Error: timap: failed to apply atom order for '%s'.\n", tgt.name.c_str());
+        return CpptrajState::ERR;
+      }
+      std::string thisLib = outprefix + tok + ".sorted.lib";
+      Frame tgtX, alignedX;
+      LoadCoords(*tgt.top, tgt.ds, tgtX);
+      ApplyOrderToFrame(tgtX, R.outputOrder_, alignedX);
+      std::string unit = OffUnitName(ResNameOf(*aligned, "TGT").Truncated(), 'T');
+      aligned->SetParmName(unit, FileName(thisLib));
+      if (WriteAmberLib(thisLib, unit, *aligned, alignedX)) {
+        delete aligned;
+        return CpptrajState::ERR;
+      }
+      mprintf("\t  Aligned OFF library: %s\n", thisLib.c_str());
+      delete aligned;
+    }
+    return CpptrajState::OK;
+  }
+
+  // ----- Single-pair / self-map path -----
+  if (names.empty()) {
     mprinterr("Error: timap: no target topology specified.\n");
     return CpptrajState::ERR;
   }
-  if (tplName.empty())
-    tplName = argIn.GetStringNext();
+  std::string tgtName = names[0];
+  if (tplName.empty() && names.size() > 1)
+    tplName = names[1];
+  if (names.size() > 2) {
+    mprinterr("Error: timap: extra arguments; use 'series' for more than one analog.\n");
+    return CpptrajState::ERR;
+  }
 
   DataSet* tgtDs = 0;
   Topology* tgt = FindNamedTop(State.DSL(), tgtName, &tgtDs);
