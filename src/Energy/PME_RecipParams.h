@@ -13,7 +13,7 @@ class PME_RecipParams {
   public:
     /// CONSTRUCTOR
     PME_RecipParams();
-    /// Initilize recip options
+    /// Initalize recip options
     int InitRecip(EwaldOptions const&, int);
     /// Print recip options to stdout
     void PrintRecipOpts() const;
