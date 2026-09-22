@@ -730,13 +730,20 @@ class NonbondParmType {
     /** Reserve space if not yet allocated, allows it to be used in conjunction
       * with AddLJterm.
       */
-    NonbondType& SetLJ14(int ndx)  {
+    NonbondType& SetLJ14(int ndx) {
       if (ndx >= (int)lj14_.size())
         lj14_.resize(ndx+1);
       return lj14_[ndx];
     }
     /// Set specified LJC term
-    void SetLJC(int i, double ljc) { ccoef_[i] = ljc; }
+    /** Reserve space if not yet allocated, allows it to be used in conjunction
+      * with AddLJterm.
+      */
+    void SetLJC(int ndx, double ljc) {
+      if ( ndx >= (int)ccoef_.size())
+        ccoef_.resize(ndx+1);
+      ccoef_[ndx] = ljc;
+    }
     /// Set number of HB terms and init HB array TODO combine with SetNtypes?
     void SetNHBterms(int n)   { hbarray_.assign( n, HB_ParmType() ); }
     /// Set specified HB term
