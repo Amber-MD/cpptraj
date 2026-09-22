@@ -10,6 +10,9 @@ CleanFiles timap.in \
            fle.sorted.lib FLE.sorted.lib \
            series_parent.dat \
            series_map_benzene.map series_map_phenol.map \
+           mix_pdb_mol2.map path_mix.map \
+           phenol_aligned.mol2 phenol_aligned.pdb phenol_mol2_out.map \
+           phenol_mol2_rt.map phenol_pdb_rt.map \
            fle_ern.0.mol2 fle_ern.1.mol2 fle_ern.0.lib fle_ern.1.lib \
            fle_ern.scmask fle_ern.atoms fle_ern.map \
            phenol_bnz.0.mol2 phenol_bnz.1.mol2 phenol_bnz.0.lib phenol_bnz.1.lib \
@@ -99,12 +102,12 @@ EOF
   DoTest cys_shuffled.aaorder.map.save cys_shuffled.aaorder.map
 fi
 
-# Smoke test: official ModXNA parent shipped in dat/templatematch/.
+# Smoke test: official ModXNA parent shipped in dat/timap/.
 UNITNAME='Shipped ModXNA parent: DAA identity map'
 CheckFor maxthreads 1
 if [ $? -eq 0 ] ; then
   cat > timap.in <<EOF
-parm ../../dat/templatematch/DAA.mol2 name DAA
+parm ../../dat/timap/DAA.mol2 name DAA
 timap DAA template DAA mapout daa_identity.map maponly
 EOF
   RunCpptraj "$UNITNAME"
@@ -177,6 +180,49 @@ EOF
   RunCpptraj "$UNITNAME"
   DoTest series_parent.dat.save series_parent.dat
   DoTest series_map_phenol.map.save series_map_phenol.map
+fi
+
+# Mix formats: PDB target onto mol2 parent (both become Topology).
+UNITNAME='Mixed formats: phenol.pdb onto benzene.mol2'
+CheckFor maxthreads 1
+if [ $? -eq 0 ] ; then
+  cat > timap.in <<EOF
+parm benzene.mol2 name benzene
+parm phenol.pdb name phenol
+timap phenol template benzene mapout mix_pdb_mol2.map maponly
+EOF
+  RunCpptraj "$UNITNAME"
+  DoTest phenol_to_benzene.map.save mix_pdb_mol2.map
+fi
+
+# Auto-load file paths (no prior parm/readdata); mol2 onto pdb.
+UNITNAME='Path auto-load: phenol.mol2 onto benzene.pdb'
+CheckFor maxthreads 1
+if [ $? -eq 0 ] ; then
+  cat > timap.in <<EOF
+timap phenol.mol2 template benzene.pdb mapout path_mix.map maponly
+EOF
+  RunCpptraj "$UNITNAME"
+  DoTest path_mix.map.save path_mix.map
+fi
+
+# Aligned structure writers: mol2 and pdb (extension selects format).
+UNITNAME='Output formats: aligned mol2 and pdb'
+CheckFor maxthreads 1
+if [ $? -eq 0 ] ; then
+  cat > timap.in <<EOF
+parm benzene.mol2 name benzene
+parm phenol.mol2 name phenol
+timap phenol template benzene out phenol_aligned.mol2 mapout phenol_mol2_out.map
+timap phenol template benzene out phenol_aligned.pdb
+# Smoke: written mol2/pdb must reload and rematch.
+parm phenol_aligned.mol2 name pmol2
+parm phenol_aligned.pdb name ppdb
+timap pmol2 template benzene mapout phenol_mol2_rt.map maponly
+timap ppdb template benzene mapout phenol_pdb_rt.map maponly
+EOF
+  RunCpptraj "$UNITNAME"
+  DoTest phenol_to_benzene.map.save phenol_mol2_out.map
 fi
 
 EndTest

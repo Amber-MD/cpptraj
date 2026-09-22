@@ -78,11 +78,9 @@ test.atommap:
 	@-cd Test_AtomMap && ./RunTest.sh $(OPT)
 
 test.timap:
-	@-cd Test_TemplateMatch && ./RunTest.sh $(OPT)
+	@-cd Test_TIMap && ./RunTest.sh $(OPT)
 
 test.timatch: test.timap
-
-test.templatematch: test.timap
 
 test.2drms:
 	@-cd Test_2DRMS && ./RunTest.sh $(OPT)

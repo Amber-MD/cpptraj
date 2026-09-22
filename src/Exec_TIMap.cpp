@@ -1,9 +1,13 @@
 #include "Exec_TIMap.h"
-#include "TemplateMatch.h"
+#include "TIMatch.h"
 #include "CpptrajStdio.h"
 #include "CpptrajFile.h"
+#include "CpptrajState.h"
 #include "DataSet_Topology.h"
 #include "DataSet_Coords.h"
+#include "DataFile.h"
+#include "ParmFile.h"
+#include "FileName.h"
 #include "StringRoutines.h"
 #include "ArgList.h"
 #include "Frame.h"
@@ -23,7 +27,7 @@
  *
  * Workflow:
  *   1. Match target onto template (partial map).
- *   2. Write the target as an Amber OFF .lib in template atom order (out).
+ *   2. Write the remapped target (out / fmt: Amber OFF .lib, mol2, or pdb).
  *   3. If tiout <prefix> is given, also build a dual-topology pair of the
  *      same size: unique atoms are real in one end state and charge-0 /
  *      mass-0 / type-DUM dummies in the other.
@@ -38,89 +42,83 @@
  *     differences relative to a common substructure (BETA = 0.1).
  *   - leadopt/mcs.py, rule.py, graph.py — pairwise MCS / common-substructure
  *     scoring used to decide which compounds share the most.
- * Here we approximate the common substructure with TemplateMatch's partial
+ * Here we approximate the common substructure with TIMatch's partial
  * map (nMapped / insertions / unmatched) rather than an external MCS engine.
+ * \author Nathan D. Levinzon <ndlevinzon@gmail.com>
  */
 
 // Exec_TIMap::Help()
 void Exec_TIMap::Help() const {
-  mprintf("\t<tgt> [template <name>] [out <file>] [tiout <prefix>]\n"
-          "\t[mapout <file>] [name <newparm>] [maponly] [replace] [naorder] [aaorder]\n"
+  mprintf("\t{ <tgt> [template <name>] [naorder|aaorder] |\n"
+          "\t  series <a> <b> ... [outprefix <pfx>] [tioutprefix <pfx>]\n"
+          "\t         [mapoutprefix <pfx>] [parentout <file>] }\n"
+          "\t[out <file>] [fmt {lib|mol2|pdb}] [tiout <prefix>] [mapout <file>] [maponly]\n"
+          "\t[name <newparm>] [replace]\n"
           "\t[seed {auto|names|na|aa|none}] [anchor <atomname>]\n"
-          "\t[series <a> <b> ...] [outprefix <pfx>] [tioutprefix <pfx>]\n"
-          "\t[mapoutprefix <pfx>] [parentout <file>]\n"
-          "  Reorder topology <tgt> so shared atoms occupy a common index order.\n"
-          "  Intended for TI of nucleotides, amino acids, and small molecules.\n"
-          "  Partial maps are expected (unlike atommap).\n"
-          "  Two ways to choose that order:\n"
-          "    template <name>  use the parent's current atom order (Amber .lib, mol2, ...).\n"
-          "    naorder          no parent needed; walk <tgt> itself in Amber NA order:\n"
+          "  Reorder atoms so shared sites share indices for TI (nucleotides,\n"
+          "  amino acids, small molecules). Partial maps are expected (unlike atommap).\n"
+          "\n"
+          "  Atom order (pick one; combine template with naorder/aaorder to walk the\n"
+          "  parent first when its file order is messy):\n"
+          "    template <name>  parent's current order (Amber .lib, mol2, ...).\n"
+          "    naorder          Amber NA walk of <tgt> (or of template if given):\n"
           "                     P -> OP -> O5' -> C5' -> C4' -> O4' -> C1' -> base ->\n"
           "                     C3' -> C2' -> O3'.\n"
-          "    aaorder          no parent needed; walk <tgt> itself in ff19SB amino19.lib\n"
-          "                     order: N -> H -> CA -> HA -> side chain from CB -> C -> O\n"
+          "    aaorder          ff19SB amino19.lib walk of <tgt> (or of template):\n"
+          "                     N -> H -> CA -> HA -> side chain from CB -> C -> O\n"
           "                     (proline: N -> CD -> ... -> CB -> CA -> C -> O).\n"
-          "  If template and naorder/aaorder are both given, the parent is walked first\n"
-          "  then <tgt> is mapped onto it (use when the parent file order is messy).\n"
-          "  Default: write <tgt> as an Amber OFF .lib in that order\n"
-          "  (out <file>; default <residue>.sorted.lib). No dummy atoms.\n"
-          "  'maponly' skips that library (and in-memory parm) but still writes\n"
-          "  mapout / tiout files if those keywords are given.\n"
-          "  'tiout <prefix>' additionally writes a dual-topology TI pair:\n"
-          "    <prefix>.0.mol2 / <prefix>.0.lib  lambda=0 template + dummy insertions\n"
-          "    <prefix>.1.mol2 / <prefix>.1.lib  lambda=1 target + dummy unmatched atoms\n"
-          "    <prefix>.scmask                   pmemd scmask1 / scmask2\n"
-          "    <prefix>.atoms                    per-slot kind, names, and charges\n"
-          "  Dummy atoms copy the partner's name and coords, have charge 0, mass 0,\n"
-          "  and Amber type DUM.\n"
-          "  Both TI files have the same atom count so residue indices match in pmemd.\n"
-          "  'name' stores a remapped topology in memory; 'replace' overwrites <tgt>.\n"
-          "  series <a> <b> ... : choose one parent among the listed topologies that\n"
-          "  shares the most with the rest (leadopt-style pairwise score; see manual),\n"
-          "  preferring the smallest structure on ties, then map every other analog\n"
-          "  onto that parent. Writes <outprefix><name>.sorted.lib (and optional\n"
-          "  tioutprefix / mapoutprefix / parentout). Do not combine with template.\n"
-          "  Official ModXNA parent fragments ship in $CPPTRAJHOME/dat/templatematch/.\n"
-          "  ff19SB amino-acid parents: $CPPTRAJHOME/dat/timap/amino19.lib.\n"
-          "  Aliases: templatematch, timatch.\n"
+          "    series <a> <b>... auto-pick one parent among the listed topologies\n"
+          "                     (max mapped-atom sum; ties: fewest atoms, then\n"
+          "                     leadopt-style exp(-0.1*(ins+unmap)) sum; see manual),\n"
+          "                     then map every member onto it. Not with template.\n"
           "\n"
-          "  Analog onto a parent (parent atom order; Amber OFF libraries):\n"
-          "  readdata, parm, and timap run when entered (immediate commands).\n"
-          "  Use go if the input also has trajin/actions; it is safe to include either way:\n"
+          "  Output:\n"
+          "    Default: remapped structure (out <file>; else <residue>.sorted.lib).\n"
+          "    fmt {lib|mol2|pdb}  choose writer (default lib). If out has extension\n"
+          "                       .mol2 / .pdb / .lib, that format is used instead.\n"
+          "    maponly  skip the aligned structure / in-memory parm; still write\n"
+          "             mapout/tiout.\n"
+          "    mapout   atom correspondence file.\n"
+          "    name / replace  store remapped topology, or overwrite <tgt>.\n"
+          "    tiout <prefix>  dual-topology TI pair (same NATOM; DUM q=0 m=0):\n"
+          "      <prefix>.0.mol2/.lib  lambda=0 template + dummy insertions\n"
+          "      <prefix>.1.mol2/.lib  lambda=1 target + dummy unmatched atoms\n"
+          "      <prefix>.scmask       pmemd scmask1 / scmask2\n"
+          "      <prefix>.atoms        per-slot kind, names, charges\n"
+          "    series also: <outprefix><name>.sorted.{lib|mol2|pdb},\n"
+          "                 <tioutprefix><name>.*, <mapoutprefix><name>.map,\n"
+          "                 parentout score table.\n"
+          "\n"
+          "  Matching: seed auto|names|na|aa|none (default auto). Insertions bonded\n"
+          "  to a mapped parent follow that parent; other leftovers go before\n"
+          "  anchor <atomname> (default O3').\n"
+          "\n"
+          "  Inputs: Amber OFF .lib (readdata → Name[Unit]), or mol2 / pdb / Amber\n"
+          "  topology via parm — or pass a file path and timap loads it. Formats may\n"
+          "  be mixed; everything is matched as Topology. ModXNA parents and\n"
+          "  ff19SB amino19.lib: $CPPTRAJHOME/dat/timap/. Immediate command; add go\n"
+          "  if the input has trajin. Alias: timatch.\n"
+          "\n"
+          "  Examples:\n"
           "    > readdata parent.lib name parent\n"
           "    > readdata analog.lib name analog\n"
           "    > timap analog[analog] template parent[parent] out analog.lib\n"
-          "    > go\n"
-          "  Use readdata (not parm) for .lib files. The COORDS set is Name[Unit];\n"
-          "  if the unit inside parent.lib is not 'parent', use parent[UnitName].\n"
-          "  Canonical NA order with no parent (sort this residue the way Amber walks it):\n"
-          "    > readdata analog.lib name analog\n"
           "    > timap analog[analog] naorder out analog.lib\n"
-          "    > go\n"
-          "  Canonical amino-acid order with no parent (ff19SB walk; for a noncanonical .lib):\n"
-          "    > readdata ncaa.lib name ncaa\n"
           "    > timap ncaa[ncaa] aaorder out ncaa.lib\n"
-          "    > go\n"
-          "  Series of analogs (auto parent, then map each onto it):\n"
-          "    > parm a.mol2 name A\n"
-          "    > parm b.mol2 name B\n"
-          "    > parm c.mol2 name C\n"
-          "    > timap series A B C outprefix series_ tioutprefix series_ti_\n"
-          "    > go\n"
-          "  Dual-topology TI (opt-in; dummy atoms, matching NATOM):\n"
           "    > timap analog[analog] template parent[parent] tiout analog_ti\n"
-          "    > go\n"
-          "  Mol2 inputs instead of OFF:\n"
-          "    > parm parent.mol2 name parent\n"
-          "    > parm analog.mol2 name analog\n"
-          "    > timap analog template parent out analog.lib\n"
-          "    > go\n");
+          "    > parm a.mol2 name A\n"
+          "    > parm b.pdb name B\n"
+          "    > timap series A B outprefix s_ tioutprefix s_ti_ parentout parent.dat\n"
+          "    > timap phenol.mol2 template benzene.pdb out phenol.lib\n"
+          "    > timap phenol.mol2 template benzene.pdb out phenol.mol2\n"
+          "    > timap phenol.mol2 template benzene.pdb out phenol.pdb\n"
+          "    > timap phenol.mol2 template cys.lib[CYS] mapout mix.map maponly\n");
 }
 
-/** Look up a topology by the name the user typed.
+/** Look up a topology by the name the user typed (already-loaded sets only).
   *
   * Order of attempts:
-  *   1. A TOPOLOGY dataset (parm / parmwrite sets).
+  *   1. A TOPOLOGY dataset (parm / parmwrite sets: mol2, pdb, Amber, ...).
   *   2. A COORDS dataset — Amber OFF units loaded with readdata appear as
   *      LibName[UnitName], e.g. FLE[FLE] or CYS[CYS].
   *   3. A purely numeric string, treated as a parm index.
@@ -148,6 +146,101 @@ static Topology* FindNamedTop(DataSetList& dsl, std::string const& name, DataSet
   if (!isInt) return 0;
   ArgList tmp(name);
   return dsl.GetTopByIndex(tmp);
+}
+
+/** Split optional Amber-OFF unit bracket: path[Unit] → path, Unit. */
+static void ParseTopSpec(std::string const& spec, std::string& primary, std::string& unit)
+{
+  primary = spec;
+  unit.clear();
+  if (spec.empty()) return;
+  size_t rb = spec.rfind(']');
+  size_t lb = spec.rfind('[');
+  if (lb != std::string::npos && rb != std::string::npos &&
+      rb == spec.size() - 1 && rb > lb)
+  {
+    primary = spec.substr(0, lb);
+    unit = spec.substr(lb + 1, rb - lb - 1);
+  }
+}
+
+/** Basename without extension (phenol.mol2 → phenol). */
+static std::string FileStem(FileName const& fn)
+{
+  std::string b = fn.Base();
+  std::string e = fn.Ext();
+  if (!e.empty() && b.size() > e.size() &&
+      b.compare(b.size() - e.size(), e.size(), e) == 0)
+    return b.substr(0, b.size() - e.size());
+  return b;
+}
+
+/**
+ * Resolve a user topology specifier to Topology.
+ * Accepts an already-loaded set name, or a mol2/pdb/Amber/.lib file path
+ * (auto-loaded via ParmFile or DataFile Amber OFF). All formats become the
+ * same internal Topology for TIMatch; mix-and-match is allowed.
+ */
+static Topology* ResolveTop(CpptrajState& State, std::string const& spec, DataSet** dsOut)
+{
+  if (dsOut != 0) *dsOut = 0;
+  if (spec.empty()) return 0;
+
+  Topology* top = FindNamedTop(State.DSL(), spec, dsOut);
+  if (top != 0) return top;
+
+  std::string primary, unit;
+  ParseTopSpec(spec, primary, unit);
+  if (primary != spec) {
+    top = FindNamedTop(State.DSL(), primary, dsOut);
+    if (top != 0) return top;
+    if (!unit.empty()) {
+      std::string withUnit = primary + "[" + unit + "]";
+      top = FindNamedTop(State.DSL(), withUnit, dsOut);
+      if (top != 0) return top;
+    }
+  }
+
+  bool maybeFile = File::Exists(primary) ||
+                   primary.find('.') != std::string::npos ||
+                   primary.find('/') != std::string::npos ||
+                   primary.find('\\') != std::string::npos;
+  if (!maybeFile || !File::Exists(primary))
+    return 0;
+
+  FileName fn(primary);
+  std::string stem = FileStem(fn);
+  if (stem.empty()) stem = fn.Base();
+
+  // Topology formats: mol2, pdb, Amber parm, PSF, ...
+  if (ParmFile::DetectFormat(fn) != ParmFile::UNKNOWN_PARM) {
+    ArgList nameArg(std::string("name ") + stem);
+    if (State.AddTopology(primary, nameArg)) {
+      mprinterr("Error: timap: could not load topology file '%s'\n", primary.c_str());
+      return 0;
+    }
+    mprintf("\tLoaded topology file '%s' as '%s'\n", primary.c_str(), stem.c_str());
+    return FindNamedTop(State.DSL(), stem, dsOut);
+  }
+
+  // Amber OFF .lib (and other DataFile formats that yield COORDS with Topology)
+  DataFile dfile;
+  ArgList nameArg(std::string("name ") + stem);
+  if (dfile.ReadDataIn(fn, nameArg, State.DSL())) {
+    mprinterr("Error: timap: could not load data/topology file '%s'\n", primary.c_str());
+    return 0;
+  }
+  std::string lookup = unit.empty() ? stem : (stem + "[" + unit + "]");
+  top = FindNamedTop(State.DSL(), lookup, dsOut);
+  if (top == 0 && !unit.empty())
+    top = FindNamedTop(State.DSL(), stem, dsOut);
+  if (top == 0) {
+    mprinterr("Error: timap: loaded '%s' but found no topology set named '%s'\n",
+              primary.c_str(), lookup.c_str());
+    return 0;
+  }
+  mprintf("\tLoaded file '%s' as '%s'\n", primary.c_str(), lookup.c_str());
+  return top;
 }
 
 /** Fill frm with coordinates for top. Prefer a COORDS frame; else the original file. */
@@ -229,11 +322,11 @@ static NameType ResNameOf(Topology const& top, const char* fallback)
 static int BuildTiUnit(bool lambda0,
                        Topology const& tgt, Topology const& tpl,
                        Frame const& tgtX, Frame const& tplX,
-                       std::vector<TemplateMatch::Result::DualSlot> const& dual,
+                       std::vector<TIMatch::Result::DualSlot> const& dual,
                        Topology& outTop, Frame& outFrm,
                        NameType const& resname)
 {
-  typedef TemplateMatch::Result::DualSlot Slot;
+  typedef TIMatch::Result::DualSlot Slot;
   outTop = Topology();
   Residue res(resname, 1, ' ', "");
   int nd = (int)dual.size();
@@ -361,6 +454,70 @@ static int WriteMol2File(std::string const& fname, Topology& top, Frame const& f
   return 0;
 }
 
+/** Write PDB via Traj_PDBfile; include CONECT so bonds round-trip for rematching. */
+static int WritePdbFile(std::string const& fname, Topology& top, Frame const& frm,
+                        DataSetList const& dsl)
+{
+  Trajout_Single out;
+  ArgList pdbArgs("conect");
+  if (out.PrepareTrajWrite(fname, pdbArgs, dsl, &top, CoordinateInfo(), 1,
+                           TrajectoryFile::PDBFILE))
+  {
+    mprinterr("Error: timap: could not set up pdb '%s'\n", fname.c_str());
+    return 1;
+  }
+  if (out.WriteSingle(0, frm)) {
+    mprinterr("Error: timap: writing pdb '%s'\n", fname.c_str());
+    return 1;
+  }
+  out.EndTraj();
+  mprintf("\tWrote '%s' (%i atoms).\n", fname.c_str(), top.Natom());
+  return 0;
+}
+
+/// Aligned-structure output format (default Amber OFF .lib for LEaP/TI).
+enum AlignedOutFmt { AOUT_LIB = 0, AOUT_MOL2, AOUT_PDB };
+
+static const char* AlignedOutExt(AlignedOutFmt f)
+{
+  switch (f) {
+    case AOUT_MOL2: return ".sorted.mol2";
+    case AOUT_PDB:  return ".sorted.pdb";
+    case AOUT_LIB:
+    default:        return ".sorted.lib";
+  }
+}
+
+static const char* AlignedOutLabel(AlignedOutFmt f)
+{
+  switch (f) {
+    case AOUT_MOL2: return "mol2";
+    case AOUT_PDB:  return "pdb";
+    case AOUT_LIB:
+    default:        return "Amber OFF .lib";
+  }
+}
+
+static int ParseAlignedOutFmt(std::string const& s, AlignedOutFmt& out)
+{
+  std::string l = ToLower(s);
+  if (l == "lib" || l == "off" || l == "amberlib") { out = AOUT_LIB;  return 0; }
+  if (l == "mol2")                                   { out = AOUT_MOL2; return 0; }
+  if (l == "pdb")                                    { out = AOUT_PDB;  return 0; }
+  return 1;
+}
+
+/** Prefer extension of out <file>; otherwise keep def (from fmt keyword). */
+static AlignedOutFmt FmtFromFilename(std::string const& fname, AlignedOutFmt def)
+{
+  FileName fn(fname);
+  std::string e = ToLower(fn.Ext());
+  if (e == ".mol2") return AOUT_MOL2;
+  if (e == ".pdb")  return AOUT_PDB;
+  if (e == ".lib" || e == ".off") return AOUT_LIB;
+  return def;
+}
+
 static std::string Q(std::string const& s)
 {
   return std::string("\"") + s + "\"";
@@ -472,9 +629,26 @@ static int WriteAmberLib(std::string const& fname, std::string const& unit,
   return 0;
 }
 
+/** Write the remapped structure in the requested format (lib / mol2 / pdb). */
+static int WriteAlignedOut(std::string const& fname, AlignedOutFmt fmt,
+                           Topology& top, Frame const& frm, DataSetList const& dsl)
+{
+  std::string unit = OffUnitName(ResNameOf(top, "TGT").Truncated(), 'T');
+  top.SetParmName(unit, FileName(fname));
+  switch (fmt) {
+    case AOUT_MOL2:
+      return WriteMol2File(fname, top, frm, dsl);
+    case AOUT_PDB:
+      return WritePdbFile(fname, top, frm, dsl);
+    case AOUT_LIB:
+    default:
+      return WriteAmberLib(fname, unit, top, frm);
+  }
+}
+
 static int WriteScmask(std::string const& fname,
                        Topology const& top0, Topology const& top1,
-                       std::vector<TemplateMatch::Result::DualSlot> const& dual)
+                       std::vector<TIMatch::Result::DualSlot> const& dual)
 {
   CpptrajFile out;
   if (out.OpenWrite(fname)) {
@@ -518,7 +692,7 @@ static int WriteScmask(std::string const& fname,
 /** Per-slot dual-topology table: kind, names, and charges in both end states. */
 static int WriteDualAtoms(std::string const& fname,
                           Topology const& top0, Topology const& top1,
-                          std::vector<TemplateMatch::Result::DualSlot> const& dual)
+                          std::vector<TIMatch::Result::DualSlot> const& dual)
 {
   CpptrajFile out;
   if (out.OpenWrite(fname)) {
@@ -544,9 +718,9 @@ static int WriteDualAtoms(std::string const& fname,
   return 0;
 }
 
-/** Write the human-readable correspondence used by Test_TemplateMatch. */
+/** Write the human-readable correspondence used by Test_TIMap. */
 static int WriteMapFile(std::string const& fname, Topology const& tgt, Topology const& tpl,
-                        TemplateMatch::Result const& R, std::string const& tgtName,
+                        TIMatch::Result const& R, std::string const& tgtName,
                         std::string const& tplName)
 {
   CpptrajFile out;
@@ -647,7 +821,7 @@ static void PushSeriesName(std::vector<std::string>& names, std::string const& r
  * Adapted from util/leadopt/similarity.py::exp_delta / by_heavy_atom_count
  * (Summa Lab / Redmann & Summa): score = exp(-BETA * delta), BETA = 0.1,
  * where delta counts atoms not in the common substructure. Here delta is
- * TemplateMatch insertions + unmatched template atoms (partial map proxy for MCS).
+ * TIMatch insertions + unmatched template atoms (partial map proxy for MCS).
  */
 static double LeadoptSimScore(int nInsertion, int nUnmappedTpl)
 {
@@ -670,7 +844,7 @@ struct SeriesMember {
  * Summa, U. New Orleans) without importing that TI-path planner.
  * \return parent index, or -1 on failure.
  */
-static int SelectSeriesParent(TemplateMatch const& matcher,
+static int SelectSeriesParent(TIMatch const& matcher,
                               std::vector<SeriesMember> const& mem,
                               std::vector<double>& outSimSum,
                               std::vector<int>& outMappedSum)
@@ -685,7 +859,7 @@ static int SelectSeriesParent(TemplateMatch const& matcher,
     int mappedSum = 0;
     for (int j = 0; j < n; j++) {
       if (j == i) continue;
-      TemplateMatch::Result R;
+      TIMatch::Result R;
       if (matcher.Match(*mem[j].top, *mem[i].top, R)) {
         mprinterr("Error: timap: series match of '%s' onto candidate '%s' failed.\n",
                   mem[j].name.c_str(), mem[i].name.c_str());
@@ -715,7 +889,7 @@ static int SelectSeriesParent(TemplateMatch const& matcher,
   return best;
 }
 
-/** Parse arguments, run TemplateMatch::Match, write an aligned OFF library,
+/** Parse arguments, run TIMatch::Match, write an aligned structure (lib/mol2/pdb),
   * and optionally dual-topology TI files. series mode auto-selects a parent.
   */
 // Exec_TIMap::Execute()
@@ -731,6 +905,7 @@ Exec::RetType Exec_TIMap::Execute(CpptrajState& State, ArgList& argIn) {
   std::string tioutprefix = argIn.GetStringKey("tioutprefix");
   std::string mapoutprefix = argIn.GetStringKey("mapoutprefix");
   std::string parentout = argIn.GetStringKey("parentout");
+  std::string fmtStr = argIn.GetStringKey("fmt");
   bool maponly = argIn.hasKey("maponly");
   bool replace = argIn.hasKey("replace");
   bool naorder = argIn.hasKey("naorder");
@@ -740,6 +915,13 @@ Exec::RetType Exec_TIMap::Execute(CpptrajState& State, ArgList& argIn) {
     mprinterr("Error: timap: specify naorder or aaorder, not both.\n");
     return CpptrajState::ERR;
   }
+  AlignedOutFmt outFmt = AOUT_LIB;
+  if (!fmtStr.empty() && ParseAlignedOutFmt(fmtStr, outFmt)) {
+    mprinterr("Error: timap: unrecognized fmt '%s' (lib|mol2|pdb).\n", fmtStr.c_str());
+    return CpptrajState::ERR;
+  }
+  if (!libout.empty())
+    outFmt = FmtFromFilename(libout, outFmt);
 
   // Collect remaining unmarked names (series members, or tgt [/ template]).
   std::vector<std::string> names;
@@ -766,7 +948,7 @@ Exec::RetType Exec_TIMap::Execute(CpptrajState& State, ArgList& argIn) {
       return CpptrajState::ERR;
     }
 
-    TemplateMatch matcher;
+    TIMatch matcher;
     matcher.SetDebug(State.Debug());
     matcher.SetUseNaOrder(naorder);
     matcher.SetUseAaOrder(aaorder);
@@ -779,7 +961,7 @@ Exec::RetType Exec_TIMap::Execute(CpptrajState& State, ArgList& argIn) {
         mprinterr("Error: timap: unrecognized seed '%s'\n", seedStr.c_str());
         return CpptrajState::ERR;
       }
-      matcher.SetSeed(TemplateMatch::SeedFromString(seedStr));
+      matcher.SetSeed(TIMatch::SeedFromString(seedStr));
     }
 
     std::vector<SeriesMember> mem;
@@ -788,7 +970,7 @@ Exec::RetType Exec_TIMap::Execute(CpptrajState& State, ArgList& argIn) {
       SeriesMember m;
       m.name = names[i];
       m.ds = 0;
-      m.top = FindNamedTop(State.DSL(), m.name, &m.ds);
+      m.top = ResolveTop(State, m.name, &m.ds);
       if (m.top == 0) {
         mprinterr("Error: timap: series member '%s' not found.\n", m.name.c_str());
         return CpptrajState::ERR;
@@ -797,9 +979,9 @@ Exec::RetType Exec_TIMap::Execute(CpptrajState& State, ArgList& argIn) {
     }
 
     mprintf("    TIMAP: Series of %zu topologies; selecting parent.\n", mem.size());
-    mprintf("\tSeed: %s\n", TemplateMatch::SeedStr(
-              seedStr.empty() ? TemplateMatch::SEED_AUTO
-                              : TemplateMatch::SeedFromString(seedStr)));
+    mprintf("\tSeed: %s\n", TIMatch::SeedStr(
+              seedStr.empty() ? TIMatch::SEED_AUTO
+                              : TIMatch::SeedFromString(seedStr)));
     if (naorder)
       mprintf("\tOrder: nucleic-acid canonical walk of the selected parent.\n");
     else if (aaorder)
@@ -848,7 +1030,7 @@ Exec::RetType Exec_TIMap::Execute(CpptrajState& State, ArgList& argIn) {
     bool writeLib = !maponly;
     for (size_t i = 0; i < mem.size(); i++) {
       SeriesMember const& tgt = mem[i];
-      TemplateMatch::Result R;
+      TIMatch::Result R;
       if (matcher.Match(*tgt.top, *parent.top, R)) return CpptrajState::ERR;
 
       mprintf("\t[%zu/%zu] '%s' onto parent '%s': mapped %i / %i "
@@ -912,17 +1094,15 @@ Exec::RetType Exec_TIMap::Execute(CpptrajState& State, ArgList& argIn) {
         mprinterr("Error: timap: failed to apply atom order for '%s'.\n", tgt.name.c_str());
         return CpptrajState::ERR;
       }
-      std::string thisLib = outprefix + tok + ".sorted.lib";
+      std::string thisOut = outprefix + tok + AlignedOutExt(outFmt);
       Frame tgtX, alignedX;
       LoadCoords(*tgt.top, tgt.ds, tgtX);
       ApplyOrderToFrame(tgtX, R.outputOrder_, alignedX);
-      std::string unit = OffUnitName(ResNameOf(*aligned, "TGT").Truncated(), 'T');
-      aligned->SetParmName(unit, FileName(thisLib));
-      if (WriteAmberLib(thisLib, unit, *aligned, alignedX)) {
+      if (WriteAlignedOut(thisOut, outFmt, *aligned, alignedX, State.DSL())) {
         delete aligned;
         return CpptrajState::ERR;
       }
-      mprintf("\t  Aligned OFF library: %s\n", thisLib.c_str());
+      mprintf("\t  Aligned %s: %s\n", AlignedOutLabel(outFmt), thisOut.c_str());
       delete aligned;
     }
     return CpptrajState::OK;
@@ -942,7 +1122,7 @@ Exec::RetType Exec_TIMap::Execute(CpptrajState& State, ArgList& argIn) {
   }
 
   DataSet* tgtDs = 0;
-  Topology* tgt = FindNamedTop(State.DSL(), tgtName, &tgtDs);
+  Topology* tgt = ResolveTop(State, tgtName, &tgtDs);
   if (tgt == 0) {
     mprinterr("Error: timap: target '%s' not found.\n", tgtName.c_str());
     return CpptrajState::ERR;
@@ -951,7 +1131,7 @@ Exec::RetType Exec_TIMap::Execute(CpptrajState& State, ArgList& argIn) {
   DataSet* tplDs = tgtDs;
   std::string tplUsed = tgtName;
   if (!tplName.empty()) {
-    tpl = FindNamedTop(State.DSL(), tplName, &tplDs);
+    tpl = ResolveTop(State, tplName, &tplDs);
     if (tpl == 0) {
       mprinterr("Error: timap: template '%s' not found.\n", tplName.c_str());
       return CpptrajState::ERR;
@@ -962,7 +1142,7 @@ Exec::RetType Exec_TIMap::Execute(CpptrajState& State, ArgList& argIn) {
     tplUsed = tgtName;
   }
 
-  TemplateMatch matcher;
+  TIMatch matcher;
   matcher.SetDebug(State.Debug());
   matcher.SetUseNaOrder(naorder);
   matcher.SetUseAaOrder(aaorder);
@@ -975,13 +1155,13 @@ Exec::RetType Exec_TIMap::Execute(CpptrajState& State, ArgList& argIn) {
       mprinterr("Error: timap: unrecognized seed '%s'\n", seedStr.c_str());
       return CpptrajState::ERR;
     }
-    matcher.SetSeed(TemplateMatch::SeedFromString(seedStr));
+    matcher.SetSeed(TIMatch::SeedFromString(seedStr));
   }
 
   bool writeLib = !libout.empty() || !maponly;
   if (writeLib && libout.empty()) {
     libout = OffUnitName(ResNameOf(*tgt, "TGT").Truncated(), 'T');
-    libout += ".sorted.lib";
+    libout += AlignedOutExt(outFmt);
   }
 
   const char* walkMsg = "";
@@ -994,9 +1174,9 @@ Exec::RetType Exec_TIMap::Execute(CpptrajState& State, ArgList& argIn) {
   else
     mprintf("    TIMAP: Aligning '%s' (%i atoms) to template '%s' (%i atoms).\n",
             tgtName.c_str(), tgt->Natom(), tplUsed.c_str(), tpl->Natom());
-  mprintf("\tSeed: %s\n", TemplateMatch::SeedStr(
-            seedStr.empty() ? TemplateMatch::SEED_AUTO
-                            : TemplateMatch::SeedFromString(seedStr)));
+  mprintf("\tSeed: %s\n", TIMatch::SeedStr(
+            seedStr.empty() ? TIMatch::SEED_AUTO
+                            : TIMatch::SeedFromString(seedStr)));
   if (naorder)
     mprintf("\tOrder: nucleic-acid canonical walk%s.\n",
             selfMap ? " of this residue" : " of the template");
@@ -1012,11 +1192,11 @@ Exec::RetType Exec_TIMap::Execute(CpptrajState& State, ArgList& argIn) {
   if (!tiout.empty())
     mprintf("\tTI dual-topology prefix: %s\n", tiout.c_str());
   if (writeLib)
-    mprintf("\tAligned OFF library: %s\n", libout.c_str());
+    mprintf("\tAligned %s: %s\n", AlignedOutLabel(outFmt), libout.c_str());
   else if (maponly)
-    mprintf("\tmaponly: not writing an aligned OFF library.\n");
+    mprintf("\tmaponly: not writing an aligned structure file.\n");
 
-  TemplateMatch::Result R;
+  TIMatch::Result R;
   if (matcher.Match(*tgt, *tpl, R)) return CpptrajState::ERR;
 
   mprintf("\tMapped %i / %i target atoms (%i insertions, %i template atoms unmatched).\n",
@@ -1110,9 +1290,7 @@ Exec::RetType Exec_TIMap::Execute(CpptrajState& State, ArgList& argIn) {
     Frame tgtX, alignedX;
     LoadCoords(*tgt, tgtDs, tgtX);
     ApplyOrderToFrame(tgtX, R.outputOrder_, alignedX);
-    std::string unit = OffUnitName(ResNameOf(*aligned, "TGT").Truncated(), 'T');
-    aligned->SetParmName(unit, FileName(libout));
-    if (WriteAmberLib(libout, unit, *aligned, alignedX)) {
+    if (WriteAlignedOut(libout, outFmt, *aligned, alignedX, State.DSL())) {
       delete aligned;
       return CpptrajState::ERR;
     }

@@ -1,0 +1,27 @@
+ATOM      1  C1  PHE A   1       1.200   0.000   0.000  1.00  0.00           C
+ATOM      2  O1  PHE A   1       2.400   0.000   0.000  1.00  0.00           O
+ATOM      3  HO1 PHE A   1       2.760   0.890   0.000  1.00  0.00           H
+ATOM      4  C2  PHE A   1       0.600   1.039   0.000  1.00  0.00           C
+ATOM      5  H2  PHE A   1       1.140   1.974   0.000  1.00  0.00           H
+ATOM      6  C3  PHE A   1      -0.600   1.039   0.000  1.00  0.00           C
+ATOM      7  H3  PHE A   1      -1.140   1.974   0.000  1.00  0.00           H
+ATOM      8  C4  PHE A   1      -1.200   0.000   0.000  1.00  0.00           C
+ATOM      9  H4  PHE A   1      -2.280   0.000   0.000  1.00  0.00           H
+ATOM     10  C5  PHE A   1      -0.600  -1.039   0.000  1.00  0.00           C
+ATOM     11  H5  PHE A   1      -1.140  -1.974   0.000  1.00  0.00           H
+ATOM     12  C6  PHE A   1       0.600  -1.039   0.000  1.00  0.00           C
+ATOM     13  H6  PHE A   1       1.140  -1.974   0.000  1.00  0.00           H
+CONECT    1    2
+CONECT    2    3
+CONECT    1    4
+CONECT    4    5
+CONECT    4    6
+CONECT    6    7
+CONECT    6    8
+CONECT    8    9
+CONECT    8   10
+CONECT   10   11
+CONECT   10   12
+CONECT   12   13
+CONECT   12    1
+END

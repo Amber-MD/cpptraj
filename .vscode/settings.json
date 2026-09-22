@@ -1,0 +1,16 @@
+{
+  "files.watcherExclude": {
+    "**/util/MasterModRNATx/**": true,
+    "**/util/MasterModRNATx.zip": true,
+    "**/util/modxna-main/**": true,
+    "**/util/xna_libalign/**": true
+  },
+  "search.exclude": {
+    "**/util/MasterModRNATx": true,
+    "**/util/modxna-main": true,
+    "**/util/xna_libalign": true
+  },
+  "git.untrackedChanges": "hidden",
+  "git.autofetch": false,
+  "git.autorefresh": true
+}

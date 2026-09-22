@@ -1,4 +1,4 @@
-#include "TemplateMatch.h"
+#include "TIMatch.h"
 #include "Topology.h"
 #include "CpptrajStdio.h"
 #include "StringRoutines.h"
@@ -8,33 +8,56 @@
 #include <utility>
 #include <vector>
 
-/* Source encoding: UTF-8.
+/* Source encoding: UTF-8. Unicode (O5′, χ, λ, 2′) is comments-only; string
+ * literals stay ASCII so this file compiles without a UTF-8 compiler flag.
  *
- * Unicode in this file is confined to comments (O5′, C1′, 2′, χ, λ). Every
- * string literal and identifier stays ASCII so MSVC compiles the file without
- * /utf-8. Do not put a UTF-8 prime inside "quotes" that the compiler sees.
+ * =============================================================================
+ * TIMatch — partial graph match for thermodynamic integration (timap)
+ * =============================================================================
  *
- * TemplateMatch implements a partial, graph-based correspondence from a
- * user target residue onto a user template residue. The template's current
- * atom order is the thermodynamic-integration (λ = 0 / λ = 1 shared) order
- * unless the caller requested naorder, in which case the template is walked
- * as a nucleotide:
+ * PURPOSE
+ *   Build a correspondence between a *target* residue and a *template*
+ *   (parent) residue so shared atoms share indices for TI / dual topology.
+ *   Unlike atommap, a 1:1 map is *not* required: extras on the target are
+ *   insertions; unmatched template atoms are simply skipped in the target
+ *   permutation (and become dummies in DualOrder).
  *
- *   P → non-bridging OP → O5′ → C5′ → C4′ → O4′ → C1′ →
- *   nucleobase starting at the glycosidic nitrogen χ →
- *   C3′ → C2′ and its 2′ substituents → O3′
+ * PIPELINE (Match())
+ *   1. Graph          Bond adjacency for tgt and tpl (all / heavy / H lists).
+ *   2. DetectScaffold Classify each residue: nucleotide | sugar | base |
+ *                     amino | unknown; fill NA roles and/or peptide aa_ roles.
+ *   3. MapGraphs      Seed → Grow → unique names → Grow → hydrogens.
+ *                     Result: mapping_[tgt] = tpl index or −1 (insertion).
+ *   4. ParentOrder    Template walk: file order, naorder, or aaorder.
+ *   5. OutputOrder    Permute tgt atoms to follow that walk + insertions.
+ *   6. DualOrder      Same layout but keep unmatched tpl slots (TI dummies).
  *
- * Three chemistries are handled by the same code:
- *   - Nucleic acids: scaffold roles seed the map (FLE rA vs ERN dA).
- *   - Amino acids: unique names + grow (Cys vs selenocysteine; S ≠ Se).
- *   - Small molecules: unique names + grow (benzene vs phenol).
+ * CHEMISTRIES (same code paths)
+ *   - Nucleic acids: scaffold roles seed (FLE rA vs ERN dA; 2′-OH inserts).
+ *   - Amino acids:   N/CA/C/O/CB seed (Cys vs Sec; Se inserts at CB).
+ *   - Small mols:    unique names + grow (benzene vs phenol; OH inserts).
  *
- * Nested Graph / Scaffold types live in an anonymous namespace so the free
- * helpers below can use them without making them TemplateMatch members.
+ * KEY INVARIANTS (do not break without updating Exec_TIMap + tests)
+ *   - mapping_[i] is either −1 or a unique template index (no two tgts share).
+ *   - outputOrder_ is a permutation of 0..Ntgt−1 (ModifyByMap requires this).
+ *   - dual_.size() == nMapped + nInsertion + nUnmappedTpl.
+ *   - Grow signatures use *element* + heavy degree + neighbor elements so
+ *     S≠Se and O≠H at the same site become insertions, not forced matches.
+ *   - Unique-name seed also requires matching AtomicNumber/Element.
+ *
+ * WHERE TO CHANGE WHAT
+ *   - New NA parent walk:          CanonicalWalk / DetectScaffold roles.
+ *   - New AA walk (force field):   CanonicalAaWalk / DetectAmino.
+ *   - Matching too greedy/shy:     MakeSig, Grow, MatchUniqueNames.
+ *   - Insertion placement:         OutputOrder / DualOrder / EmitTree.
+ *   - Dual-topology layout:        DualOrder only (OutputOrder skips tpl-only).
+ *
+ * Nested Graph / Scaffold types live in an anonymous namespace so free
+ * helpers can use them without polluting the TIMatch public API.
  */
 
 // -----------------------------------------------------------------------------
-TemplateMatch::TemplateMatch() :
+TIMatch::TIMatch() :
   seed_(SEED_AUTO),
   debug_(0),
   useNaOrder_(false),
@@ -42,7 +65,7 @@ TemplateMatch::TemplateMatch() :
   anchorName_("O3'")
 {}
 
-const char* TemplateMatch::SeedStr(SeedType t) {
+const char* TIMatch::SeedStr(SeedType t) {
   switch (t) {
     case SEED_AUTO:  return "auto";
     case SEED_NAMES: return "names";
@@ -53,8 +76,8 @@ const char* TemplateMatch::SeedStr(SeedType t) {
   return "auto";
 }
 
-/// Parse seed {auto|names|na|none}; unknown strings fall back to auto.
-TemplateMatch::SeedType TemplateMatch::SeedFromString(std::string const& s) {
+/// Parse seed {auto|names|na|aa|none}; unknown strings fall back to auto.
+TIMatch::SeedType TIMatch::SeedFromString(std::string const& s) {
   std::string l = ToLower(s);
   if (l == "auto")  return SEED_AUTO;
   if (l == "names") return SEED_NAMES;
@@ -68,7 +91,10 @@ namespace {
 
 typedef std::vector<int> Iarray;
 
-// -----------------------------------------------------------------------------
+// =============================================================================
+// Graph helpers — element predicates and bond adjacency
+// =============================================================================
+
 /// True for elemental hydrogen (not extra points / Drude particles).
 static inline bool IsH(Atom const& a) {
   return (a.Element() == Atom::HYDROGEN);
@@ -88,6 +114,10 @@ static std::string AtomName(Atom const& a) {
 /// Bonded graph over one Topology: full, heavy-only, and hydrogen neighbor lists.
 /** Built once per residue so DetectScaffold / Grow / CanonicalWalk can ask
   * "who is bonded to C2′?" without walking Atom::bond_iterator each time.
+  *
+  * Indices are Topology atom indices (0-based). nbr_[i] lists every bonded
+  * partner; heavyNbr_ / hNbr_ are filtered views for grow signatures and
+  * hydrogen zip. Topology is not owned — it must outlive the Graph.
   */
 class Graph {
   public:
@@ -143,19 +173,27 @@ class Graph {
     std::vector<Iarray> hNbr_;
 };
 
-// -----------------------------------------------------------------------------
+// =============================================================================
+// Scaffold — chemical roles on one residue (NA and/or peptide)
+// =============================================================================
+
 /// Nucleic-acid (or ligand) roles detected on one residue.
 /** role_[P] … role_[CHI] are atom indices or −1. sugarRing_ is the chosen
   * furanose (4 C + 1 O/S). base_ is the connected component hanging off χ,
-  * excluding C1′. kind_ is nucleotide | sugar | base | unknown.
+  * excluding C1′. kind_ is nucleotide | sugar | base | amino | unknown.
   *
   * Amino acids fill aa_ (N, CA, C, O, CB) and kind_ "amino" when the
   * peptide N–CA–C=O motif is found. Small molecules stay kind "unknown".
+  *
+  * ok_ means "looks like a nucleotide scaffold good enough to SEED_NA".
+  * aaOk_ means backbone N/CA/C were found (enough for SEED_AA).
+  * notes_ carries soft failures for debug / map headers (never fatal alone).
   */
 class Scaffold {
   public:
     /// Canonical nucleotide roles. CHI is the glycosidic N (or C) of χ.
     enum Role { P = 0, O5p, C5p, C4p, O4p, C1p, C2p, C3p, O3p, CHI, NROLES };
+    /// Peptide backbone / β-carbon roles (ff19SB naming).
     enum AaRole { AA_N = 0, AA_CA, AA_C, AA_O, AA_CB, AA_NROLES };
     static const char* RoleStr(Role r) {
       static const char* n[NROLES] = {
@@ -187,21 +225,24 @@ class Scaffold {
     }
 
     int role_[NROLES];
-    Iarray op_;
-    Iarray sugarRing_;
-    Iarray base_;
-    std::string kind_;
-    std::string family_;
-    std::string twoPrime_;
+    Iarray op_;            ///< Non-bridging phosphate oxygens (name-sorted).
+    Iarray sugarRing_;     ///< Atoms of the chosen furanose (order from cycle search).
+    Iarray base_;          ///< χ-component excluding C1′ (sorted unique indices).
+    std::string kind_;     ///< nucleotide | sugar | base | amino | unknown
+    std::string family_;   ///< purine | pyrimidine | pro | gly | std | none | …
+    std::string twoPrime_; ///< HH | HOH | OMe | OR | F | other | unknown
     bool hasP_;
-    bool ok_;
-    bool aaOk_;
-    bool isPro_;
+    bool ok_;              ///< True if NA scaffold is seed-worthy.
+    bool aaOk_;            ///< True if N, CA, C were assigned.
+    bool isPro_;           ///< N bonded to ≥2 carbons (proline-like).
     int aa_[AA_NROLES];
     std::vector<std::string> notes_;
 };
 
-// -----------------------------------------------------------------------------
+// =============================================================================
+// Ring finding — furanose / nucleobase detection
+// =============================================================================
+
 typedef std::vector<Iarray> Cycles;
 
 /// Rotate a cycle so the lowest index is first; pick the lexicographically
@@ -303,6 +344,9 @@ static bool IsSugarRing(Graph const& g, Iarray const& cyc) {
 
 /// Prefer the 5-ring whose carbons have the most nucleotide-like exo substituents
 /// (glycosidic N, C5′ carbon, O3′/O5′ oxygen). Ties break lexicographically.
+/** Score weights (per ring carbon): exo N +4, exo C +3, exo O +2. Imidazole
+  * 5-rings fail IsSugarRing (they contain N) so they never compete here.
+  */
 static Iarray PickSugarRing(Graph const& g, Cycles const& rings5) {
   int bestScore = -1;
   Iarray best;
@@ -503,9 +547,16 @@ static void ApplyModxna(Graph const& g, Scaffold& sc) {
 }
 
 /// Assign C1′/C4′ (the two carbons on O4′), then C2′/C3′, C5′, O5′, OP, O3′.
-/** C1′ is the O4′-bonded carbon that also bears the glycosidic nitrogen (or
-  * the less O-rich exo carbon). C4′ is the other O4′-bonded carbon and should
-  * lead to C5′/O5′.
+/** Scoring for the O4′-bonded carbons (lower score → C1′):
+  *   −10  exo N  (glycosidic attachment — strong C1′ signal)
+  *   +6   exo C that itself bears O  (C5′/O5′ side — C4′ signal)
+  *   +2   exo O
+  *   −4   exo methyl-like C (degree ≤1) — often a C1′ base-cap carbon
+  *
+  * After C1′/C4′: C3′ is the remaining ring C bonded to C4′; C2′ is the other.
+  * Swap C2′/C3′ if C2′ is not bonded to C1′. C5′ is exo-C on C4′; O5′ prefers
+  * the oxygen also bonded to P when a phosphate is present. OP = other O on P.
+  * O3′ = exo-O on C3′.
   */
 static void AssignSugarRoles(Graph const& g, Scaffold& sc,
                              Iarray const& sugar)
@@ -729,8 +780,16 @@ static void DetectAmino(Graph const& g, Scaffold& sc) {
 }
 
 /// Detect nucleotide / sugar / base / amino / unknown and fill Scaffold roles.
-/** Amino acids without a furanose get kind "amino" (N–CA–C=O). Ligands
-  * (benzene, phenol) stay "unknown" and unique-name seed.
+/** Order of decisions:
+  *   1. Find 5- and 6-rings; pick a furanose if present → AssignSugarRoles.
+  *   2. Glycosidic N on C1′ → base component + purine/pyrimidine family.
+  *   3. kind_ = nucleotide | sugar | base | unknown from what was found.
+  *   4. NameHints / ModXNA metadata fill any still-empty roles.
+  *   5. Guard: clear a false C5′ that is actually exo on C1′ (fragments).
+  *   6. If still unknown, DetectAmino (peptide motif → kind amino).
+  *
+  * Amino acids without a furanose get kind "amino". Ligands (benzene, phenol)
+  * stay "unknown" and rely on unique-name seeding in MapGraphs.
   */
 void DetectScaffold(Graph const& g, Scaffold& sc) {
   sc = Scaffold();
@@ -840,10 +899,15 @@ void DetectScaffold(Graph const& g, Scaffold& sc) {
     DetectAmino(g, sc);
 }
 
-// -----------------------------------------------------------------------------
+// =============================================================================
+// Correspondence — seed, grow, names, hydrogens
+// =============================================================================
+
 /// Neighbor signature used to grow the map: (element, heavy degree, sorted neighbor elements).
 /** S vs Se (Cys/Sec) and O vs H (phenol/benzene at C1) fail this test, which
   * is how those substitutions become insertions rather than forced matches.
+  * Hydrogens are excluded from degree and from the neighbor-element list so
+  * protonation differences do not block heavy-atom growth.
   */
 struct AtomSig {
   Atom::AtomicElementType elt_;
@@ -893,9 +957,14 @@ static bool AddMap(Iarray& mapping, Iarray& usedTpl, int n, int r) {
 }
 
 /// Grow the correspondence from already-mapped atoms by unique neighbor signatures.
-/** Repeated until a pass adds nothing. Unique (1:1) signatures are paired;
-  * same-size twin groups (H5′/H5″, OP1/OP2) are paired by name. This is the
-  * step that places a 2′-OH next to C2′ without touching template H2″.
+/** Repeated until a pass adds nothing. For each already-mapped pair (n↔r):
+  *   - Collect unmapped neighbors of n and unused neighbors of r.
+  *   - Bucket by AtomSig.
+  *   - If a signature has exactly one atom on each side → map them.
+  *   - If equal-sized twin groups (H5′/H5″, OP1/OP2) → OrderTwins by name.
+  * Signatures that appear on only one side are left unmatched (insertions /
+  * unmatched template). This is how a 2′-OH sits next to C2′ without claiming
+  * template H2″.
   */
 void Grow(Graph const& tgt, Graph const& tpl,
           Iarray& mapping, Iarray& usedTpl)
@@ -995,29 +1064,38 @@ void MatchHydrogens(Graph const& tgt, Graph const& tpl,
 }
 
 /// Seed, grow, unique-name, grow, hydrogens. mapping[tgt] = tpl or −1.
-/** SEED_AUTO uses nucleic-acid roles when either residue looks like NA,
-  * amino-acid roles when the peptide N–CA–C=O motif is found, otherwise names.
+/** SEED_AUTO picking order:
+  *   1. SEED_NA if either scaffold looks nucleotide-like (ok_, P, C1′, or χ).
+  *   2. Else SEED_AA if either has aaOk_ (peptide backbone).
+  *   3. Else SEED_NAMES (unique atom names only).
+  * SEED_NONE skips all pairing (debug / empty map).
+  *
+  * After the seed pass we always: Grow → MatchUniqueNames → Grow → MatchHydrogens
+  * (unless SEED_NONE). The second Grow catches atoms that only become unique
+  * after names filled gaps; hydrogens run last so heavy topology is fixed.
+  *
+  * \param mapping  resized to tgt.Natom(); −1 = insertion.
   */
 void MapGraphs(Graph const& tgt, Graph const& tpl,
                Scaffold const& tgtSc, Scaffold const& tplSc,
-               Iarray& mapping, TemplateMatch::SeedType seedIn)
+               Iarray& mapping, TIMatch::SeedType seedIn)
 {
   mapping.assign(tgt.Natom(), -1);
   Iarray usedTpl(tpl.Natom(), 0);
 
-  TemplateMatch::SeedType mode = seedIn;
-  if (mode == TemplateMatch::SEED_AUTO) {
+  TIMatch::SeedType mode = seedIn;
+  if (mode == TIMatch::SEED_AUTO) {
     bool na = tgtSc.ok_ || tplSc.ok_ ||
               tgtSc.Get(Scaffold::P) >= 0 || tplSc.Get(Scaffold::P) >= 0 ||
               tgtSc.Get(Scaffold::C1p) >= 0 || tplSc.Get(Scaffold::C1p) >= 0 ||
               tgtSc.Get(Scaffold::CHI) >= 0 || tplSc.Get(Scaffold::CHI) >= 0;
     bool aa = tgtSc.aaOk_ || tplSc.aaOk_;
-    if (na)      mode = TemplateMatch::SEED_NA;
-    else if (aa) mode = TemplateMatch::SEED_AA;
-    else         mode = TemplateMatch::SEED_NAMES;
+    if (na)      mode = TIMatch::SEED_NA;
+    else if (aa) mode = TIMatch::SEED_AA;
+    else         mode = TIMatch::SEED_NAMES;
   }
 
-  if (mode == TemplateMatch::SEED_NA) {
+  if (mode == TIMatch::SEED_NA) {
     static const Scaffold::Role SEED[] = {
       Scaffold::P, Scaffold::O5p, Scaffold::C5p, Scaffold::C4p, Scaffold::O4p,
       Scaffold::C1p, Scaffold::C3p, Scaffold::C2p, Scaffold::O3p, Scaffold::CHI
@@ -1029,7 +1107,7 @@ void MapGraphs(Graph const& tgt, Graph const& tpl,
       AddMap(mapping, usedTpl, tgtSc.op_[i], tplSc.op_[i]);
   }
 
-  if (mode == TemplateMatch::SEED_AA) {
+  if (mode == TIMatch::SEED_AA) {
     static const Scaffold::AaRole SEED[] = {
       Scaffold::AA_N, Scaffold::AA_CA, Scaffold::AA_C, Scaffold::AA_O, Scaffold::AA_CB
     };
@@ -1037,7 +1115,7 @@ void MapGraphs(Graph const& tgt, Graph const& tpl,
       AddMap(mapping, usedTpl, tgtSc.Aa(SEED[k]), tplSc.Aa(SEED[k]));
   }
 
-  if (mode != TemplateMatch::SEED_NONE) {
+  if (mode != TIMatch::SEED_NONE) {
     Grow(tgt, tpl, mapping, usedTpl);
     MatchUniqueNames(tgt, tpl, mapping, usedTpl);
     Grow(tgt, tpl, mapping, usedTpl);
@@ -1045,8 +1123,15 @@ void MapGraphs(Graph const& tgt, Graph const& tpl,
   }
 }
 
-// -----------------------------------------------------------------------------
+// =============================================================================
+// Output layouts — target permutation and dual-topology slots
+// =============================================================================
+
 /// Depth-first emit of an unmapped insertion subtree (heavy atoms before hydrogens).
+/** used[] marks atoms already placed in \p order. mappedNew[] marks target
+  * atoms that correspond to a template atom — those are *not* walked here
+  * (they appear when OutputOrder / DualOrder visits their template parent).
+  */
 static void EmitTree(Graph const& g, int n, int parent,
                      std::vector<char>& used, Iarray const& mappedNew,
                      Iarray& order)
@@ -1070,10 +1155,16 @@ static void EmitTree(Graph const& g, int n, int parent,
 }
 
 /// Permutation of target atoms: walk the template, emit the mapped atom, then insertions.
-/** Insertions bonded to a mapped parent (O2′ on C2′, OH on C1, Se on CB) are
-  * placed immediately after that parent. Completely unmatched leftovers go
-  * just before O3′ (or \p anchorName). Unmapped template atoms are skipped
-  * (H2″ of dA, H1 of benzene, SG of cysteine).
+/** Algorithm:
+  *   For each template atom r in parentOrder (file / NA / AA walk):
+  *     If some target n maps to r, append n, then EmitTree any unmapped
+  *     neighbors of n (insertions bonded to that parent — O2′ after C2′,
+  *     phenolic OH after C1, Se after CB).
+  *   Unmatched template atoms are *skipped* (H2″ of dA, H1 of benzene, SG).
+  *   Remaining unused target atoms (unattached leftovers) insert just before
+  *   the O3′ / anchor slot, or at the end if no anchor.
+  *
+  * Return value is Map[newIndex] = old target atom (ModifyByMap convention).
   */
 Iarray OutputOrder(Graph const& tgt, Graph const& tpl,
                    Scaffold const& tplSc,
@@ -1140,18 +1231,22 @@ Iarray OutputOrder(Graph const& tgt, Graph const& tpl,
 }
 
 /// Dual-topology layout: every template atom keeps a slot; insertions are extra slots.
-/** SHARED: both real. TPL_ONLY: real on λ=0, dummy on λ=1. TGT_ONLY: dummy on λ=0,
-  * real on λ=1. Slot order matches OutputOrder for target atoms, with unmatched
-  * template atoms inserted at their parent-order positions (not skipped).
+/** Same walk as OutputOrder, but when template atom r has no target partner we
+  * still emit DualSlot(r, −1) (real on λ=0 / dummy on λ=1). Target-only
+  * insertions are DualSlot(−1, n) (dummy on λ=0 / real on λ=1). Shared atoms
+  * are DualSlot(r, n).
+  *
+  * Size invariant: dual.size() == nMapped + nInsertion + nUnmappedTpl.
+  * Exec_TIMap::BuildTiUnit consumes this vector to build equal-NATOM end states.
   */
-static std::vector<TemplateMatch::Result::DualSlot>
+static std::vector<TIMatch::Result::DualSlot>
 DualOrder(Graph const& tgt, Graph const& tpl,
           Scaffold const& tplSc,
           Iarray const& mapping,
           Iarray const& parentOrder,
           std::string const& anchorName)
 {
-  typedef TemplateMatch::Result::DualSlot Slot;
+  typedef TIMatch::Result::DualSlot Slot;
   Iarray refToNew(tpl.Natom(), -1);
   Iarray mappedNew(tgt.Natom(), 0);
   for (int n = 0; n < tgt.Natom(); n++) {
@@ -1220,6 +1315,10 @@ DualOrder(Graph const& tgt, Graph const& tpl,
   }
   return dual;
 }
+
+// =============================================================================
+// Canonical walks — invent Amber-like order when no parent file order is used
+// =============================================================================
 
 /// Mark atom i used and append it; no-op if i < 0 or already emitted.
 static void EmitIdx(int i, std::vector<char>& used, Iarray& order) {
@@ -1307,8 +1406,14 @@ static void EmitSubtree(Graph const& g, int i, int parent,
 }
 
 /// Canonical nucleic-acid walk used when the user requests naorder.
-/** P → OP (+H) → O5′ → C5′ → C4′ → O4′ → C1′ → base from χ →
-  * C3′ → C2′ → 2′ substituents → O3′ → any leftover atoms.
+/** Intended shared-atom order for ModXNA-class / Amber nucleotides:
+  *
+  *   P → OP (+H, name-sorted) → O5′ → C5′ → C4′ → O4′ → C1′ →
+  *   base BFS from χ (never recrossing C1′) →
+  *   C3′ → C2′ → 2′ substituent subtrees → O3′ → leftovers
+  *
+  * Hydrogens follow their heavy atom (name-sorted). Leftovers append in
+  * index order. See manual section "How the nucleic-acid walk was chosen".
   */
 Iarray CanonicalWalk(Graph const& g, Scaffold const& sc) {
   std::vector<char> used(g.Natom(), 0);
@@ -1450,6 +1555,11 @@ Iarray CanonicalAaWalk(Graph const& g, Scaffold const& sc) {
 }
 
 /// Template order: file order, NA walk, or amino-acid walk (ff19SB).
+/** Called once per Match() after MapGraphs. The returned indices are template
+  * atom indices in the order OutputOrder / DualOrder should visit them.
+  * useNaOrder / useAaOrder come from timap naorder / aaorder (mutually exclusive
+  * at the Exec_TIMap layer). If both false, identity 0..N−1 = file order.
+  */
 Iarray ParentOrder(Graph const& tpl, Scaffold const& sc, bool useNaOrder, bool useAaOrder) {
   if (useNaOrder)
     return CanonicalWalk(tpl, sc);
@@ -1463,8 +1573,12 @@ Iarray ParentOrder(Graph const& tpl, Scaffold const& sc, bool useNaOrder, bool u
 
 } // namespace
 
+// =============================================================================
+// TIMatch public API
+// =============================================================================
+
 /// Public wrapper: detect the scaffold of \p top and return CanonicalWalk.
-int TemplateMatch::CanonicalNaOrder(Topology const& top, Iarray& order) const {
+int TIMatch::CanonicalNaOrder(Topology const& top, Iarray& order) const {
   Graph g(top);
   Scaffold sc;
   DetectScaffold(g, sc);
@@ -1472,7 +1586,8 @@ int TemplateMatch::CanonicalNaOrder(Topology const& top, Iarray& order) const {
   return 0;
 }
 
-int TemplateMatch::CanonicalAaOrder(Topology const& top, Iarray& order) const {
+/// Public wrapper: detect peptide scaffold and return CanonicalAaWalk.
+int TIMatch::CanonicalAaOrder(Topology const& top, Iarray& order) const {
   Graph g(top);
   Scaffold sc;
   DetectScaffold(g, sc);
@@ -1481,7 +1596,18 @@ int TemplateMatch::CanonicalAaOrder(Topology const& top, Iarray& order) const {
 }
 
 /// Detect scaffolds, map graphs, build the output permutation, count partial-map stats.
-int TemplateMatch::Match(Topology const& tgtTop, Topology const& tplTop, Result& out) const {
+/** Steps:
+  *   1. Reject empty topologies.
+  *   2. DetectScaffold on tgt and tpl (kinds + notes go into Result).
+  *   3. MapGraphs → mapping_ (partial correspondence).
+  *   4. ParentOrder → OutputOrder → DualOrder.
+  *   5. Assert outputOrder_ is a permutation; dual_ size matches counts.
+  *   6. Fill nMapped_ / nInsertion_ / nUnmappedTpl_.
+  *
+  * Return 0 on success (partial maps are success). Nonzero only on empty
+  * input or internal invariant failure.
+  */
+int TIMatch::Match(Topology const& tgtTop, Topology const& tplTop, Result& out) const {
   out = Result();
   if (tgtTop.Natom() < 1 || tplTop.Natom() < 1) {
     mprinterr("Error: timap: empty topology.\n");
@@ -1511,10 +1637,12 @@ int TemplateMatch::Match(Topology const& tgtTop, Topology const& tplTop, Result&
   }
 
   MapGraphs(tgt, tpl, tgtSc, tplSc, out.mapping_, seed_);
+  // Template visit order for OutputOrder / DualOrder (file, NA walk, or AA walk).
   Iarray parent = ParentOrder(tpl, tplSc, useNaOrder_, useAaOrder_);
   out.outputOrder_ = OutputOrder(tgt, tpl, tplSc, out.mapping_, parent, anchorName_);
   out.dual_ = DualOrder(tgt, tpl, tplSc, out.mapping_, parent, anchorName_);
 
+  // ModifyByMap requires a true permutation of the target.
   if ((int)out.outputOrder_.size() != tgt.Natom()) {
     mprinterr("Error: timap: output order size %zu != %i atoms.\n",
               out.outputOrder_.size(), tgt.Natom());
@@ -1529,6 +1657,7 @@ int TemplateMatch::Match(Topology const& tgtTop, Topology const& tplTop, Result&
     seen[*it] = 1;
   }
 
+  // Partial-map statistics for map headers and series parent scoring.
   Iarray usedTpl(tpl.Natom(), 0);
   for (int n = 0; n < tgt.Natom(); n++) {
     if (out.mapping_[n] >= 0) {
@@ -1541,6 +1670,7 @@ int TemplateMatch::Match(Topology const& tgtTop, Topology const& tplTop, Result&
   for (int r = 0; r < tpl.Natom(); r++) {
     if (!usedTpl[r]) out.nUnmappedTpl_++;
   }
+  // Dual layout must account for every shared, insertion, and unmatched tpl atom.
   int expectDual = out.nMapped_ + out.nInsertion_ + out.nUnmappedTpl_;
   if ((int)out.dual_.size() != expectDual) {
     mprinterr("Error: timap: dual-topology size %zu != %i (mapped+ins+unmapped).\n",

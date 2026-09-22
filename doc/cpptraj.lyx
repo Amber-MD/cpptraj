@@ -26541,7 +26541,7 @@ readdata
 , and so on).
  Official ModXNA parent fragments shipped with cpptraj live in 
 \series bold
-$CPPTRAJHOME/dat/templatematch/
+$CPPTRAJHOME/dat/timap/
 \series default
  (see PARENTS.txt there).
  Use those as-is for ModXNA-class nucleic-acid fragments; for everything else, generate your own template as below.
@@ -26883,7 +26883,7 @@ by_heavy_atom_count
 ; Summa Lab / Jonathan Redmann & Christopher Summa, University of New Orleans).
  The common substructure is approximated by 
 \series bold
-TemplateMatch
+TIMatch
 \series default
 's partial map rather than an external MCS engine (
 \series bold
@@ -27196,7 +27196,7 @@ The walk is therefore not copied from any one ModXNA file.
  The fragment library was grouped by chemical class (backbone with or without phosphate, purine vs pyrimidine base, 2' pattern of the sugar).
  One consensus parent was kept for each class; those 11 fragments ship in 
 \series bold
-$CPPTRAJHOME/dat/templatematch/
+$CPPTRAJHOME/dat/timap/
 \series default
  (see PARENTS.txt).
  Each parent's atom list is the recommended shared-atom order for mapping other members of that class.
@@ -27259,11 +27259,7 @@ amino19.lib
 \end_layout
 
 \begin_layout Standard
-Aliases: 
-\series bold
-templatematch
-\series default
-, 
+Alias: 
 \series bold
 timatch
 \series default

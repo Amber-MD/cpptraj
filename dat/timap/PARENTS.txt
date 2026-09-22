@@ -6,7 +6,7 @@
 # shared-atom order for that chemical class.
 #
 # Load with:
-#   parm $CPPTRAJHOME/dat/templatematch/DAA.mol2 name DAA
+#   parm $CPPTRAJHOME/dat/timap/DAA.mol2 name DAA
 #
 # Then map an analog onto that parent (default: sorted Amber OFF library):
 #   timap analog template DAA out analog.lib

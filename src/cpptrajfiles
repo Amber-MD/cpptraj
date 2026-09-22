@@ -438,7 +438,7 @@ COMMON_SOURCES= \
         StringRoutines.cpp \
         StructureCheck.cpp \
         StructureMapper.cpp \
-        TemplateMatch.cpp \
+        TIMatch.cpp \
         SymmetricRmsdCalc.cpp \
         TextBlockBuffer.cpp \
         TextFormat.cpp \

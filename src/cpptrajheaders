@@ -488,7 +488,7 @@ CPPTRAJ_HEADERS = \
         ./StringRoutines.h \
         ./StructureCheck.h \
         ./StructureMapper.h \
-        ./TemplateMatch.h \
+        ./TIMatch.h \
         ./SymbolExporting.h \
         ./SymmetricRmsdCalc.h \
         ./SymmetricTensor.h \

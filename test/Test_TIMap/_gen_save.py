@@ -1,11 +1,11 @@
-"""Generate Test_TemplateMatch *.map.save files matching Exec_TIMap printf.
+"""Generate Test_TIMap *.map.save files matching Exec_TIMap printf.
 
 Regenerates expected maps for:
   FLE.lib (rA) onto ERN.lib (dA)
   ERN naorder self-map
   phenol.mol2 onto benzene.mol2
   sec.lib (elmnt 34) onto cys.lib (elmnt 16)
-  shipped dat/templatematch/DAA.mol2 identity
+  shipped dat/timap/DAA.mol2 identity
 
 Cys/Sec are written as Amber OFF because mol2 atom name SE is sulfur in cpptraj.
 """
@@ -116,7 +116,7 @@ def main() -> None:
     m, o, tk, pk = align(sec, cys)
     write_map(HERE / "sec_to_cys.map.save", "SEC[SEC]", "CYS[CYS]", sec, cys, m, o, tk, pk)
 
-    daa = read_mol2(ROOT / "dat" / "templatematch" / "DAA.mol2")[0]
+    daa = read_mol2(ROOT / "dat" / "timap" / "DAA.mol2")[0]
     m, o, tk, pk = align(daa, daa)
     write_map(HERE / "daa_identity.map.save", "DAA", "DAA", daa, daa, m, o, tk, pk)
 

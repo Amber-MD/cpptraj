@@ -1,5 +1,5 @@
-#ifndef INC_TEMPLATEMATCH_H
-#define INC_TEMPLATEMATCH_H
+#ifndef INC_TIMATCH_H
+#define INC_TIMATCH_H
 #include <string>
 #include <vector>
 class Topology;
@@ -27,8 +27,11 @@ class Topology;
   * Nucleic-acid scaffold detection is opportunistic: if no furanose / χ is
   * found, the residue is checked for a peptide N–CA–C=O motif (kind "amino");
   * otherwise kind is "unknown" and unique-name seeding is used.
+  *
+  * Implementation details, invariants, and "where to change what" live in the
+  * file-level comment at the top of TIMatch.cpp - start there when maintaining.
   */
-class TemplateMatch {
+class TIMatch {
   public:
     typedef std::vector<int> Iarray;
     /// How the correspondence is started before the grow pass.
@@ -59,7 +62,7 @@ class TemplateMatch {
         std::vector<std::string> notes_; ///< scaffold warnings (empty sugar, …)
     };
 
-    TemplateMatch();
+    TIMatch();
 
     void SetSeed(SeedType s)                 { seed_ = s; }
     void SetDebug(int d)                     { debug_ = d; }
