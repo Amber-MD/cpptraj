@@ -145,7 +145,7 @@ available [here](https://github.com/emleddin/vim-cpptraj).
 
 CPPTRAJ Authors
 ===============
-**Lead Author:** Daniel R. Roe (<daniel.r.roe@gmail.com>)
+**Lead Author:** Daniel R. Roe (<daniel.r.roe@gmail.com>, <daniel.roe@nih.gov>)
 Laboratory of Computational Biology
 National Heart Lung and Blood Institute
 National Institutes of Health, Bethesda, MD.
