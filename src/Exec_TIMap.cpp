@@ -513,7 +513,7 @@ int Exec_TIMap::ParseAlignedOutFmt(std::string const& s, AlignedOutFmt& out) con
 }
 
 /** Prefer extension of out <file>; otherwise keep def (from fmt keyword). */
-AlignedOutFmt Exec_TIMap::FmtFromFilename(std::string const& fname, AlignedOutFmt def) const
+Exec_TIMap::AlignedOutFmt Exec_TIMap::FmtFromFilename(std::string const& fname, AlignedOutFmt def) const
 {
   FileName fn(fname);
   std::string e = ToLower(fn.Ext());
