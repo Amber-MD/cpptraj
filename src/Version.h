@@ -12,11 +12,7 @@
  * Whenever a number that precedes <revision> is incremented, all subsequent
  * numbers should be reset to 0.
  */
-<<<<<<< HEAD
 #define CPPTRAJ_INTERNAL_VERSION "V7.11.2"
-=======
-#define CPPTRAJ_INTERNAL_VERSION "V7.11.0"
->>>>>>> c51400c7 (Add 'surftension' command to calculate capillary-wave surface tension of a liquid slab)
 /// PYTRAJ relies on this
 #define CPPTRAJ_VERSION_STRING CPPTRAJ_INTERNAL_VERSION
 #endif

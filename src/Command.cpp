@@ -412,11 +412,8 @@ void Command::Init() {
   Command::AddCmd( new Action_STFC_Diffusion(),Cmd::ACT, 1, "stfcdiffusion" );
   Command::AddCmd( new Action_Strip(),         Cmd::ACT, 1, "strip" );
   Command::AddCmd( new Action_Surf(),          Cmd::ACT, 1, "surf" );
-<<<<<<< HEAD
   // surftension: keep Command.cpp in sync with Action_SurfaceTension.h
   // (standalone Makefile has no header deps; stale Command.o undersizes new).
-=======
->>>>>>> c51400c7 (Add 'surftension' command to calculate capillary-wave surface tension of a liquid slab)
   Command::AddCmd( new Action_SurfaceTension(),Cmd::ACT, 1, "surftension" );
   Command::AddCmd( new Action_SymmetricRmsd(), Cmd::ACT, 1, "symmrmsd" );
   Command::AddCmd( new Action_Temperature(),   Cmd::ACT, 1, "temperature" );

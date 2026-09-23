@@ -19,7 +19,6 @@ New Commands
   plateau of q²⟨|h_q|²⟩. κ (kT) is the Helfrich slope of 1/(q² S) vs q².
   `normal {x|y|z}` selects the slab normal (default z). `interface {willard|itim}`
   selects a Willard-Chandler density isosurface (default) or ITIM per-column min/max.
-<<<<<<< HEAD
   Default is two interfaces (e.g. a water slab with vacuum at +z and −z). `nsurf 1`
   with `side {upper|lower}` is a single interface. `mask2` supplies a second atom
   set for the lower surface (leaflet / liquid–liquid). Lateral lengths come from
@@ -27,36 +26,21 @@ New Commands
   2π/max(Lt1,Lt2) from the first frame. `blocktime` (ps) with `dt` sets `nblock`.
   Optional outputs (`spectrumout`, `roughout`, `blockout`, `summaryout`) follow
   the filename extension (`.agr`/`.xmgr` = xmgrace, `.gnu` = gnuplot). Dedicated
-  `*agr`/`*gnu` keywords force Grace or gnuplot. `fprefix` is prepended to each
-  of those file names. Parent directories must already exist. MPI-parallel
-  (packed spectral SUM to the master). Assumes NVT (fixed lateral box lengths).
+  `*agr`/`*gnu` keywords force Grace or gnuplot. Parent directories must already
+  exist. MPI-parallel (packed spectral SUM to the master). Assumes NVT (fixed
+  lateral box lengths).
 
 ```
 surftension [<name>] <mask> [mask2 <mask2>] temp <T>
   [normal {x|y|z}] [nsurf {1|2}] [side {upper|lower}]
   [interface {willard|itim}]
-=======
-  Optional outputs (`spectrumout`, `roughout`, `blockout`) follow the filename extension
-  (`.agr`/`.xmgr` = xmgrace, `.gnu` = gnuplot). Dedicated `*agr`/`*gnu`
-  keywords force Grace or gnuplot. MPI-parallel (packed
-  spectral SUM to the master). Assumes NVT (fixed lateral box lengths).
-
-```
-surftension [<name>] <mask> temp <T>
-  [normal {x|y|z}] [interface {willard|itim}]
->>>>>>> c51400c7 (Add 'surftension' command to calculate capillary-wave surface tension of a liquid slab)
   [gridspacing <d>] [dz <d> | dnormal <d>]
   [sigmaxy <d>] [sigmaz <d> | sigmanormal <d>]
   [bulkhalfwidth <d>] [threshold <frac>]
   [qmin <q>] [qmax <q>] [lx <Lx>] [ly <Ly>] [lz <Lz>]
-<<<<<<< HEAD
-  [nblock <frames>] [dt <ps>] [blocktime <ps>] [fprefix <prefix>]
-  [out <file> | spectrumout <file>] [roughout <file>] [blockout <file>]
-  [summaryout <file>]
-=======
-  [nblock <frames>]
+  [nblock <frames>] [dt <ps>] [blocktime <ps>]
   [spectrumout <file>] [roughout <file>] [blockout <file>]
->>>>>>> c51400c7 (Add 'surftension' command to calculate capillary-wave surface tension of a liquid slab)
+  [summaryout <file>]
   [spectrumagr <file>] [roughagr <file>] [blockagr <file>]
   [spectrumgnu <file>] [roughgnu <file>] [blockgnu <file>]
 ```
