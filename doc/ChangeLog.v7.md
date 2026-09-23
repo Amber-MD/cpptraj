@@ -26,9 +26,9 @@ New Commands
   2π/max(Lt1,Lt2) from the first frame. `blocktime` (ps) with `dt` sets `nblock`.
   Optional outputs (`spectrumout`, `roughout`, `blockout`, `summaryout`) follow
   the filename extension (`.agr`/`.xmgr` = xmgrace, `.gnu` = gnuplot). Dedicated
-  `*agr`/`*gnu` keywords force Grace or gnuplot. Parent directories must already
-  exist. MPI-parallel (packed spectral SUM to the master). Assumes NVT (fixed
-  lateral box lengths).
+  `*agr`/`*gnu` keywords force Grace or gnuplot. `fprefix` is prepended to each
+  of those file names. Parent directories must already exist. MPI-parallel
+  (packed spectral SUM to the master). Assumes NVT (fixed lateral box lengths).
 
 ```
 surftension [<name>] <mask> [mask2 <mask2>] temp <T>
@@ -38,7 +38,7 @@ surftension [<name>] <mask> [mask2 <mask2>] temp <T>
   [sigmaxy <d>] [sigmaz <d> | sigmanormal <d>]
   [bulkhalfwidth <d>] [threshold <frac>]
   [qmin <q>] [qmax <q>] [lx <Lx>] [ly <Ly>] [lz <Lz>]
-  [nblock <frames>] [dt <ps>] [blocktime <ps>]
+  [nblock <frames>] [dt <ps>] [blocktime <ps>] [fprefix <prefix>]
   [out <file> | spectrumout <file>] [roughout <file>] [blockout <file>]
   [summaryout <file>]
   [spectrumagr <file>] [roughagr <file>] [blockagr <file>]
