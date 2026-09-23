@@ -31,24 +31,34 @@
  *   3. If tiout <prefix> is given, also build a dual-topology pair of the
  *      same size: unique atoms are real in one end state and charge-0 /
  *      mass-0 / type-DUM dummies in the other.
- *   4. series mode: choose one parent among many analogs (leadopt-inspired
- *      pairwise score), then map every other analog onto that parent.
+ *   4. series mode: choose one parent among many analogs, then map every
+ *      other analog onto that parent.
  *
- * Series parent selection cites ideas from util/leadopt/ (not linked into the
- * build). Authors / sources:
- *   - Jonathan Redmann & Christopher Summa, Summa Lab, University of New
- *     Orleans — GraphGenerator4.py (TI graph planning from similarity).
- *   - leadopt/similarity.py — exp(-BETA * delta) similarity from atom-count
- *     differences relative to a common substructure (BETA = 0.1).
- *   - leadopt/mcs.py, rule.py, graph.py — pairwise MCS / common-substructure
- *     scoring used to decide which compounds share the most.
- * Here we approximate the common substructure with TIMatch's partial
- * map (nMapped / insertions / unmatched) rather than an external MCS engine.
+ * Series scoring uses exp(-0.1 * (insertions + unmatched template atoms)),
+ * the similarity form from leadopt (Redmann & Summa, University of New
+ * Orleans). The common substructure is TIMatch's partial map, not an
+ * external MCS engine.
  * \author Nathan D. Levinzon <ndlevinzon@gmail.com>
  */
 
 // Exec_TIMap::Help()
 void Exec_TIMap::Help() const {
+  mprintf("\t<tgt> [template <name>] [naorder|aaorder]\n"
+          "\t[out <file>] [fmt {lib|mol2|pdb}] [tiout <prefix>] [mapout <file>] [maponly]\n"
+          "\t[name <newparm>] [replace] [seed {auto|names|na|aa|none}] [anchor <atom>]\n"
+          "\t[series <a> <b> ... [outprefix <p>] [tioutprefix <p>] [mapoutprefix <p>]\n"
+          "\t [parentout <file>]]\n"
+          "  Reorder <tgt> so atoms shared with a template have the same indices (TI).\n"
+          "  Partial maps are expected (unlike atommap). Alias: timatch.\n"
+          "  Type 'help timap extended' for keywords, output files, and examples.\n");
+}
+
+// Exec_TIMap::Help()
+void Exec_TIMap::Help(ArgList& argIn) const {
+  if (!argIn.hasKey("extended")) {
+    Help();
+    return;
+  }
   mprintf("\t{ <tgt> [template <name>] [naorder|aaorder] |\n"
           "\t  series <a> <b> ... [outprefix <pfx>] [tioutprefix <pfx>]\n"
           "\t         [mapoutprefix <pfx>] [parentout <file>] }\n"
@@ -67,9 +77,10 @@ void Exec_TIMap::Help() const {
           "    aaorder          ff19SB amino19.lib walk of <tgt> (or of template):\n"
           "                     N -> H -> CA -> HA -> side chain from CB -> C -> O\n"
           "                     (proline: N -> CD -> ... -> CB -> CA -> C -> O).\n"
+          "                     Does not read amino19.lib; the walk is built in.\n"
           "    series <a> <b>... auto-pick one parent among the listed topologies\n"
           "                     (max mapped-atom sum; ties: fewest atoms, then\n"
-          "                     leadopt-style exp(-0.1*(ins+unmap)) sum; see manual),\n"
+          "                     exp(-0.1*(insertions+unmatched)) sum),\n"
           "                     then map every member onto it. Not with template.\n"
           "\n"
           "  Output:\n"
@@ -93,11 +104,10 @@ void Exec_TIMap::Help() const {
           "  to a mapped parent follow that parent; other leftovers go before\n"
           "  anchor <atomname> (default O3').\n"
           "\n"
-          "  Inputs: Amber OFF .lib (readdata → Name[Unit]), or mol2 / pdb / Amber\n"
+          "  Inputs: Amber OFF .lib (readdata -> Name[Unit]), or mol2 / pdb / Amber\n"
           "  topology via parm — or pass a file path and timap loads it. Formats may\n"
-          "  be mixed; everything is matched as Topology. ModXNA parents and\n"
-          "  ff19SB amino19.lib: $CPPTRAJHOME/dat/timap/. Immediate command; add go\n"
-          "  if the input has trajin. Alias: timatch.\n"
+          "  be mixed; everything is matched as Topology. Supply your own template.\n"
+          "  Immediate command; add go if the input has trajin. Alias: timatch.\n"
           "\n"
           "  Examples:\n"
           "    > readdata parent.lib name parent\n"
@@ -110,8 +120,6 @@ void Exec_TIMap::Help() const {
           "    > parm b.pdb name B\n"
           "    > timap series A B outprefix s_ tioutprefix s_ti_ parentout parent.dat\n"
           "    > timap phenol.mol2 template benzene.pdb out phenol.lib\n"
-          "    > timap phenol.mol2 template benzene.pdb out phenol.mol2\n"
-          "    > timap phenol.mol2 template benzene.pdb out phenol.pdb\n"
           "    > timap phenol.mol2 template cys.lib[CYS] mapout mix.map maponly\n");
 }
 
@@ -125,7 +133,7 @@ void Exec_TIMap::Help() const {
   *
   * \param dsOut If non-null, receives the dataset pointer (TOPOLOGY or COORDS).
   */
-static Topology* FindNamedTop(DataSetList& dsl, std::string const& name, DataSet** dsOut)
+Topology* Exec_TIMap::FindNamedTop(DataSetList& dsl, std::string const& name, DataSet** dsOut) const
 {
   if (dsOut != 0) *dsOut = 0;
   if (name.empty()) return 0;
@@ -149,7 +157,7 @@ static Topology* FindNamedTop(DataSetList& dsl, std::string const& name, DataSet
 }
 
 /** Split optional Amber-OFF unit bracket: path[Unit] → path, Unit. */
-static void ParseTopSpec(std::string const& spec, std::string& primary, std::string& unit)
+void Exec_TIMap::ParseTopSpec(std::string const& spec, std::string& primary, std::string& unit) const
 {
   primary = spec;
   unit.clear();
@@ -165,7 +173,7 @@ static void ParseTopSpec(std::string const& spec, std::string& primary, std::str
 }
 
 /** Basename without extension (phenol.mol2 → phenol). */
-static std::string FileStem(FileName const& fn)
+std::string Exec_TIMap::FileStem(FileName const& fn) const
 {
   std::string b = fn.Base();
   std::string e = fn.Ext();
@@ -181,7 +189,7 @@ static std::string FileStem(FileName const& fn)
  * (auto-loaded via ParmFile or DataFile Amber OFF). All formats become the
  * same internal Topology for TIMatch; mix-and-match is allowed.
  */
-static Topology* ResolveTop(CpptrajState& State, std::string const& spec, DataSet** dsOut)
+Topology* Exec_TIMap::ResolveTop(CpptrajState& State, std::string const& spec, DataSet** dsOut) const
 {
   if (dsOut != 0) *dsOut = 0;
   if (spec.empty()) return 0;
@@ -244,7 +252,7 @@ static Topology* ResolveTop(CpptrajState& State, std::string const& spec, DataSe
 }
 
 /** Fill frm with coordinates for top. Prefer a COORDS frame; else the original file. */
-static bool LoadCoords(Topology const& top, DataSet* ds, Frame& frm)
+bool Exec_TIMap::LoadCoords(Topology const& top, DataSet* ds, Frame& frm) const
 {
   frm.SetupFrame(top.Natom());
   for (int i = 0; i < frm.Natom() * 3; i++)
@@ -272,7 +280,7 @@ static bool LoadCoords(Topology const& top, DataSet* ds, Frame& frm)
   return got == 1;
 }
 
-static void CopyXyz(Frame const& src, int oldat, Frame& dst, int newat)
+void Exec_TIMap::CopyXyz(Frame const& src, int oldat, Frame& dst, int newat) const
 {
   if (oldat < 0 || newat < 0) return;
   if (oldat >= src.Natom() || newat >= dst.Natom()) return;
@@ -282,7 +290,7 @@ static void CopyXyz(Frame const& src, int oldat, Frame& dst, int newat)
 }
 
 /** Permute src coordinates into dst using Map[new] = old. */
-static void ApplyOrderToFrame(Frame const& src, std::vector<int> const& order, Frame& dst)
+void Exec_TIMap::ApplyOrderToFrame(Frame const& src, std::vector<int> const& order, Frame& dst) const
 {
   dst.SetupFrame((int)order.size());
   for (int i = 0; i < (int)order.size() * 3; i++)
@@ -292,7 +300,7 @@ static void ApplyOrderToFrame(Frame const& src, std::vector<int> const& order, F
 }
 
 /** Amber OFF unit names: letters, digits, underscore only. */
-static std::string OffUnitName(std::string in, char fallback)
+std::string Exec_TIMap::OffUnitName(std::string in, char fallback) const
 {
   std::string out;
   for (size_t i = 0; i < in.size(); i++) {
@@ -308,7 +316,7 @@ static std::string OffUnitName(std::string in, char fallback)
   return out;
 }
 
-static NameType ResNameOf(Topology const& top, const char* fallback)
+NameType Exec_TIMap::ResNameOf(Topology const& top, const char* fallback) const
 {
   if (top.Nres() > 0)
     return top.Res(0).Name();
@@ -319,12 +327,12 @@ static NameType ResNameOf(Topology const& top, const char* fallback)
   * lambda0: template atoms real, target insertions dummy (charge 0, mass 0, type DUM).
   * lambda1: target atoms real, unmatched template atoms dummy.
   */
-static int BuildTiUnit(bool lambda0,
+int Exec_TIMap::BuildTiUnit(bool lambda0,
                        Topology const& tgt, Topology const& tpl,
                        Frame const& tgtX, Frame const& tplX,
                        std::vector<TIMatch::Result::DualSlot> const& dual,
                        Topology& outTop, Frame& outFrm,
-                       NameType const& resname)
+                       NameType const& resname) const
 {
   typedef TIMatch::Result::DualSlot Slot;
   outTop = Topology();
@@ -434,8 +442,8 @@ static int BuildTiUnit(bool lambda0,
   return 0;
 }
 
-static int WriteMol2File(std::string const& fname, Topology& top, Frame const& frm,
-                         DataSetList const& dsl)
+int Exec_TIMap::WriteMol2File(std::string const& fname, Topology& top, Frame const& frm,
+                         DataSetList const& dsl) const
 {
   Trajout_Single out;
   ArgList empty;
@@ -455,8 +463,8 @@ static int WriteMol2File(std::string const& fname, Topology& top, Frame const& f
 }
 
 /** Write PDB via Traj_PDBfile; include CONECT so bonds round-trip for rematching. */
-static int WritePdbFile(std::string const& fname, Topology& top, Frame const& frm,
-                        DataSetList const& dsl)
+int Exec_TIMap::WritePdbFile(std::string const& fname, Topology& top, Frame const& frm,
+                        DataSetList const& dsl) const
 {
   Trajout_Single out;
   ArgList pdbArgs("conect");
@@ -475,10 +483,7 @@ static int WritePdbFile(std::string const& fname, Topology& top, Frame const& fr
   return 0;
 }
 
-/// Aligned-structure output format (default Amber OFF .lib for LEaP/TI).
-enum AlignedOutFmt { AOUT_LIB = 0, AOUT_MOL2, AOUT_PDB };
-
-static const char* AlignedOutExt(AlignedOutFmt f)
+const char* Exec_TIMap::AlignedOutExt(AlignedOutFmt f) const
 {
   switch (f) {
     case AOUT_MOL2: return ".sorted.mol2";
@@ -488,7 +493,7 @@ static const char* AlignedOutExt(AlignedOutFmt f)
   }
 }
 
-static const char* AlignedOutLabel(AlignedOutFmt f)
+const char* Exec_TIMap::AlignedOutLabel(AlignedOutFmt f) const
 {
   switch (f) {
     case AOUT_MOL2: return "mol2";
@@ -498,7 +503,7 @@ static const char* AlignedOutLabel(AlignedOutFmt f)
   }
 }
 
-static int ParseAlignedOutFmt(std::string const& s, AlignedOutFmt& out)
+int Exec_TIMap::ParseAlignedOutFmt(std::string const& s, AlignedOutFmt& out) const
 {
   std::string l = ToLower(s);
   if (l == "lib" || l == "off" || l == "amberlib") { out = AOUT_LIB;  return 0; }
@@ -508,7 +513,7 @@ static int ParseAlignedOutFmt(std::string const& s, AlignedOutFmt& out)
 }
 
 /** Prefer extension of out <file>; otherwise keep def (from fmt keyword). */
-static AlignedOutFmt FmtFromFilename(std::string const& fname, AlignedOutFmt def)
+AlignedOutFmt Exec_TIMap::FmtFromFilename(std::string const& fname, AlignedOutFmt def) const
 {
   FileName fn(fname);
   std::string e = ToLower(fn.Ext());
@@ -518,12 +523,12 @@ static AlignedOutFmt FmtFromFilename(std::string const& fname, AlignedOutFmt def
   return def;
 }
 
-static std::string Q(std::string const& s)
+std::string Exec_TIMap::Q(std::string const& s) const
 {
   return std::string("\"") + s + "\"";
 }
 
-static std::string AtomTypeStr(Atom const& a)
+std::string Exec_TIMap::AtomTypeStr(Atom const& a) const
 {
   std::string t = a.Type().Truncated();
   if (t.empty() && a.ElementName() != 0)
@@ -532,7 +537,7 @@ static std::string AtomTypeStr(Atom const& a)
 }
 
 /** 1-based index of the first atom with this name, or 0 if missing. */
-static int AtomNum1(Topology const& top, const char* n)
+int Exec_TIMap::AtomNum1(Topology const& top, const char* n) const
 {
   for (int i = 0; i < top.Natom(); i++) {
     if (top[i].Name() == n)
@@ -542,7 +547,7 @@ static int AtomNum1(Topology const& top, const char* n)
 }
 
 /** Head/tail connect atoms for LEaP (P/O3' or N/C). */
-static void LeapConnect(Topology const& top, int& c1, int& c2, const char*& restype)
+void Exec_TIMap::LeapConnect(Topology const& top, int& c1, int& c2, const char*& restype) const
 {
   c1 = AtomNum1(top, "P");
   c2 = AtomNum1(top, "O3'");
@@ -562,8 +567,8 @@ static void LeapConnect(Topology const& top, int& c1, int& c2, const char*& rest
 }
 
 /** Minimal Amber OFF writer for a single-residue TI unit. */
-static int WriteAmberLib(std::string const& fname, std::string const& unit,
-                         Topology const& top, Frame const& frm)
+int Exec_TIMap::WriteAmberLib(std::string const& fname, std::string const& unit,
+                         Topology const& top, Frame const& frm) const
 {
   CpptrajFile out;
   if (out.OpenWrite(fname)) {
@@ -630,8 +635,8 @@ static int WriteAmberLib(std::string const& fname, std::string const& unit,
 }
 
 /** Write the remapped structure in the requested format (lib / mol2 / pdb). */
-static int WriteAlignedOut(std::string const& fname, AlignedOutFmt fmt,
-                           Topology& top, Frame const& frm, DataSetList const& dsl)
+int Exec_TIMap::WriteAlignedOut(std::string const& fname, AlignedOutFmt fmt,
+                           Topology& top, Frame const& frm, DataSetList const& dsl) const
 {
   std::string unit = OffUnitName(ResNameOf(top, "TGT").Truncated(), 'T');
   top.SetParmName(unit, FileName(fname));
@@ -646,9 +651,9 @@ static int WriteAlignedOut(std::string const& fname, AlignedOutFmt fmt,
   }
 }
 
-static int WriteScmask(std::string const& fname,
+int Exec_TIMap::WriteScmask(std::string const& fname,
                        Topology const& top0, Topology const& top1,
-                       std::vector<TIMatch::Result::DualSlot> const& dual)
+                       std::vector<TIMatch::Result::DualSlot> const& dual) const
 {
   CpptrajFile out;
   if (out.OpenWrite(fname)) {
@@ -690,9 +695,9 @@ static int WriteScmask(std::string const& fname,
 }
 
 /** Per-slot dual-topology table: kind, names, and charges in both end states. */
-static int WriteDualAtoms(std::string const& fname,
+int Exec_TIMap::WriteDualAtoms(std::string const& fname,
                           Topology const& top0, Topology const& top1,
-                          std::vector<TIMatch::Result::DualSlot> const& dual)
+                          std::vector<TIMatch::Result::DualSlot> const& dual) const
 {
   CpptrajFile out;
   if (out.OpenWrite(fname)) {
@@ -719,9 +724,9 @@ static int WriteDualAtoms(std::string const& fname,
 }
 
 /** Write the human-readable correspondence used by Test_TIMap. */
-static int WriteMapFile(std::string const& fname, Topology const& tgt, Topology const& tpl,
+int Exec_TIMap::WriteMapFile(std::string const& fname, Topology const& tgt, Topology const& tpl,
                         TIMatch::Result const& R, std::string const& tgtName,
-                        std::string const& tplName)
+                        std::string const& tplName) const
 {
   CpptrajFile out;
   if (out.OpenWrite(fname)) {
@@ -782,7 +787,7 @@ static int WriteMapFile(std::string const& fname, Topology const& tgt, Topology 
 }
 
 /** Filename-safe token from a dataset name (FLE[FLE] -> FLE_FLE). */
-static std::string SafeFileToken(std::string const& in)
+std::string Exec_TIMap::SafeFileToken(std::string const& in) const
 {
   std::string out;
   for (size_t i = 0; i < in.size(); i++) {
@@ -797,7 +802,7 @@ static std::string SafeFileToken(std::string const& in)
 }
 
 /** Append comma-split tokens from one user string into names. */
-static void PushSeriesName(std::vector<std::string>& names, std::string const& raw)
+void Exec_TIMap::PushSeriesName(std::vector<std::string>& names, std::string const& raw) const
 {
   if (raw.empty()) return;
   if (raw.find(',') == std::string::npos) {
@@ -818,36 +823,26 @@ static void PushSeriesName(std::vector<std::string>& names, std::string const& r
 
 /**
  * leadopt-style pairwise similarity in [0,1].
- * Adapted from util/leadopt/similarity.py::exp_delta / by_heavy_atom_count
- * (Summa Lab / Redmann & Summa): score = exp(-BETA * delta), BETA = 0.1,
- * where delta counts atoms not in the common substructure. Here delta is
- * TIMatch insertions + unmatched template atoms (partial map proxy for MCS).
+ * score = exp(-BETA * delta), BETA = 0.1, with delta = insertions +
+ * unmatched template atoms (Redmann & Summa leadopt similarity; the
+ * partial map stands in for a maximum common substructure).
  */
-static double LeadoptSimScore(int nInsertion, int nUnmappedTpl)
+double Exec_TIMap::LeadoptSimScore(int nInsertion, int nUnmappedTpl) const
 {
   const double BETA = 0.1;
   return std::exp(-BETA * (double)(nInsertion + nUnmappedTpl));
 }
 
-struct SeriesMember {
-  std::string name;
-  Topology* top;
-  DataSet* ds;
-};
-
 /**
  * Choose the series parent: maximize total mapped atoms when every other
  * member is mapped onto the candidate ("shares the most"); on ties prefer
- * the minimum structure (fewest atoms), then the leadopt-style similarity sum.
- * Inspired by util/leadopt pairwise MCS scoring (mcs.py / similarity.py /
- * graph.py) and the star-parent use case of GraphGenerator4.py (Redmann &
- * Summa, U. New Orleans) without importing that TI-path planner.
+ * the minimum structure (fewest atoms), then the similarity sum.
  * \return parent index, or -1 on failure.
  */
-static int SelectSeriesParent(TIMatch const& matcher,
+int Exec_TIMap::SelectSeriesParent(TIMatch const& matcher,
                               std::vector<SeriesMember> const& mem,
                               std::vector<double>& outSimSum,
-                              std::vector<int>& outMappedSum)
+                              std::vector<int>& outMappedSum) const
 {
   int n = (int)mem.size();
   outSimSum.assign(n, 0.0);

@@ -26539,12 +26539,12 @@ is
 readdata
 \series default
 , and so on).
- Official ModXNA parent fragments shipped with cpptraj live in 
+ Example ModXNA fragments used by the tests live in 
 \series bold
-$CPPTRAJHOME/dat/timap/
+test/Test_TIMap/
 \series default
- (see PARENTS.txt there).
- Use those as-is for ModXNA-class nucleic-acid fragments; for everything else, generate your own template as below.
+ (see PARENTS.txt).
+ The command does not load them.
 \end_layout
 
 \begin_layout Description
@@ -26747,10 +26747,15 @@ amino19.lib
 \series bold
 .lib
 \series default
- into the same shared-atom order as Amber for TI.
- The ff19SB parent library ships as 
+ into the same shared-atom order as Amber ff19SB for TI.
+ The walk is built into the command; it does not read 
 \series bold
-$CPPTRAJHOME/dat/timap/amino19.lib
+amino19.lib
+\series default
+.
+ A smaller amino-acid library already in the test tree is 
+\series bold
+test/Test_Build/amino12.lib
 \series default
 .
 \end_layout
@@ -27194,11 +27199,12 @@ nastruct
 \begin_layout Standard
 The walk is therefore not copied from any one ModXNA file.
  The fragment library was grouped by chemical class (backbone with or without phosphate, purine vs pyrimidine base, 2' pattern of the sugar).
- One consensus parent was kept for each class; those 11 fragments ship in 
+ One consensus parent was kept for each class; those 11 example fragments are in 
 \series bold
-$CPPTRAJHOME/dat/timap/
+test/Test_TIMap/
 \series default
  (see PARENTS.txt).
+ They are test data, not installed with cpptraj.
  Each parent's atom list is the recommended shared-atom order for mapping other members of that class.
  Combined nucleotides are a separate case: they are mapped to a user residue (for example unmodified rA onto dA), not to those fragments.
 \end_layout

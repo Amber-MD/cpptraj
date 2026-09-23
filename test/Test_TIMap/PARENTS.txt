@@ -1,24 +1,19 @@
-# Official ModXNA parent templates shipped with cpptraj.
+# Example ModXNA parent fragments for the timap tests.
 #
-# These 11 fragments are the consensus parents chosen from the ModXNA library
-# (https://github.com/modna-ff). cpptraj ships only these files, not the
-# full ModXNA corpus. Each file's atom order is the recommended TI
-# shared-atom order for that chemical class.
+# These 11 fragments are consensus parents from the ModXNA library
+# (https://github.com/modna-ff). They are test data, not files the timap
+# command loads, and they are not installed under dat/.
 #
-# Load with:
-#   parm $CPPTRAJHOME/dat/timap/DAA.mol2 name DAA
-#
-# Then map an analog onto that parent (default: sorted Amber OFF library):
+# From this directory:
+#   parm DAA.mol2 name DAA
 #   timap analog template DAA out analog.lib
-#
-# Dual-topology TI files (dummy atoms) are opt-in:
-#   timap analog template DAA tiout analog_ti
 #
 # Combined nucleotides are mapped to a user residue (for example FLE = rA
 # onto ERN = dA), not to these fragments. Use naorder on that residue to
 # freeze a full-nucleotide template. For amino acids, aaorder walks the
-# residue in ff19SB amino19.lib order (see $CPPTRAJHOME/dat/timap/), or
-# map onto a parent with template. Small molecules: generate your own parent.
+# residue in ff19SB amino19.lib order without reading that library. A
+# smaller amino-acid library already in the test tree is
+# test/Test_Build/amino12.lib. Small molecules: generate your own parent.
 #
 # file   class                    notes
 # -----  -----------------------  ------------------------------------------

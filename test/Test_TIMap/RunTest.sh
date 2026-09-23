@@ -102,12 +102,12 @@ EOF
   DoTest cys_shuffled.aaorder.map.save cys_shuffled.aaorder.map
 fi
 
-# Smoke test: official ModXNA parent shipped in dat/timap/.
-UNITNAME='Shipped ModXNA parent: DAA identity map'
+# Example ModXNA parent kept with this test (not installed data).
+UNITNAME='ModXNA parent: DAA identity map'
 CheckFor maxthreads 1
 if [ $? -eq 0 ] ; then
   cat > timap.in <<EOF
-parm ../../dat/timap/DAA.mol2 name DAA
+parm DAA.mol2 name DAA
 timap DAA template DAA mapout daa_identity.map maponly
 EOF
   RunCpptraj "$UNITNAME"
