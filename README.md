@@ -1,15 +1,17 @@
-# CPPTRAJ
+CPPTRAJ
+=======
 
 Fast, parallelized molecular dynamics trajectory data analysis.
 
-# Build Status
+Build Status
+=============
+* GitHub Actions: [![GitHub Actions Status](https://github.com/Amber-MD/cpptraj/actions/workflows/merge-gate.yml/badge.svg)](https://github.com/Amber-MD/cpptraj/actions)
+* AppVeyor: [![Windows Build Status](https://ci.appveyor.com/api/projects/status/github/Amber-MD/cpptraj?branch=master&svg=true&retina=true)](https://ci.appveyor.com/project/drroe/cpptraj-aof9y/branch/master)
+* Jenkins: [![Jenkins Build Status](https://jenkins.jasonswails.com/buildStatus/icon?job=amber-github%2Fcpptraj%2Fmaster&style=plastic)](https://jenkins.jasonswails.com/job/amber-github/job/cpptraj/job/master/)
+* CodeQL: [![CodeQL](https://github.com/Amber-MD/cpptraj/workflows/CodeQL/badge.svg)](https://github.com/Amber-MD/cpptraj/actions?query=workflow%3ACodeQL)
 
-- GitHub Actions: ![GitHub Actions Status](https://github.com/Amber-MD/cpptraj/actions/workflows/merge-gate.yml/badge.svg)
-- AppVeyor: ![Windows Build Status](https://ci.appveyor.com/api/projects/status/github/Amber-MD/cpptraj?branch=master&svg=true&retina=true)
-- Jenkins: ![Jenkins Build Status](https://jenkins.jasonswails.com/buildStatus/icon?job=amber-github%2Fcpptraj%2Fmaster&style=plastic)
-- CodeQL: ![CodeQL](https://github.com/Amber-MD/cpptraj/workflows/CodeQL/badge.svg)
-
-# Description
+Description
+===========
 
 CPPTRAJ is a program designed to process and analyze molecular dynamics
 trajectories and relevant data sets derived from their analysis. CPPTRAJ
@@ -36,18 +38,20 @@ For more information (or to cite CPPTRAJ) see the following publication:
 For more information regarding trajectory/ensemble parallelism via MPI in
 CPPTRAJ see the following publication:
 
-[Daniel R. Roe and Thomas E. Cheatham, III, Parallelization of CPPTRAJ enables
-  large scale analysis of molecular dynamics trajectory data. J. Comp.
+[Daniel R. Roe and Thomas E. Cheatham, III, \"Parallelization of CPPTRAJ enables
+  large scale analysis of molecular dynamics trajectory data\". J. Comp.
   Chem., 2018, DOI: 10.1002/jcc25382](https://onlinelibrary.wiley.com/doi/full/10.1002/jcc.25382).
 
-# Disclaimer and Copyright
+
+Disclaimer and Copyright
+========================
 
 CPPTRAJ is Copyright (c) 2010-2026 Daniel R. Roe.
 The terms for using, copying, modifying, and distributing CPPTRAJ are
 specified in the file LICENSE.
 
-# Documentation
-
+Documentation
+=============
   The `/doc` subdirectory contains PDF and LyX versions of the CPPTRAJ manual.
 The latest version of the manual is available for download
 [here.](https://raw.githubusercontent.com/Amber-MD/cpptraj/master/doc/CpptrajManual.pdf)
@@ -62,28 +66,28 @@ and limited HTML-formatted documentation is available
 
 Some examples are available in the `examples` subdirectory.
 
-# Installation & Testing
-
+Installation & Testing
+======================
 Run `./configure --help` for a short list of configure options. `./configure --full-help`
 will list all available configure options. For full functionality, CPPTRAJ makes use of
 the following libraries:
 
-- NetCDF
-- BLAS
-- LAPACK
-- Gzip
-- Bzip2
-- Parallel NetCDF (-mpi build only, for NetCDF trajectory output in parallel)
-- CUDA (-cuda build only)
-- HIP (-hip build only)
-- FFTW (mostly optional but recommended; required for PME functionality and very large FFTs)
+* NetCDF
+* BLAS
+* LAPACK
+* Gzip
+* Bzip2
+* Parallel NetCDF (-mpi build only, for NetCDF trajectory output in parallel)
+* CUDA (-cuda build only)
+* HIP (-hip build only)
+* FFTW (mostly optional but recommended; required for PME functionality and very large FFTs)
 
 CPPTRAJ also makes use of the following libraries that are bundled with CPPTRAJ. External ones can be used in place of these if desired.
 
-- ARPACK; without this diagonalization of sparse matrices in `diagmatrix` will be slow.
-- [helPME](https://github.com/andysim/helpme) by Andy Simmonett, required for PME functionality.
-- XDR for reading GROMACS XTC trajectories.
-- TNG for reading GROMACS TNG trajectories.
+* ARPACK; without this diagonalization of sparse matrices in `diagmatrix` will be slow.
+* [helPME](https://github.com/andysim/helpme) by Andy Simmonett, required for PME functionality.
+* XDR for reading GROMACS XTC trajectories.
+* TNG for reading GROMACS TNG trajectories.
 
 C++11 support is required to enable particle mesh Ewald (PME) calculation support via helPME.
 CPPTRAJ also uses the PCG32 and Xoshiro 128++ pseudo-random number generators.
@@ -139,9 +143,9 @@ well to test the basic functionality of CPPTRAJ.
 There is an independently-maintained VIM syntax file for CPPTRAJ by Emmett Leddin
 available [here](https://github.com/emleddin/vim-cpptraj).
 
-# CPPTRAJ Authors
-
-**Lead Author:** Daniel R. Roe ([daniel.r.roe@gmail.com](mailto:daniel.r.roe@gmail.com), [daniel.roe@nih.gov](mailto:daniel.roe@nih.gov))
+CPPTRAJ Authors
+===============
+**Lead Author:** Daniel R. Roe (<daniel.r.roe@gmail.com>, <daniel.roe@nih.gov>)
 Laboratory of Computational Biology
 National Heart Lung and Blood Institute
 National Institutes of Health, Bethesda, MD.
@@ -150,83 +154,107 @@ National Institutes of Health, Bethesda, MD.
 (Department of Medicinal Chemistry, University of Utah, Salt Lake City,
  UT, USA) and many routines from PTRAJ were adapted for
 use in CPPTRAJ, including code used in the following classes:
-AnalysisCrankShaft, AnalysisStatistics, ActionDNAionTracker,
-ActionRandomizeIons, ActionPrincipal, ActionGrid, GridAction,
-ActionImage, and ImageRoutines.
+Analysis\_CrankShaft, Analysis\_Statistics, Action\_DNAionTracker,
+Action\_RandomizeIons, Action\_Principal, Action\_Grid, GridAction,
+Action\_Image, and ImageRoutines.
 
 ## Contributors to CPPTRAJ
 
-- James Maier (Stony Brook University, Stony Brook, NY, USA)
-Code for calculating J-couplings (used in ActionJcoupling).
-- Jason M. Swails (University of Florida, Gainesville, FL, USA)
-ActionLIE, AnalysisRunningAvg, ActionVolmap, Grid OpenDX output.
-- Jason M. Swails (University of Florida, Gainesville, FL, USA)
+* James Maier (Stony Brook University, Stony Brook, NY, USA)
+Code for calculating J-couplings (used in Action\_Jcoupling).
+
+* Jason M. Swails (University of Florida, Gainesville, FL, USA)
+Action\_LIE, Analysis\_RunningAvg, Action\_Volmap, Grid OpenDX output.
+
+* Jason M. Swails (University of Florida, Gainesville, FL, USA)
 Guanglei Cui (GlaxoSmithKline, Upper Providence, PA, USA)
-ActionSPAM.
-- Mark J. Williamson (Unilever Centre for Molecular Informatics, Department of Chemistry, Cambridge, UK)
-ActionGridFreeEnergy.
-- Hannes H. Loeffler (STFC Daresbury, Scientific Computing Department, Warrington, WA4 4AD, UK)
-ActionDensity, ActionOrderParameter, ActionPairDist.
-- Crystal N. Nguyen (University of California, San Diego)
+Action\_SPAM.
+
+* Mark J. Williamson (Unilever Centre for Molecular Informatics, Department of Chemistry, Cambridge, UK)
+Action\_GridFreeEnergy.
+
+* Hannes H. Loeffler (STFC Daresbury, Scientific Computing Department, Warrington, WA4 4AD, UK)
+Action\_Density, Action\_OrderParameter, Action\_PairDist.
+
+* Crystal N. Nguyen (University of California, San Diego)
 Romelia F. Salomon (University of California, San Diego)
-Original ActionGist.
-- Pawel Janowski (Rutgers University, NJ, USA)
-Normal mode wizard (nmwiz) output, original code for ADP calculation in ActionAtomicFluct.
-- Zahra Heidari (Faculty of Chemistry, K. N. Toosi University of Technology, Tehran, Iran)
-Original code for AnalysisWavelet.
-- Chris Lee (University of California, San Diego)
+Original Action\_Gist.
+
+* Pawel Janowski (Rutgers University, NJ, USA)
+Normal mode wizard (nmwiz) output, original code for ADP calculation in Action\_AtomicFluct.
+
+* Zahra Heidari (Faculty of Chemistry, K. N. Toosi University of Technology, Tehran, Iran)
+Original code for Analysis\_Wavelet.
+
+* Chris Lee (University of California, San Diego)
 Support for processing force information in NetCDF trajectories.
-- Steven Ramsey (CUNY Lehman College, Bronx, NY)
-Enhancements to entropy calculation in original ActionGist.
-- Amit Roy (University of Utah, UT)
+
+* Steven Ramsey (CUNY Lehman College, Bronx, NY)
+Enhancements to entropy calculation in original Action\_Gist.
+
+* Amit Roy (University of Utah, UT)
 Code for the CUDA version of the 'closest' Action.
-- Nathan D. Levinzon (University of Utah, UT)
-Original code for ActionSurftension, TIMap.
-- Andrew Simmonett (National Institutes of Health)
+
+* Nathan D. Levinzon (University of Utah, UT)
+Action\surftension.
+
+* Andrew Simmonett (National Institutes of Health)
 Code for the reciprocal part of the particle mesh Ewald calculation (electrostatic and Lennard-Jones).
-- Christina Bergonzo (National Institute of Standards and Technology, Gaithersburg, MD)
+
+* Christina Bergonzo (National Institute of Standards and Technology, Gaithersburg, MD)
 Fixes and improvements to nucleic acid dihedral angle definitions (DihedralSearch).
-- David S. Cerutti (Rutgers University, Piscataway, NJ, USA)
+
+* David S. Cerutti (Rutgers University, Piscataway, NJ, USA)
 Original code for the 'xtalsymm' Action.
-- Johannes Kraml, Franz Waibl & Klaus R. Liedl (Department of General, Inorganic, and Theoretical Chemistry, University of Innsbruck)
+
+* Johannes Kraml, Franz Waibl & Klaus R. Liedl (Department of General, Inorganic, and Theoretical Chemistry, University of Innsbruck)
 Improvements and enhancements for GIST.
-- Nikolai Skrynnikov, Danil Yevdokimov, Olga O. Lebedenko and Ivan S. Podkorytov (Purdue University, IN)
+
+* Nikolai Skrynnikov, Danil Yevdokimov, Olga O. Lebedenko and Ivan S. Podkorytov (Purdue University, IN)
 Fix for truncated octahedron cell solvation of large systems.
 
-
-
 #### Various Contributions
-
-- David A. Case (Rutgers University, Piscataway, NJ, USA)
-- Hai Nguyen (Rutgers University, Piscataway, NJ, USA)
-- Robert T. McGibbon (Stanford University, Stanford, CA, USA)
-
-
+* David A. Case (Rutgers University, Piscataway, NJ, USA)
+* Hai Nguyen (Rutgers University, Piscataway, NJ, USA)
+* Robert T. McGibbon (Stanford University, Stanford, CA, USA)
 
 ## Code in CPPTRAJ that originated in PTRAJ
 
-- Holger Gohlke (Heinrich-Heine-University, Düsseldorf, Germany)
+* Holger Gohlke (Heinrich-Heine-University, Düsseldorf, Germany)
 Alrun N. Koller (Heinrich-Heine-University, Düsseldorf, Germany)
 Original implementation of matrix/vector functionality in PTRAJ, including matrix diagonalization, IRED analysis, eigenmode analysis, and vector time correlations.
-- Michael Crowley (University of Southern California, Los Angeles, CA, USA)
+
+* Michael Crowley (University of Southern California, Los Angeles, CA, USA)
 Original code for dealing with truncated octahedral unit cells.
-- Viktor Hornak (Merck, NJ, USA)
+
+* Viktor Hornak (Merck, NJ, USA)
 Original code for mask expression parser.
-- John Mongan (UCSD, San Diego, CA, USA)
+
+* John Mongan (UCSD, San Diego, CA, USA)
 Original implementation of the Amber NetCDF trajectory format.
-- Hannes H. Loeffler (STFC Daresbury, Scientific Computing Department, Warrington, WA4 4AD, UK)
-Diffusion calculation code adapted for use in ActionSTFCDiffusion.
 
-# External code/libraries bundled with CPPTRAJ
+* Hannes H. Loeffler (STFC Daresbury, Scientific Computing Department, Warrington, WA4 4AD, UK)
+Diffusion calculation code adapted for use in Action\_STFC\_Diffusion.
 
-- CPPTRAJ makes use of the [GNU readline](https://tiswww.case.edu/php/chet/readline/rltop.html) library for the interactive command line.
-- CPPTRAJ uses the [ARPACK](https://www.caam.rice.edu//software/ARPACK/) library to calculate eigenvalues/eigenvectors from large sparse matrices.
-- CPPTRAJ uses the [xdrfile](http://www.gromacs.org/Developer_Zone/Programming_Guide/XTC_Library) library for reading XTC files; specifically a somewhat updated version from [MDTRAJ](https://github.com/mdtraj/mdtraj) that includes some bugfixes and enhancements. See `src/xdrfile/README` for details.
-- CPPTRAJ uses the [GROMACS TNG](https://github.com/gromacs/tng) library for reading TNG files. See `sec/tng/README` for details.
-- The reciprocal part of the PME calculation is handled by the [helPME](https://github.com/andysim/helpme) library by Andy Simmonett.
-- Support for reading DTR trajectories uses the VMD DTR plugin.
-- CPPTRAJ uses code for the [permuted congruent pseudo-random number generator](https://www.pcg-random.org/index.html) PCG32 by Melissa O'Neill and the [Xoshiro 128++ pseudo-random number generator](http://prng.di.unimi.it) by David Blackman and Sebastino Vigna.
-- The code for quaternion RMSD calculation was adapted from code in [qcprot.c](https://theobald.brandeis.edu/qcp/qcprot.c) originally written by Douglas L. Theobald and Pu Lio (Brandeis University).
-- The code for reading numpy arrays in `src/libnpy` is from [libnpy](https://github.com/llohse/libnpy) written by Leon Merten Lohse et al. (Universität Göttingen).
-- The code for reading/writing atom/residue number fields in large PDB files (in `Hybrid36.cpp`) is adapted from code written by Ralf W. Grosse-Kunstleve in the Computational Crystallography Toolbox, [https://doi.org/10.1107/S0021889801017824](https://doi.org/10.1107/S0021889801017824), [https://raw.githubusercontent.com/cctbx/cctbx_project/master/iotbx/pdb/hybrid_36_c.c](https://raw.githubusercontent.com/cctbx/cctbx_project/master/iotbx/pdb/hybrid_36_c.c)
+External code/libraries bundled with CPPTRAJ
+============================================
 
+* CPPTRAJ makes use of the [GNU readline](https://tiswww.case.edu/php/chet/readline/rltop.html) library for the interactive command line.
+
+* CPPTRAJ uses the [ARPACK](https://www.caam.rice.edu//software/ARPACK/) library to calculate eigenvalues/eigenvectors from large sparse matrices.
+
+* CPPTRAJ uses the [xdrfile](http://www.gromacs.org/Developer\_Zone/Programming\_Guide/XTC\_Library) library for reading XTC files; specifically a somewhat updated version from [MDTRAJ](https://github.com/mdtraj/mdtraj) that includes some bugfixes and enhancements. See `src/xdrfile/README` for details.
+
+* CPPTRAJ uses the [GROMACS TNG](https://github.com/gromacs/tng) library for reading TNG files. See `sec/tng/README` for details.
+
+* The reciprocal part of the PME calculation is handled by the [helPME](https://github.com/andysim/helpme) library by Andy Simmonett.
+
+* Support for reading DTR trajectories uses the VMD DTR plugin.
+
+* CPPTRAJ uses code for the [permuted congruent pseudo-random number generator](https://www.pcg-random.org/index.html) PCG32 by Melissa O'Neill and the [Xoshiro 128++ pseudo-random number generator](http://prng.di.unimi.it) by David Blackman and Sebastino Vigna.
+
+* The code for quaternion RMSD calculation was adapted from code in [qcprot.c](https://theobald.brandeis.edu/qcp/qcprot.c) originally written by Douglas L. Theobald and Pu Lio (Brandeis University).
+
+* The code for reading numpy arrays in `src/libnpy` is from [libnpy](https://github.com/llohse/libnpy) written by Leon Merten Lohse et al. (Universität Göttingen).
+
+* The code for reading/writing atom/residue number fields in large PDB files (in `Hybrid36.cpp`) is adapted from code written by Ralf W. Grosse-Kunstleve in the Computational Crystallography Toolbox, https://doi.org/10.1107/S0021889801017824, https://raw.githubusercontent.com/cctbx/cctbx_project/master/iotbx/pdb/hybrid_36_c.c
