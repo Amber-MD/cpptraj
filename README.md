@@ -196,7 +196,7 @@ Enhancements to entropy calculation in original Action\_Gist.
 Code for the CUDA version of the 'closest' Action.
 
 * Nathan D. Levinzon (University of Utah, UT)
-Action\surftension.
+Action\_surftension and TIMap.
 
 * Andrew Simmonett (National Institutes of Health)
 Code for the reciprocal part of the particle mesh Ewald calculation (electrostatic and Lennard-Jones).

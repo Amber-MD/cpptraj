@@ -1,0 +1,7 @@
+# timap dual-topology TI masks
+# n_dual= 12  n_shared= 10  dummy_in_lambda0= 1  dummy_in_lambda1= 1
+# lambda 0 = template (real unmatched, dummy insertions)
+# lambda 1 = target   (real insertions, dummy unmatched)
+# pmemd: scmask1 is unique to lambda 0; scmask2 is unique to lambda 1.
+scmask1=":1@SG"
+scmask2=":1@SE"

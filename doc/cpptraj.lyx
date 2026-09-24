@@ -25171,6 +25171,35 @@ Calculate system temperature using velocities of specified atoms.
 \begin_inset Text
 
 \begin_layout Plain Layout
+timap
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Map a residue onto a user template and write a sorted Amber OFF library; optional dual-topology TI pair.
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
 time
 \end_layout
 
@@ -26422,6 +26451,828 @@ run
 \begin_layout LyX-Code
 crdout MyAvg mypdb.pdb adpdata MyFluct[ADP] bfacdata MyFluct
 \end_layout
+
+\begin_layout Subsection
+timap
+\end_layout
+
+\begin_layout LyX-Code
+timap
+\begin_inset Index idx
+range none
+pageformat default
+status collapsed
+
+\begin_layout Plain Layout
+timap
+\end_layout
+
+\end_inset
+
+ <tgt> [template <name>] [out <file>] [tiout <prefix>]
+\begin_inset Newline newline
+\end_inset
+
+        [mapout <file>] [name <newparm>]
+\end_layout
+
+\begin_layout LyX-Code
+        [maponly] [replace] [naorder] [aaorder]
+\end_layout
+
+\begin_layout LyX-Code
+        [seed {auto|names|na|aa|none}] [anchor <atomname>]
+\end_layout
+
+\begin_layout LyX-Code
+        [series <a> <b> ...] [outprefix <pfx>] [tioutprefix <pfx>]
+\end_layout
+
+\begin_layout LyX-Code
+        [mapoutprefix <pfx>] [parentout <file>]
+\end_layout
+
+\begin_deeper
+\begin_layout Standard
+Align atoms in topology 
+\series bold
+<tgt>
+\series default
+ to a user-supplied template so shared atoms occupy the same indices.
+ By default this writes 
+\series bold
+<tgt>
+\series default
+ as an Amber OFF 
+\series bold
+.lib
+\series default
+ in template atom order (no dummy atoms).
+ Dual-topology TI files are written only if 
+\series bold
+tiout
+\series default
+ is given.
+ This is intended for preparing residue libraries for thermodynamic integration (TI) of nucleic acids, amino acids, and small molecules,
+ where two (or more) end states must list common atoms in the same order.
+ For a series of analogs with no predetermined parent, 
+\series bold
+series
+\series default
+ auto-selects a minimum parent that shares the most with the rest, then maps every analog onto it.
+ Unlike 
+\series bold
+atommap
+\series default
+, a one-to-one correspondence is not required: extra atoms on the target are insertions.
+ Partial maps are expected and useful.
+\end_layout
+
+\begin_layout Standard
+The template atom order 
+\series emph
+is
+\series default
+ the shared-atom order used for mapping.
+ Any topology can be a template (mol2, Amber OFF unit loaded with 
+\series bold
+readdata
+\series default
+, and so on).
+ Example ModXNA fragments used by the tests live in 
+\series bold
+test/Test_TIMap/
+\series default
+ (see PARENTS.txt).
+ The command does not load them.
+\end_layout
+
+\begin_layout Description
+<tgt> Topology (or COORDS set) whose atoms will be reordered.
+\end_layout
+
+\begin_layout Description
+template
+\begin_inset space ~
+\end_inset
+
+<name> Parent topology whose 
+\series emph
+current
+\series default
+ atom order is the shared-atom order.
+ If omitted, 
+\series bold
+<tgt>
+\series default
+ is mapped to itself; combine with 
+\series bold
+naorder
+\series default
+ to invent Amber's nucleic-acid walk with no parent file.
+\end_layout
+
+\begin_layout Description
+out
+\begin_inset space ~
+\end_inset
+
+<file> Write 
+\series bold
+<tgt>
+\series default
+ as an Amber OFF library in template atom order.
+ Default (when 
+\series bold
+maponly
+\series default
+ is not given): 
+\series bold
+<residue>.sorted.lib
+\series default
+.
+\end_layout
+
+\begin_layout Description
+mapout
+\begin_inset space ~
+\end_inset
+
+<file> Write the atom map (output index, target atom, template atom, insertion flag).
+\end_layout
+
+\begin_layout Description
+name
+\begin_inset space ~
+\end_inset
+
+<newparm> Store the remapped topology as a new topology set.
+\end_layout
+
+\begin_layout Description
+maponly Write the map (and 
+\series bold
+tiout
+\series default
+ files, if requested) but do not write the default aligned 
+\series bold
+.lib
+\series default
+ and do not store a remapped topology.
+\end_layout
+
+\begin_layout Description
+replace Overwrite 
+\series bold
+<tgt>
+\series default
+ with the remapped atom order.
+\end_layout
+
+\begin_layout Description
+naorder Walk the template as P 
+\begin_inset Formula $\rightarrow$
+\end_inset
+
+ O5' 
+\begin_inset Formula $\rightarrow$
+\end_inset
+
+ C5' 
+\begin_inset Formula $\rightarrow$
+\end_inset
+
+ C4' 
+\begin_inset Formula $\rightarrow$
+\end_inset
+
+ O4' 
+\begin_inset Formula $\rightarrow$
+\end_inset
+
+ C1' 
+\begin_inset Formula $\rightarrow$
+\end_inset
+
+ base 
+\begin_inset Formula $\rightarrow$
+\end_inset
+
+ C3' 
+\begin_inset Formula $\rightarrow$
+\end_inset
+
+ C2' 
+\begin_inset Formula $\rightarrow$
+\end_inset
+
+ O3' .
+ No parent is required: 
+\series bold
+<tgt>
+\series default
+ is walked as itself.
+ If 
+\series bold
+template
+\series default
+ is also given, that parent is walked instead, then 
+\series bold
+<tgt>
+\series default
+ is mapped onto it.
+\end_layout
+
+\begin_layout Description
+aaorder Walk 
+\series bold
+<tgt>
+\series default
+ (or the template, if given) in ff19SB 
+\series bold
+amino19.lib
+\series default
+ order: N 
+\begin_inset Formula $\rightarrow$
+\end_inset
+
+ H 
+\begin_inset Formula $\rightarrow$
+\end_inset
+
+ CA 
+\begin_inset Formula $\rightarrow$
+\end_inset
+
+ HA 
+\begin_inset Formula $\rightarrow$
+\end_inset
+
+ side chain from CB (each heavy atom, then its hydrogens; smaller branch first) 
+\begin_inset Formula $\rightarrow$
+\end_inset
+
+ C 
+\begin_inset Formula $\rightarrow$
+\end_inset
+
+ O.
+ Proline is N 
+\begin_inset Formula $\rightarrow$
+\end_inset
+
+ CD 
+\begin_inset Formula $\rightarrow$
+\end_inset
+
+ ... 
+\begin_inset Formula $\rightarrow$
+\end_inset
+
+ CB 
+\begin_inset Formula $\rightarrow$
+\end_inset
+
+ CA 
+\begin_inset Formula $\rightarrow$
+\end_inset
+
+ C 
+\begin_inset Formula $\rightarrow$
+\end_inset
+
+ O.
+ No parent is required.
+ Use this to put a noncanonical amino-acid 
+\series bold
+.lib
+\series default
+ into the same shared-atom order as Amber ff19SB for TI.
+ The walk is built into the command; it does not read 
+\series bold
+amino19.lib
+\series default
+.
+ A smaller amino-acid library already in the test tree is 
+\series bold
+test/Test_Build/amino12.lib
+\series default
+.
+\end_layout
+
+\begin_layout Description
+seed How the correspondence is started.
+ 
+\series bold
+auto
+\series default
+ (default) uses nucleic-acid scaffold roles when they are detected, otherwise amino-acid N/CA/C/O/CB when a peptide motif is found, otherwise unique atom names.
+ 
+\series bold
+names
+\series default
+ uses unique names only.
+ 
+\series bold
+na
+\series default
+ forces nucleic-acid scaffold seeding.
+ 
+\series bold
+aa
+\series default
+ forces amino-acid N/CA/C/O/CB seeding.
+ 
+\series bold
+none
+\series default
+ performs no matching (not generally useful).
+ The map is then grown by neighbor element/degree signatures.
+ Partial maps are expected.
+\end_layout
+
+\begin_layout Description
+anchor
+\begin_inset space ~
+\end_inset
+
+<atomname> Name of the template atom before which completely unmatched leftovers are inserted (default O3').
+ Atoms that are bonded to a mapped parent are inserted immediately after that parent instead.
+\end_layout
+
+\begin_layout Description
+tiout
+\begin_inset space ~
+\end_inset
+
+<prefix> Optional.
+ Write a dual-topology TI pair of equal size.
+ Lambda 0 is the template with charge-0 dummy atoms for target insertions;
+ lambda 1 is the target with charge-0 dummy atoms for unmatched template atoms.
+ Shared atoms occupy the same indices in both files.
+ Writes 
+\series bold
+<prefix>.0.mol2
+\series default
+ / 
+\series bold
+<prefix>.0.lib
+\series default
+, 
+\series bold
+<prefix>.1.mol2
+\series default
+ / 
+\series bold
+<prefix>.1.lib
+\series default
+, 
+\series bold
+<prefix>.scmask
+\series default
+ (pmemd scmask1 / scmask2), and 
+\series bold
+<prefix>.atoms
+\series default
+.
+ Dummy atoms copy the partner's name and coordinates, have charge 0, mass 0, and Amber type DUM.
+ Does not suppress the default aligned 
+\series bold
+.lib
+\series default
+ unless 
+\series bold
+maponly
+\series default
+ is also given.
+ A remapped target topology is stored only if 
+\series bold
+name
+\series default
+ or 
+\series bold
+replace
+\series default
+ is also given.
+\end_layout
+
+\begin_layout Description
+series
+\begin_inset space ~
+\end_inset
+
+<a> <b> ... List two or more analog topologies.
+ Chooses one parent that shares the most with the rest, then maps every listed analog onto that parent (star topology for TI).
+ Do not combine with 
+\series bold
+template
+\series default
+.
+ Parent selection: maximize the sum of mapped atoms when every other member is matched onto the candidate; on ties prefer the fewest atoms, then a leadopt-style similarity sum 
+\begin_inset Formula $\sum_{j}\exp(-0.1\cdot(\mathrm{insertions}_{j}+\mathrm{unmapped}_{j}))$
+\end_inset
+
+.
+ That score is adapted from 
+\series bold
+util/leadopt/similarity.py
+\series default
+ (
+\series emph
+exp_delta
+\series default
+ / 
+\series emph
+by_heavy_atom_count
+\series default
+; Summa Lab / Jonathan Redmann & Christopher Summa, University of New Orleans).
+ The common substructure is approximated by 
+\series bold
+TIMatch
+\series default
+'s partial map rather than an external MCS engine (
+\series bold
+util/leadopt/mcs.py
+\series default
+, 
+\series bold
+rule.py
+\series default
+, 
+\series bold
+graph.py
+\series default
+).
+ The star-parent use case is inspired by 
+\series bold
+util/leadopt/GraphGenerator4.py
+\series default
+ (Redmann & Summa) without importing that TI-path planner.
+ The 
+\series bold
+leadopt/
+\series default
+ tree is reference-only and is not linked into the cpptraj build.
+\end_layout
+
+\begin_layout Description
+outprefix
+\begin_inset space ~
+\end_inset
+
+<pfx> With 
+\series bold
+series
+\series default
+, write each aligned OFF library as 
+\series bold
+<pfx><name>.sorted.lib
+\series default
+ (default: 
+\series bold
+<name>.sorted.lib
+\series default
+).
+\end_layout
+
+\begin_layout Description
+tioutprefix
+\begin_inset space ~
+\end_inset
+
+<pfx> With 
+\series bold
+series
+\series default
+, write dual-topology TI files for every non-parent member as 
+\series bold
+<pfx><name>.{0,1}.{mol2,lib}
+\series default
+, 
+\series bold
+.scmask
+\series default
+, and 
+\series bold
+.atoms
+\series default
+.
+\end_layout
+
+\begin_layout Description
+mapoutprefix
+\begin_inset space ~
+\end_inset
+
+<pfx> With 
+\series bold
+series
+\series default
+, write each atom map as 
+\series bold
+<pfx><name>.map
+\series default
+.
+\end_layout
+
+\begin_layout Description
+parentout
+\begin_inset space ~
+\end_inset
+
+<file> With 
+\series bold
+series
+\series default
+, write the selected parent name and per-candidate scores.
+\end_layout
+
+\begin_layout Standard
+\series bold
+Generating your own templates
+\series default
+.
+ If 
+\series bold
+template
+\series default
+ is given, that parent's current atom order is used.
+ If it is omitted, 
+\series bold
+naorder
+\series default
+ or 
+\series bold
+aaorder
+\series default
+ invents Amber's canonical walk on 
+\series bold
+<tgt>
+\series default
+ itself.
+\end_layout
+
+\begin_layout LyX-Code
+# 1. Parent given: analog is sorted to that residue's atom order.
+\end_layout
+
+\begin_layout LyX-Code
+# 2. No parent: naorder / aaorder invents Amber's canonical walk on the analog.
+\end_layout
+
+\begin_layout LyX-Code
+# 3. Optional tiout writes dual-topology TI files.
+\end_layout
+
+\begin_layout Standard
+Canonical NA order, no parent (sort this residue the way Amber walks a nucleotide).
+\end_layout
+
+\begin_layout LyX-Code
+> readdata FLE.lib name FLE
+\end_layout
+
+\begin_layout LyX-Code
+> timap FLE[FLE] naorder out FLE.lib
+\end_layout
+
+\begin_layout LyX-Code
+> go
+\end_layout
+
+\begin_layout Standard
+Nucleic acids onto a parent (example: FLE = unmodified rA onto ERN = unmodified dA).
+ Shared atoms keep the dA indices; the 2'-OH is an insertion next to C2'; dA H2'' is unmatched on the template.
+ Default: write FLE in ERN atom order as an OFF library.
+\end_layout
+
+\begin_layout LyX-Code
+> readdata ERN.lib name ERN
+\end_layout
+
+\begin_layout LyX-Code
+> readdata FLE.lib name FLE
+\end_layout
+
+\begin_layout LyX-Code
+> timap FLE[FLE] template ERN[ERN] out FLE.lib
+\end_layout
+
+\begin_layout LyX-Code
+> go
+\end_layout
+
+\begin_layout Standard
+Add 
+\series bold
+tiout
+\series default
+ to also write dual-topology libraries (34 atoms each) and pmemd scmask lines.
+\end_layout
+
+\begin_layout LyX-Code
+> timap FLE[FLE] template ERN[ERN] tiout fle_ern
+\end_layout
+
+\begin_layout LyX-Code
+> go
+\end_layout
+
+\begin_layout Standard
+Small molecules (example: phenol onto benzene).
+ The ring maps by unique names; OH inserts after C1; benzene H1 is unmatched.
+\end_layout
+
+\begin_layout LyX-Code
+> parm benzene.mol2 name benzene
+\end_layout
+
+\begin_layout LyX-Code
+> parm phenol.mol2 name phenol
+\end_layout
+
+\begin_layout LyX-Code
+> timap phenol template benzene out phenol.lib
+\end_layout
+
+\begin_layout LyX-Code
+> go
+\end_layout
+
+\begin_layout Standard
+Amino acids (example: selenocysteine onto cysteine).
+ Use Amber OFF so selenium is 
+\series bold
+elmnt 34
+\series default
+.
+ Mol2 atom name SE is read as sulfur.
+ Backbone names map; SE is an insertion at CB; cysteine SG is unmatched.
+\end_layout
+
+\begin_layout LyX-Code
+> readdata cys.lib name CYS
+\end_layout
+
+\begin_layout LyX-Code
+> readdata sec.lib name SEC
+\end_layout
+
+\begin_layout LyX-Code
+> timap SEC[SEC] template CYS[CYS] out SEC.lib
+\end_layout
+
+\begin_layout LyX-Code
+> go
+\end_layout
+
+\begin_layout Standard
+Canonical amino-acid order, no parent (sort a noncanonical 
+\series bold
+.lib
+\series default
+ the way ff19SB walks Cys/Ala/...).
+\end_layout
+
+\begin_layout LyX-Code
+> readdata ncaa.lib name ncaa
+\end_layout
+
+\begin_layout LyX-Code
+> timap ncaa[ncaa] aaorder out ncaa.lib
+\end_layout
+
+\begin_layout LyX-Code
+> go
+\end_layout
+
+\begin_layout Standard
+Series of analogs (auto-select parent, then map each onto it for TI).
+ Example: phenol and benzene; benzene is chosen (same mapped total, fewer atoms).
+\end_layout
+
+\begin_layout LyX-Code
+> parm benzene.mol2 name benzene
+\end_layout
+
+\begin_layout LyX-Code
+> parm phenol.mol2 name phenol
+\end_layout
+
+\begin_layout LyX-Code
+> timap series phenol benzene outprefix series_ tioutprefix series_ti_ parentout series_parent.dat
+\end_layout
+
+\begin_layout LyX-Code
+> go
+\end_layout
+
+\begin_layout Subsubsection*
+How the nucleic-acid walk was chosen
+\end_layout
+
+\begin_layout Standard
+ModXNA (
+https://github.com/modna-ff
+) is the baseline chemistry for 
+\series bold
+naorder
+\series default
+.
+ It parameterizes nucleic acids as fragments (nucleobase, sugar, backbone) rather than as whole residues.
+ Combining those fragments into one 
+\series bold
+.lib
+\series default
+ does not put shared atoms in a stable order.
+ That breaks thermodynamic integration (common atoms must occupy the same indices) and makes residues harder for 
+\series bold
+nastruct
+\series default
+ to treat as nucleotides, because 
+\series bold
+nastruct
+\series default
+ identifies sugars and bases from connectivity and Amber-like names (C1', N9/N1, and so on), not from file order.
+\end_layout
+
+\begin_layout Standard
+The walk is therefore not copied from any one ModXNA file.
+ The fragment library was grouped by chemical class (backbone with or without phosphate, purine vs pyrimidine base, 2' pattern of the sugar).
+ One consensus parent was kept for each class; those 11 example fragments are in 
+\series bold
+test/Test_TIMap/
+\series default
+ (see PARENTS.txt).
+ They are test data, not installed with cpptraj.
+ Each parent's atom list is the recommended shared-atom order for mapping other members of that class.
+ Combined nucleotides are a separate case: they are mapped to a user residue (for example unmodified rA onto dA), not to those fragments.
+\end_layout
+
+\begin_layout Standard
+The 
+\series bold
+naorder
+\series default
+ walk is a 5' 
+\begin_inset Formula $\rightarrow$
+\end_inset
+
+ 3' sugar-phosphate traversal chosen so that (1) the shared scaffold is a fixed prefix independent of how the file was written, (2) chemical insertions sit next to their attachment atom (nucleobase analogs after the glycosidic nitrogen 
+\begin_inset Formula $\chi$
+\end_inset
+
+, 2'-OH / OMe / F after C2'), and (3) the 3' linker O3' remains last among scaffold atoms so unmatched leftovers can be placed just before it.
+ Hydrogens follow their heavy atom, sorted by name, matching Amber convention.
+\end_layout
+
+\begin_layout LyX-Code
+P -> OP (name-sorted) -> O5' -> C5' -> C4' -> O4' -> C1' ->
+\end_layout
+
+\begin_layout LyX-Code
+  base (BFS from chi, never recrossing C1') -> C3' -> C2' + 2' substituents -> O3'
+\end_layout
+
+\begin_layout Standard
+That is the order 
+\series bold
+naorder
+\series default
+ applies when no 
+\series bold
+template
+\series default
+ is given (the residue is walked as itself).
+ When a ModXNA parent 
+\series emph
+is
+\series default
+ given, 
+\series bold
+timap
+\series default
+ uses that parent's current atom order instead; those files were already written in the class order above.
+ The amino-acid walk (
+\series bold
+aaorder
+\series default
+) plays the same role using ff19SB 
+\series bold
+amino19.lib
+\series default
+ as the baseline.
+\end_layout
+
+\begin_layout Standard
+Alias: 
+\series bold
+timatch
+\series default
+.
+\end_layout
+
+\end_deeper
 
 \begin_layout Subsection
 atommap

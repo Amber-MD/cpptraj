@@ -1,0 +1,30 @@
+# Example ModXNA parent fragments for the timap tests.
+#
+# These 11 fragments are consensus parents from the ModXNA library
+# (https://github.com/modna-ff). They are test data, not files the timap
+# command loads, and they are not installed under dat/.
+#
+# From this directory:
+#   parm DAA.mol2 name DAA
+#   timap analog template DAA out analog.lib
+#
+# Combined nucleotides are mapped to a user residue (for example FLE = rA
+# onto ERN = dA), not to these fragments. Use naorder on that residue to
+# freeze a full-nucleotide template. For amino acids, aaorder walks the
+# residue in ff19SB amino19.lib order without reading that library. A
+# smaller amino-acid library already in the test tree is
+# test/Test_Build/amino12.lib. Small molecules: generate your own parent.
+#
+# file   class                    notes
+# -----  -----------------------  ------------------------------------------
+# 5PO    backbone, no phosphate   5'-OH cap
+# DPO    backbone, phosphate      canonical phosphodiester
+# DAA    purine base              deoxyadenine nucleobase
+# DTT    pyrimidine base          deoxythymine nucleobase
+# TMC    purine base + phosphate  rare combined fragment; 1 corpus member
+# UFB    sugar, 2'-F
+# A9Z    sugar, 2'-HH             bulky analog; prefer a real d-ribose if you have one
+# DDD    sugar, 2'-HH + phosphate rare combined fragment; 1 corpus member
+# RUR    sugar, 2'-OH             ribose
+# OME    sugar, 2'-OMe
+# RBO    sugar, 2'-OR             2'-O-benzyl, not plain ribose

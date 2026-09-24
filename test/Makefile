@@ -77,6 +77,11 @@ test.pucker:
 test.atommap:
 	@-cd Test_AtomMap && ./RunTest.sh $(OPT)
 
+test.timap:
+	@-cd Test_TIMap && ./RunTest.sh $(OPT)
+
+test.timatch: test.timap
+
 test.2drms:
 	@-cd Test_2DRMS && ./RunTest.sh $(OPT)
 
@@ -610,6 +615,7 @@ COMPLETETESTS=test.general \
               test.average \
               test.pucker \
               test.atommap \
+              test.timap \
               test.datafile \
               test.radial \
               test.hist \
