@@ -1,6 +1,7 @@
 #include "VDW_LongRange_Correction.h"
 #include "../CpptrajStdio.h"
 #include "../Topology.h"
+#include <limits>
 
 using namespace Cpptraj::Energy;
 
@@ -48,9 +49,19 @@ int VDW_LongRange_Correction::Setup_VDW_Correction(Topology const& topIn,
       unsigned int idx = offset + jtype;
       int nbidx = NB_->NBindex()[ idx ];
       if (nbidx > -1) {
-        atype_vdw_term += N_vdw_type_[itype] * N_vdw_type_[jtype] * NB_->NBarray()[ nbidx ].B();
+        // Avoid integer overflow by converting to double.
+        double Ni = (double)N_vdw_type_[itype];
+        double Nj = (double)N_vdw_type_[jtype];
+        double NiNj = Ni * Nj;
+        // Sanity check
+        if (std::isinf(NiNj)) {
+          mprinterr("Internal Error: overflow detected calculating LJ VDW LR correction (%i types=%i, %i types=%i)\n",
+                    itype, N_vdw_type_[itype], jtype, N_vdw_type_[jtype]);
+          return 1;
+        }
+        atype_vdw_term += NiNj * NB_->NBarray()[ nbidx ].B();
 
-        Vdw_Recip_term_ += N_vdw_type_[itype] * N_vdw_type_[jtype] * NB_->NBarray()[ nbidx ].B();
+        Vdw_Recip_term_ += NiNj * NB_->NBarray()[ nbidx ].B();
       }
     }
     atype_vdw_recip_terms_.push_back(atype_vdw_term);
