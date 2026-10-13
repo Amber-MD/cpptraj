@@ -542,6 +542,11 @@ void Action_Radial::calcRDF_twoMask(Frame const& frmIn) {
   int outer_max = OuterMask_.Nselected();
   int inner_max = InnerMask_.Nselected();
   int idx1;
+  double boxX = frmIn.BoxCrd().Param(Box::X);
+  double boxY = frmIn.BoxCrd().Param(Box::Y);
+  double boxZ = frmIn.BoxCrd().Param(Box::Z);
+  bool isOrtho = (imageOpt_.ImagingType() == ImageOption::ORTHO &&
+                boxX != 0.0 && boxY != 0.0 && boxZ != 0.0);
 
   long unsigned* myRDF = &RDF_[0];
 # ifdef _OPENMP
@@ -555,7 +560,24 @@ void Action_Radial::calcRDF_twoMask(Frame const& frmIn) {
     const double* xyz1 = frmIn.XYZ( OuterMask_[idx1] );
     for (int idx2 = 0; idx2 < inner_max; idx2++) {
       const double* xyz2 = frmIn.XYZ( InnerMask_[idx2] );
-      double D2 = DIST2( imageOpt_.ImagingType(), xyz1, xyz2, frmIn.BoxCrd() );
+      double D2;
+      if (isOrtho) {
+        double x = std::fabs(xyz1[0] - xyz2[0]);
+        double y = std::fabs(xyz1[1] - xyz2[1]);
+        double z = std::fabs(xyz1[2] - xyz2[2]);
+        while (x > boxX) x -= boxX;
+        while (y > boxY) y -= boxY;
+        while (z > boxZ) z -= boxZ;
+        double D = boxX - x;
+        if (D < x) x = D;
+        D = boxY - y;
+        if (D < y) y = D;
+        D = boxZ - z;
+        if (D < z) z = D;
+        D2 = x*x + y*y + z*z;
+      }
+      else
+        D2 = DIST2(imageOpt_.ImagingType(), xyz1, xyz2, frmIn.BoxCrd());
       if (D2 <= maximum2_) {
       // NOTE: Can we modify the histogram to store D^2?
         double dist = sqrt(D2);
