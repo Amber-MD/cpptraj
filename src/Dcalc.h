@@ -2,6 +2,7 @@
 #define INC_CPPTRAJ_DCALC_H
 #include "Frame.h" // will bring in Vec3, Matrix_3x3, Box
 #include <limits> // std::numeric_limits
+#include <cmath> // std::fabs
 namespace Cpptraj {
 /** Class for implementing distance calc for a frame. */
 class Dcalc {
