@@ -1,5 +1,7 @@
 #include "DistRoutines.h"
 #include "Dist_Imaged.h"
+#include "Matrix_3x3.h"
+#include <cmath> // sqrt
 
 /** \param a1 First set of XYZ coordinates.
   * \param a2 Second set of XYZ coordinates.
@@ -369,4 +371,14 @@ double DIST2_ImageNonOrtho(const double* a1, const double* a2,
   return Cpptraj::Dist2_Imaged_Cart(Vec3(a1), Vec3(a2), ucell, recip, ixyz);
 }
 
+/** \return Distance, no imaging.*/
+double DIST_NoImage( Vec3 const& a1, Vec3 const& a2 ) {
+  Vec3 vec = a1 - a2;
+  return sqrt( vec.Magnitude2() );
+}
+
+/** \return Distance using either minimum-image convention or no imaging. */
+double DIST(ImageOption::Type itype, Vec3 const& a1, Vec3 const& a2, Box const& box) {
+  return sqrt(DIST2(itype, a1.Dptr(), a2.Dptr(), box));
+}
 

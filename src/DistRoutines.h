@@ -1,10 +1,9 @@
 #ifndef INC_DISTROUTINES_H
 #define INC_DISTROUTINES_H
-class Matrix_3x3;
 #include "Vec3.h"
 #include "Box.h"
 #include "ImageOption.h"
-#include <cmath> // sqrt()
+class Matrix_3x3;
 /*! \file DistRoutines.h
     \brief A collection of routines used to calculate distance.
  */
@@ -21,9 +20,14 @@ double DIST2_ImageNonOrtho(Vec3 const&, Vec3 const&, Matrix_3x3 const&, Matrix_3
 /// \return Distance squared between points in Cartesian space, general unit cell imaging.
 double DIST2_ImageNonOrtho(const double*, const double*, Matrix_3x3 const&, Matrix_3x3 const&);
 
-// Frame::DIST2_ImageOrtho()
-/** Return the minimum orthorhombic imaged distance^2 between coordinates a1 
-  * and a2.
+/// \return Distance, no imaging.
+double DIST_NoImage( Vec3 const&, Vec3 const& );
+/// \return Distance using either minimum-image convention or no imaging.
+double DIST(ImageOption::Type, Vec3 const&, Vec3 const&, Box const&);
+
+// ----- Inline Routines -------------------------
+/** \return the minimum orthorhombic imaged distance^2 between coordinates a1 
+  *         and a2.
   */
 inline double DIST2_ImageOrtho(const double* a1, const double* a2, Box const& box)
 {
@@ -54,16 +58,14 @@ inline double DIST2_ImageOrtho(const double* a1, const double* a2, Box const& bo
   return (x*x + y*y + z*z);
 }
 
-/** Return the minimum orthorhombic imaged distance^2 between coordinates a1 
-  * and a2.
+/** \return the minimum orthorhombic imaged distance^2 between coordinates a1 
+  *         and a2.
   */
 inline double DIST2_ImageOrtho(Vec3 const& a1, Vec3 const& a2, Box const& box) {
   return DIST2_ImageOrtho(a1.Dptr(), a2.Dptr(), box);
 }
 
-// Frame::DIST2_NoImage()
-/** Return distance^2 between coordinates in a1 and a2.
-  */
+/// \return distance^2 between coordinates in a1 and a2.
 inline double DIST2_NoImage(const double* a1, const double* a2) {
   double x = a1[0] - a2[0];
   double y = a1[1] - a2[1];
@@ -80,21 +82,8 @@ inline double DIST2_NoImage( Vec3 const& a1, Vec3 const& a2 ) {
   return vec.Magnitude2();
 }
 
-/// \return Distance, no imaging.
-inline double DIST_NoImage( Vec3 const& a1, Vec3 const& a2 ) {
-  Vec3 vec = a1 - a2;
-  return sqrt( vec.Magnitude2() );
-}
-
 /** \return Distance squared using either minimum-image convention or no imaging. */
 inline double DIST2(ImageOption::Type itype, const double* a1, const double* a2, Box const& box) {
-/*  if (imagingEnabled) {
-    if (is_ortho)
-      return DIST2_ImageOrtho(a1, a2, box);
-    else
-      return DIST2_ImageNonOrtho(a1, a2, box.UnitCell(), box.FracCell());
-  } else
-    return DIST2_NoImage(a1, a2);*/
   if (itype == ImageOption::NO_IMAGE)
     return DIST2_NoImage(a1, a2);
   else if (itype == ImageOption::ORTHO)
@@ -108,8 +97,4 @@ inline double DIST2(ImageOption::Type itype, Vec3 const& a1, Vec3 const& a2, Box
   return DIST2(itype, a1.Dptr(), a2.Dptr(), box);
 }
 
-/** \return Distance using either minimum-image convention or no imaging. */
-inline double DIST(ImageOption::Type itype, Vec3 const& a1, Vec3 const& a2, Box const& box) {
-  return sqrt(DIST2(itype, a1.Dptr(), a2.Dptr(), box));
-}
 #endif
