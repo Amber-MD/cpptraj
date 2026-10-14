@@ -4,7 +4,7 @@
 #include <limits> // std::numeric_limits
 #include <cmath> // std::fabs
 namespace Cpptraj {
-/** Class for implementing distance calc for a frame. */
+/** Class for implementing multiple distance calcs for a single frame. */
 class Dcalc {
   /// Bring each fractional coordinate back into the main unit cell (0 to 1)
   static inline void wrap_frac(Vec3& frac) {
@@ -32,7 +32,7 @@ class Dcalc {
           isNonortho_ = true;
       }
     }
-    /// Set xyz1
+    /// Set xyz1 - typically the coordinate from an outer loop
     void SetXYZ1(const double* xyz1, Box const& box) {
       xyz1_ = xyz1;
       if (isNonortho_) {
@@ -40,7 +40,7 @@ class Dcalc {
         wrap_frac(f1_);
       }
     }
-    /// \return Dist^2
+    /// \return Dist^2 for xyz2 from previously set xyz1
     double Dist2(const double* xyz2, Box const& box) const
     {
       // -----------------------------------------
