@@ -705,11 +705,17 @@ Action::RetType Action_Radial::DoAction(int frameNum, ActionFrame& frm) {
 #   pragma omp parallel private(nmask2,atom2,D,idx,mythread)
     {
     mythread = omp_get_thread_num();
+    Cpptraj::Dcalc dcalc(frm.Frm(), imageOpt_.ImagingType());
+    dcalc.SetXYZ1( coord_center.Dptr() );
 #   pragma omp for
+#   else
+    Cpptraj::Dcalc dcalc(frm.Frm(), imageOpt_.ImagingType());
+    dcalc.SetXYZ1( coord_center.Dptr() );
 #   endif
     for (nmask2 = 0; nmask2 < mask2_max; nmask2++) {
       atom2 = InnerMask_[nmask2];
-      D = DIST2(imageOpt_.ImagingType(), coord_center.Dptr(), frm.Frm().XYZ(atom2), frm.Frm().BoxCrd());
+      D = dcalc.Dist2( frm.Frm().XYZ(atom2) );
+      //D = DIST2(imageOpt_.ImagingType(), coord_center.Dptr(), frm.Frm().XYZ(atom2), frm.Frm().BoxCrd());
       if (D <= maximum2_) {
         // NOTE: Can we modify the histogram to store D^2?
         D = sqrt(D);
