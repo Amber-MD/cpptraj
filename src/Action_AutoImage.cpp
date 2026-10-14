@@ -473,7 +473,7 @@ Action::RetType Action_AutoImage::autoimage_by_vector(int frameNum, ActionFrame&
         Vec3 translated_coord_frac = mobile_unit_center_frac + image_vec;
         // Closest distance of mobile unit center to anchor center
         int ixyz[3];
-        Cpptraj::Dist2_Imaged_Frac( translated_coord_frac, anchor_center_frac, box.UnitCell(), box.FracCell(), ixyz );
+        Cpptraj::Dist2_Imaged_Frac( translated_coord_frac, anchor_center_frac, box.UnitCell(), ixyz );
         if (ixyz[0] != 0 || ixyz[1] != 0 || ixyz[2] != 0) {
           // The reflection is closer to the center, so move the mobile unit.
           translate_unit(fracCoords_, Vec3(ixyz[0], ixyz[1], ixyz[2]), *it);
