@@ -497,10 +497,10 @@ void Action_Radial::calcRDF_singleMask(Frame const& frmIn) {
 # endif
   for (idx1 = 0; idx1 < outer_max; idx1++) {
     const double* xyz1 = frmIn.XYZ( OuterMask_[idx1] );
-    dcalc.SetXYZ1( xyz1, frmIn.BoxCrd() );
+    dcalc.SetXYZ1( xyz1 );
     for (int idx2 = idx1 + 1; idx2 < outer_max; idx2++) {
       const double* xyz2 = frmIn.XYZ( OuterMask_[idx2] );
-      double D2 = dcalc.Dist2(xyz2, frmIn.BoxCrd());
+      double D2 = dcalc.Dist2(xyz2);
       if (D2 <= maximum2_) {
       // NOTE: Can we modify the histogram to store D^2?
         double dist = sqrt(D2);
@@ -535,10 +535,10 @@ void Action_Radial::calcRDF_twoMask(Frame const& frmIn) {
 # endif
   for (idx1 = 0; idx1 < outer_max; idx1++) {
     const double* xyz1 = frmIn.XYZ( OuterMask_[idx1] );
-    dcalc.SetXYZ1( xyz1, frmIn.BoxCrd() );
+    dcalc.SetXYZ1( xyz1 );
     for (int idx2 = 0; idx2 < inner_max; idx2++) {
       const double* xyz2 = frmIn.XYZ( InnerMask_[idx2] );
-      double D2 = dcalc.Dist2(xyz2, frmIn.BoxCrd());
+      double D2 = dcalc.Dist2(xyz2);
       if (D2 <= maximum2_) {
       // NOTE: Can we modify the histogram to store D^2?
         double dist = sqrt(D2);
@@ -626,12 +626,12 @@ Action::RetType Action_Radial::DoAction(int frameNum, ActionFrame& frm) {
 #   endif
     for (nmask1 = 0; nmask1 < outer_max; nmask1++) {
       atom1 = OuterMask_[nmask1];
-      dcalc.SetXYZ1( frm.Frm().XYZ(atom1), frm.Frm().BoxCrd() );
+      dcalc.SetXYZ1( frm.Frm().XYZ(atom1) );
       for (nmask2 = 0; nmask2 < inner_max; nmask2++) {
         atom2 = InnerMask_[nmask2];
         if ( (*currentParm_)[atom1].MolNum() != (*currentParm_)[atom2].MolNum() ) {
           //D = DIST2( imageOpt_.ImagingType(), frm.Frm().XYZ(atom1), frm.Frm().XYZ(atom2), frm.Frm().BoxCrd());
-          D = dcalc.Dist2( frm.Frm().XYZ(atom2), frm.Frm().BoxCrd() );
+          D = dcalc.Dist2( frm.Frm().XYZ(atom2) );
           if (D <= maximum2_) {
             // NOTE: Can we modify the histogram to store D^2?
             D = sqrt(D);
@@ -658,17 +658,22 @@ Action::RetType Action_Radial::DoAction(int frameNum, ActionFrame& frm) {
 #   pragma omp parallel private(nmask1,D,idx,mythread)
     {
     mythread = omp_get_thread_num();
+    Cpptraj::Dcalc dcalc(frm.Frm(), imageOpt_.ImagingType());
 #   pragma omp for
+#   else
+    Cpptraj::Dcalc dcalc(frm.Frm(), imageOpt_.ImagingType());
 #   endif
     for (nmask1 = 0; nmask1 < mask1_max; nmask1++)
     {
       AtomMask const& site1 = Sites1_[nmask1];
       Vec3 com1 = getCenter( frm.Frm(), site1 );
+      dcalc.SetXYZ1( com1.Dptr() );
       for (Marray::const_iterator site2 = Sites2_.begin(); site2 != Sites2_.end(); ++site2)
       {
         if (site1 != *site2) {
           Vec3 com2 = getCenter( frm.Frm(), *site2 );
-          D = DIST2(imageOpt_.ImagingType(), com1.Dptr(), com2.Dptr(), frm.Frm().BoxCrd());
+          //D = DIST2(imageOpt_.ImagingType(), com1.Dptr(), com2.Dptr(), frm.Frm().BoxCrd());
+          D = dcalc.Dist2( com2.Dptr() );
           if (D <= maximum2_) {
             D = sqrt(D);
             //mprintf("MASKLOOP: %10i %10i %10.4f\n",atom1,atom2,D);

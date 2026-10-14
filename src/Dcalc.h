@@ -18,6 +18,8 @@ class Dcalc {
   public:
     /// CONSTRUCTOR
     Dcalc( Frame const& frmIn, ImageOption::Type itype) :
+      ucell_( frmIn.BoxCrd().UnitCell() ),
+      fcell_( frmIn.BoxCrd().FracCell() ),
       boxX_( frmIn.BoxCrd().Param(Box::X) ),
       boxY_( frmIn.BoxCrd().Param(Box::Y) ),
       boxZ_( frmIn.BoxCrd().Param(Box::Z) ),
@@ -33,15 +35,15 @@ class Dcalc {
       }
     }
     /// Set xyz1 - typically the coordinate from an outer loop
-    void SetXYZ1(const double* xyz1, Box const& box) {
+    void SetXYZ1(const double* xyz1) {
       xyz1_ = xyz1;
       if (isNonortho_) {
-        f1_ = box.FracCell() * Vec3(xyz1_);
+        f1_ = fcell_ * Vec3(xyz1_);
         wrap_frac(f1_);
       }
     }
     /// \return Dist^2 for xyz2 from previously set xyz1
-    double Dist2(const double* xyz2, Box const& box) const
+    double Dist2(const double* xyz2) const
     {
       // -----------------------------------------
       if (isOrtho_) {
@@ -63,12 +65,10 @@ class Dcalc {
         return (x*x + y*y + z*z);
       // -----------------------------------------
       } else if (isNonortho_) {
-        Matrix_3x3 const& fcell = box.FracCell();
-        Matrix_3x3 const& ucell = box.UnitCell();
         //return DIST2_ImageNonOrtho(xyz1, xyz2, box.UnitCell(), box.FracCell());
         // Wrap each coordinate in fractional coordinates back to the main unit cell
         // (so each frac coord is between 0 and 1).
-        Vec3 f2 = fcell * Vec3(xyz2);
+        Vec3 f2 = fcell_ * Vec3(xyz2);
         wrap_frac(f2);
         // Calculate f2 to f1 in fractional space
         Vec3 fdelta = f2 - f1_;
@@ -87,7 +87,7 @@ class Dcalc {
           }
         }
         // Calculate wrapped f2 back in Cartesian space
-        Vec3 c2 = ucell.TransposeMult( f2 );
+        Vec3 c2 = ucell_.TransposeMult( f2 );
         // Searching only images we are close to.
         // Check each image of f1 to determine which distance is the smallest.
         double minD2 = std::numeric_limits<double>::max();
@@ -100,7 +100,7 @@ class Dcalc {
               // Image in frac space
               Vec3 f1img = f1_ + Vec3(ix, iy, iz);
               // Image in Cartesian space
-              Vec3 c1img = ucell.TransposeMult( f1img );
+              Vec3 c1img = ucell_.TransposeMult( f1img );
               // Calculate distance in Cartesian space
               double dx = (c1img[0] - c2[0]);
               double dy = (c1img[1] - c2[1]);
@@ -130,10 +130,12 @@ class Dcalc {
        }
      }
   private:
+    Matrix_3x3 const& ucell_;
+    Matrix_3x3 const& fcell_;
     Vec3 f1_;
     double boxX_, boxY_, boxZ_;
     const double* xyz1_;
-    bool isOrtho_, isNonortho_; 
+    bool isOrtho_, isNonortho_;
 };
 }
 #endif
