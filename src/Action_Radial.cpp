@@ -484,15 +484,16 @@ void Action_Radial::calcRDF_singleMask(Frame const& frmIn) {
   int outer_max = OuterMask_.Nselected();
   int idx1;
 
-  Cpptraj::Dcalc dcalc(frmIn, imageOpt_.ImagingType());
-
   long unsigned* myRDF = &RDF_[0];
 # ifdef _OPENMP
 # pragma omp parallel private(idx1, myRDF)
   {
-    //mprintf("OPENMP: %i threads\n",omp_get_num_threads());
-    myRDF = &(rdf_thread_[omp_get_thread_num()][0]);
+  //mprintf("OPENMP: %i threads\n",omp_get_num_threads());
+  myRDF = &(rdf_thread_[omp_get_thread_num()][0]);
+  Cpptraj::Dcalc dcalc(frmIn, imageOpt_.ImagingType());
 # pragma omp for schedule(dynamic)
+# else
+  Cpptraj::Dcalc dcalc(frmIn, imageOpt_.ImagingType());
 # endif
   for (idx1 = 0; idx1 < outer_max; idx1++) {
     const double* xyz1 = frmIn.XYZ( OuterMask_[idx1] );
@@ -521,15 +522,16 @@ void Action_Radial::calcRDF_twoMask(Frame const& frmIn) {
   int inner_max = InnerMask_.Nselected();
   int idx1;
 
-  Cpptraj::Dcalc dcalc(frmIn, imageOpt_.ImagingType());
-
   long unsigned* myRDF = &RDF_[0];
 # ifdef _OPENMP
 # pragma omp parallel private(idx1, myRDF)
   {
-    //mprintf("OPENMP: %i threads\n",omp_get_num_threads());
-    myRDF = &(rdf_thread_[omp_get_thread_num()][0]);
+  //mprintf("OPENMP: %i threads\n",omp_get_num_threads());
+  myRDF = &(rdf_thread_[omp_get_thread_num()][0]);
+  Cpptraj::Dcalc dcalc(frmIn, imageOpt_.ImagingType());
 # pragma omp for
+# else
+  Cpptraj::Dcalc dcalc(frmIn, imageOpt_.ImagingType());
 # endif
   for (idx1 = 0; idx1 < outer_max; idx1++) {
     const double* xyz1 = frmIn.XYZ( OuterMask_[idx1] );
@@ -617,14 +619,19 @@ Action::RetType Action_Radial::DoAction(int frameNum, ActionFrame& frm) {
     {
     //mprintf("OPENMP: %i threads\n",omp_get_num_threads());
     mythread = omp_get_thread_num();
+    Cpptraj::Dcalc dcalc(frm.Frm(), imageOpt_.ImagingType());
 #   pragma omp for
+#   else
+    Cpptraj::Dcalc dcalc(frm.Frm(), imageOpt_.ImagingType());
 #   endif
     for (nmask1 = 0; nmask1 < outer_max; nmask1++) {
       atom1 = OuterMask_[nmask1];
+      dcalc.SetXYZ1( frm.Frm().XYZ(atom1), frm.Frm().BoxCrd() );
       for (nmask2 = 0; nmask2 < inner_max; nmask2++) {
         atom2 = InnerMask_[nmask2];
         if ( (*currentParm_)[atom1].MolNum() != (*currentParm_)[atom2].MolNum() ) {
-          D = DIST2( imageOpt_.ImagingType(), frm.Frm().XYZ(atom1), frm.Frm().XYZ(atom2), frm.Frm().BoxCrd());
+          //D = DIST2( imageOpt_.ImagingType(), frm.Frm().XYZ(atom1), frm.Frm().XYZ(atom2), frm.Frm().BoxCrd());
+          D = dcalc.Dist2( frm.Frm().XYZ(atom2), frm.Frm().BoxCrd() );
           if (D <= maximum2_) {
             // NOTE: Can we modify the histogram to store D^2?
             D = sqrt(D);
