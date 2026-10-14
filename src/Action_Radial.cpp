@@ -3,7 +3,6 @@
 #include "Action_Radial.h"
 #include "CpptrajStdio.h"
 #include "Constants.h" // FOURTHIRDSPI
-#include "DistRoutines.h"
 #include "Dcalc.h"
 #ifdef _OPENMP
 #  include <omp.h>
