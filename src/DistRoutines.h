@@ -1,5 +1,6 @@
 #ifndef INC_DISTROUTINES_H
 #define INC_DISTROUTINES_H
+#include <cmath>
 #include "Vec3.h"
 #include "Box.h"
 #include "ImageOption.h"
@@ -31,31 +32,29 @@ double DIST(ImageOption::Type, Vec3 const&, Vec3 const&, Box const&);
   */
 inline double DIST2_ImageOrtho(const double* a1, const double* a2, Box const& box)
 {
-  double boxx = box.Param(Box::X);
-  double boxy = box.Param(Box::Y);
-  double boxz = box.Param(Box::Z);
-  // If box lengths are zero no imaging possible
-  if (boxx==0.0 || boxy==0.0 || boxz==0.0) return -1.0;
-  double x = a1[0] - a2[0];
-  double y = a1[1] - a2[1];
-  double z = a1[2] - a2[2];
-  // Get rid of sign info
-  if (x<0) x=-x;
-  if (y<0) y=-y;
-  if (z<0) z=-z;
-  // Get rid of multiples of box lengths 
-  while (x > boxx) x = x - boxx;
-  while (y > boxy) y = y - boxy;
-  while (z > boxz) z = z - boxz;
-  // Find shortest distance in periodic reference
-  double D = boxx - x;
+  const double boxX = box.Param(Box::X);
+  const double boxY = box.Param(Box::Y);
+  const double boxZ = box.Param(Box::Z);
+
+  if (boxX == 0.0 || boxY == 0.0 || boxZ == 0.0)
+    return -1.0;
+
+  double x = std::fabs(a1[0] - a2[0]);
+  double y = std::fabs(a1[1] - a2[1]);
+  double z = std::fabs(a1[2] - a2[2]);
+
+  while (x > boxX) x -= boxX;
+  while (y > boxY) y -= boxY;
+  while (z > boxZ) z -= boxZ;
+
+  double D = boxX - x;
   if (D < x) x = D;
-  D = boxy - y;
-  if (D < y) y = D;  
-  D = boxz - z;
+  D = boxY - y;
+  if (D < y) y = D;
+  D = boxZ - z;
   if (D < z) z = D;
 
-  return (x*x + y*y + z*z);
+  return x*x + y*y + z*z;
 }
 
 /** \return the minimum orthorhombic imaged distance^2 between coordinates a1 
@@ -67,9 +66,9 @@ inline double DIST2_ImageOrtho(Vec3 const& a1, Vec3 const& a2, Box const& box) {
 
 /// \return distance^2 between coordinates in a1 and a2.
 inline double DIST2_NoImage(const double* a1, const double* a2) {
-  double x = a1[0] - a2[0];
-  double y = a1[1] - a2[1];
-  double z = a1[2] - a2[2];
+  const double x = a1[0] - a2[0];
+  const double y = a1[1] - a2[1];
+  const double z = a1[2] - a2[2];
   //double D = x*x + y*y + z*z;
   //fprintf(stdout,"Mask1=%8.3f %8.3f %8.3f Mask2=%8.3f %8.3f %8.3f D=%8.3f\n",
   //        a1[0],a1[1],a1[2],a2[0],a2[1],a2[2],D);
