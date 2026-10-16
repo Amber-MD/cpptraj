@@ -376,9 +376,3 @@ double DIST_NoImage( Vec3 const& a1, Vec3 const& a2 ) {
   Vec3 vec = a1 - a2;
   return sqrt( vec.Magnitude2() );
 }
-
-/** \return Distance using either minimum-image convention or no imaging. */
-double DIST(ImageOption::Type itype, Vec3 const& a1, Vec3 const& a2, Box const& box) {
-  return sqrt(DIST2(itype, a1.Dptr(), a2.Dptr(), box));
-}
-

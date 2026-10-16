@@ -23,8 +23,6 @@ double DIST2_ImageNonOrtho(const double*, const double*, Matrix_3x3 const&, Matr
 
 /// \return Distance, no imaging.
 double DIST_NoImage( Vec3 const&, Vec3 const& );
-/// \return Distance using either minimum-image convention or no imaging.
-double DIST(ImageOption::Type, Vec3 const&, Vec3 const&, Box const&);
 
 // ----- Inline Routines -------------------------
 /** \return the minimum orthorhombic imaged distance^2 between coordinates a1 
