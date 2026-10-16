@@ -701,20 +701,42 @@ int Topology::CommonSetup(bool molsearch, bool renumberResidues)
   // Check for duplicate atom names in residues
 //  Timer t_anamecheck;
 //  t_anamecheck.Start();
-  std::set<NameType> anames;
-  for (std::vector<Residue>::const_iterator res = residues_.begin(); res != residues_.end(); ++res)
-  {
-    // Skip solvent.
-    bool is_solvent = false;
-    if (!molecules_.empty()) is_solvent = molecules_[atoms_[res->FirstAtom()].MolNum()].IsSolvent();
-    if (!is_solvent) {
-      anames.clear();
-      for (int iat = res->FirstAtom(); iat != res->LastAtom(); iat++)
-      {
-        std::pair<std::set<NameType>::iterator, bool> ret = anames.insert( atoms_[iat].Name() );
-        if (!ret.second) {
-          mprintf("Warning: '%s': In residue %s duplicate atom name detected: %s\n",
-                  c_str(), TruncResNameNum(res-residues_.begin()).c_str(), *(atoms_[iat].Name()) );
+  if (!atom_altloc_.empty()) {
+    // If alternate location IDs are present, append to name to check for true uniqueness
+    std::set<std::string> anames;
+    for (std::vector<Residue>::const_iterator res = residues_.begin(); res != residues_.end(); ++res)
+    {
+      // Skip solvent.
+      bool is_solvent = false;
+      if (!molecules_.empty()) is_solvent = molecules_[atoms_[res->FirstAtom()].MolNum()].IsSolvent();
+      if (!is_solvent) {
+        anames.clear();
+        for (int iat = res->FirstAtom(); iat != res->LastAtom(); iat++)
+        {
+          std::pair<std::set<std::string>::iterator, bool> ret = anames.insert( atoms_[iat].Name().Truncated() + std::string(1, atom_altloc_[iat]) );
+          if (!ret.second) {
+            mprintf("Warning: '%s': In residue %s duplicate atom name detected: %s\n",
+                    c_str(), TruncResNameNum(res-residues_.begin()).c_str(), ret.first->c_str() );
+          }
+        }
+      }
+    }
+  } else {
+    std::set<NameType> anames;
+    for (std::vector<Residue>::const_iterator res = residues_.begin(); res != residues_.end(); ++res)
+    {
+      // Skip solvent.
+      bool is_solvent = false;
+      if (!molecules_.empty()) is_solvent = molecules_[atoms_[res->FirstAtom()].MolNum()].IsSolvent();
+      if (!is_solvent) {
+        anames.clear();
+        for (int iat = res->FirstAtom(); iat != res->LastAtom(); iat++)
+        {
+          std::pair<std::set<NameType>::iterator, bool> ret = anames.insert( atoms_[iat].Name() );
+          if (!ret.second) {
+            mprintf("Warning: '%s': In residue %s duplicate atom name detected: %s\n",
+                    c_str(), TruncResNameNum(res-residues_.begin()).c_str(), *(atoms_[iat].Name()) );
+          }
         }
       }
     }
