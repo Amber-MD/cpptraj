@@ -73,6 +73,7 @@
 #include "Exec_ParmStrip.h"
 #include "Exec_ParmWrite.h"
 #include "Exec_ScaleDihedralK.h"
+#include "Exec_TIMap.h"
 #include "Exec_Top.h"
 #include "Exec_UpdateParameters.h"
 #include "Exec_Desc.h"
@@ -328,6 +329,7 @@ void Command::Init() {
   Command::AddCmd( new Exec_ParmWrite(),     Cmd::EXE, 1, "parmwrite" );
   Command::AddCmd( new Exec_ResInfo(),       Cmd::EXE, 1, "resinfo" );
   Command::AddCmd( new Exec_ScaleDihedralK(),Cmd::EXE, 1, "scaledihedralk" );
+  Command::AddCmd( new Exec_TIMap(),         Cmd::EXE, 2, "timap", "timatch" );
   Command::AddCmd( new Exec_UBInfo(),        Cmd::EXE, 2, "ubinfo", "printub" );
   Command::AddCmd( new Exec_UpdateParameters(), Cmd::EXE, 1, "updateparameters");
   // ACTION
