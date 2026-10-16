@@ -1,8 +1,10 @@
 #ifndef INC_DISTROUTINES_H
 #define INC_DISTROUTINES_H
 #include <cmath>
+#include "Vec3.h"
 #include "Box.h"
 #include "ImageOption.h"
+class Matrix_3x3;
 /*! \file DistRoutines.h
     \brief A collection of routines used to calculate distance.
  */
@@ -19,9 +21,14 @@ double DIST2_ImageNonOrtho(Vec3 const&, Vec3 const&, Matrix_3x3 const&, Matrix_3
 /// \return Distance squared between points in Cartesian space, general unit cell imaging.
 double DIST2_ImageNonOrtho(const double*, const double*, Matrix_3x3 const&, Matrix_3x3 const&);
 
-/// \return Distance squared, X-aligned and orthogonal imaging.
-inline double DIST2_ImageOrtho(const double* a1, const double* a2,
-                               Box const& box)
+/// \return Distance, no imaging.
+double DIST_NoImage( Vec3 const&, Vec3 const& );
+
+// ----- Inline Routines -------------------------
+/** \return the minimum orthorhombic imaged distance^2 between coordinates a1 
+  *         and a2.
+  */
+inline double DIST2_ImageOrtho(const double* a1, const double* a2, Box const& box)
 {
   const double boxX = box.Param(Box::X);
   const double boxY = box.Param(Box::Y);
@@ -47,35 +54,44 @@ inline double DIST2_ImageOrtho(const double* a1, const double* a2,
 
   return x*x + y*y + z*z;
 }
-/// \return Distance squared, X-aligned and orthogonal imaging.
-double DIST2_ImageOrtho(Vec3 const&, Vec3 const&, Box const&);
 
-/// \return Distance squared, no imaging.
-inline double DIST2_NoImage(const double* a1, const double* a2)
-{
+/** \return the minimum orthorhombic imaged distance^2 between coordinates a1 
+  *         and a2.
+  */
+inline double DIST2_ImageOrtho(Vec3 const& a1, Vec3 const& a2, Box const& box) {
+  return DIST2_ImageOrtho(a1.Dptr(), a2.Dptr(), box);
+}
+
+/// \return distance^2 between coordinates in a1 and a2.
+inline double DIST2_NoImage(const double* a1, const double* a2) {
   const double x = a1[0] - a2[0];
   const double y = a1[1] - a2[1];
   const double z = a1[2] - a2[2];
-  return x*x + y*y + z*z;
+  //double D = x*x + y*y + z*z;
+  //fprintf(stdout,"Mask1=%8.3f %8.3f %8.3f Mask2=%8.3f %8.3f %8.3f D=%8.3f\n",
+  //        a1[0],a1[1],a1[2],a2[0],a2[1],a2[2],D);
+  return (x*x + y*y + z*z);
 }
-/// \return Distance squared, no imaging
-double DIST2_NoImage( Vec3 const&, Vec3 const& );
-/// \return Distance, no imaging.
-double DIST_NoImage( Vec3 const&, Vec3 const& );
 
-/// \return Distance squared using minimum-image convention or no imaging.
-inline double DIST2(ImageOption::Type itype, const double* a1,
-                    const double* a2, Box const& box)
-{
+/// \return Distance squared, no imaging.
+inline double DIST2_NoImage( Vec3 const& a1, Vec3 const& a2 ) {
+  Vec3 vec = a1 - a2;
+  return vec.Magnitude2();
+}
+
+/** \return Distance squared using either minimum-image convention or no imaging. */
+inline double DIST2(ImageOption::Type itype, const double* a1, const double* a2, Box const& box) {
   if (itype == ImageOption::NO_IMAGE)
     return DIST2_NoImage(a1, a2);
   else if (itype == ImageOption::ORTHO)
     return DIST2_ImageOrtho(a1, a2, box);
-  else
+  else // NONORTHO
     return DIST2_ImageNonOrtho(a1, a2, box.UnitCell(), box.FracCell());
 }
-// \return Distance squared using minimum-image convention or no imaging.
-double DIST2(ImageOption::Type, Vec3 const&, Vec3 const&, Box const&);
-// \return Distance using minimum-image convention or no imaging.
-double DIST(ImageOption::Type, Vec3 const&, Vec3 const&, Box const&);
+
+/** \return Distance squared using either minimum-image convention or no imaging. */
+inline double DIST2(ImageOption::Type itype, Vec3 const& a1, Vec3 const& a2, Box const& box) {
+  return DIST2(itype, a1.Dptr(), a2.Dptr(), box);
+}
+
 #endif

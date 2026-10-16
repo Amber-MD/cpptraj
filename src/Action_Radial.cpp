@@ -3,7 +3,7 @@
 #include "Action_Radial.h"
 #include "CpptrajStdio.h"
 #include "Constants.h" // FOURTHIRDSPI
-#include "DistRoutines.h"
+#include "Dcalc.h"
 #ifdef _OPENMP
 #  include <omp.h>
 #endif
@@ -483,45 +483,23 @@ void Action_Radial::calcRDF_singleMask(Frame const& frmIn) {
   int outer_max = OuterMask_.Nselected();
   int idx1;
 
-  double boxX = frmIn.BoxCrd().Param(Box::X);
-  double boxY = frmIn.BoxCrd().Param(Box::Y);
-  double boxZ = frmIn.BoxCrd().Param(Box::Z);
-  bool isOrtho = (imageOpt_.ImagingType() == ImageOption::ORTHO &&
-                  boxX != 0.0 && boxY != 0.0 && boxZ != 0.0);
-
   long unsigned* myRDF = &RDF_[0];
 # ifdef _OPENMP
 # pragma omp parallel private(idx1, myRDF)
   {
-    //mprintf("OPENMP: %i threads\n",omp_get_num_threads());
-    myRDF = &(rdf_thread_[omp_get_thread_num()][0]);
+  //mprintf("OPENMP: %i threads\n",omp_get_num_threads());
+  myRDF = &(rdf_thread_[omp_get_thread_num()][0]);
+  Cpptraj::Dcalc dcalc(frmIn, imageOpt_.ImagingType());
 # pragma omp for schedule(dynamic)
+# else
+  Cpptraj::Dcalc dcalc(frmIn, imageOpt_.ImagingType());
 # endif
   for (idx1 = 0; idx1 < outer_max; idx1++) {
     const double* xyz1 = frmIn.XYZ( OuterMask_[idx1] );
+    dcalc.SetXYZ1( xyz1 );
     for (int idx2 = idx1 + 1; idx2 < outer_max; idx2++) {
       const double* xyz2 = frmIn.XYZ( OuterMask_[idx2] );
-      double D2;
-      if (isOrtho) {
-        double x = xyz1[0] - xyz2[0];
-        double y = xyz1[1] - xyz2[1];
-        double z = xyz1[2] - xyz2[2];
-        x = std::fabs(x);
-        y = std::fabs(y);
-        z = std::fabs(z);
-        while (x > boxX) x -= boxX;
-        while (y > boxY) y -= boxY;
-        while (z > boxZ) z -= boxZ;
-        double D = boxX - x;
-        if (D < x) x = D;
-        D = boxY - y;
-        if (D < y) y = D;
-        D = boxZ - z;
-        if (D < z) z = D;
-        D2 = x*x + y*y + z*z;
-      }
-      else
-        D2 = DIST2(imageOpt_.ImagingType(), xyz1, xyz2, frmIn.BoxCrd());
+      double D2 = dcalc.Dist2(xyz2);
       if (D2 <= maximum2_) {
       // NOTE: Can we modify the histogram to store D^2?
         double dist = sqrt(D2);
@@ -542,42 +520,24 @@ void Action_Radial::calcRDF_twoMask(Frame const& frmIn) {
   int outer_max = OuterMask_.Nselected();
   int inner_max = InnerMask_.Nselected();
   int idx1;
-  double boxX = frmIn.BoxCrd().Param(Box::X);
-  double boxY = frmIn.BoxCrd().Param(Box::Y);
-  double boxZ = frmIn.BoxCrd().Param(Box::Z);
-  bool isOrtho = (imageOpt_.ImagingType() == ImageOption::ORTHO &&
-                boxX != 0.0 && boxY != 0.0 && boxZ != 0.0);
 
   long unsigned* myRDF = &RDF_[0];
 # ifdef _OPENMP
 # pragma omp parallel private(idx1, myRDF)
   {
-    //mprintf("OPENMP: %i threads\n",omp_get_num_threads());
-    myRDF = &(rdf_thread_[omp_get_thread_num()][0]);
+  //mprintf("OPENMP: %i threads\n",omp_get_num_threads());
+  myRDF = &(rdf_thread_[omp_get_thread_num()][0]);
+  Cpptraj::Dcalc dcalc(frmIn, imageOpt_.ImagingType());
 # pragma omp for
+# else
+  Cpptraj::Dcalc dcalc(frmIn, imageOpt_.ImagingType());
 # endif
   for (idx1 = 0; idx1 < outer_max; idx1++) {
     const double* xyz1 = frmIn.XYZ( OuterMask_[idx1] );
+    dcalc.SetXYZ1( xyz1 );
     for (int idx2 = 0; idx2 < inner_max; idx2++) {
       const double* xyz2 = frmIn.XYZ( InnerMask_[idx2] );
-      double D2;
-      if (isOrtho) {
-        double x = std::fabs(xyz1[0] - xyz2[0]);
-        double y = std::fabs(xyz1[1] - xyz2[1]);
-        double z = std::fabs(xyz1[2] - xyz2[2]);
-        while (x > boxX) x -= boxX;
-        while (y > boxY) y -= boxY;
-        while (z > boxZ) z -= boxZ;
-        double D = boxX - x;
-        if (D < x) x = D;
-        D = boxY - y;
-        if (D < y) y = D;
-        D = boxZ - z;
-        if (D < z) z = D;
-        D2 = x*x + y*y + z*z;
-      }
-      else
-        D2 = DIST2(imageOpt_.ImagingType(), xyz1, xyz2, frmIn.BoxCrd());
+      double D2 = dcalc.Dist2(xyz2);
       if (D2 <= maximum2_) {
       // NOTE: Can we modify the histogram to store D^2?
         double dist = sqrt(D2);
@@ -658,14 +618,19 @@ Action::RetType Action_Radial::DoAction(int frameNum, ActionFrame& frm) {
     {
     //mprintf("OPENMP: %i threads\n",omp_get_num_threads());
     mythread = omp_get_thread_num();
+    Cpptraj::Dcalc dcalc(frm.Frm(), imageOpt_.ImagingType());
 #   pragma omp for
+#   else
+    Cpptraj::Dcalc dcalc(frm.Frm(), imageOpt_.ImagingType());
 #   endif
     for (nmask1 = 0; nmask1 < outer_max; nmask1++) {
       atom1 = OuterMask_[nmask1];
+      dcalc.SetXYZ1( frm.Frm().XYZ(atom1) );
       for (nmask2 = 0; nmask2 < inner_max; nmask2++) {
         atom2 = InnerMask_[nmask2];
         if ( (*currentParm_)[atom1].MolNum() != (*currentParm_)[atom2].MolNum() ) {
-          D = DIST2( imageOpt_.ImagingType(), frm.Frm().XYZ(atom1), frm.Frm().XYZ(atom2), frm.Frm().BoxCrd());
+          //D = DIST2( imageOpt_.ImagingType(), frm.Frm().XYZ(atom1), frm.Frm().XYZ(atom2), frm.Frm().BoxCrd());
+          D = dcalc.Dist2( frm.Frm().XYZ(atom2) );
           if (D <= maximum2_) {
             // NOTE: Can we modify the histogram to store D^2?
             D = sqrt(D);
@@ -692,17 +657,22 @@ Action::RetType Action_Radial::DoAction(int frameNum, ActionFrame& frm) {
 #   pragma omp parallel private(nmask1,D,idx,mythread)
     {
     mythread = omp_get_thread_num();
+    Cpptraj::Dcalc dcalc(frm.Frm(), imageOpt_.ImagingType());
 #   pragma omp for
+#   else
+    Cpptraj::Dcalc dcalc(frm.Frm(), imageOpt_.ImagingType());
 #   endif
     for (nmask1 = 0; nmask1 < mask1_max; nmask1++)
     {
       AtomMask const& site1 = Sites1_[nmask1];
       Vec3 com1 = getCenter( frm.Frm(), site1 );
+      dcalc.SetXYZ1( com1.Dptr() );
       for (Marray::const_iterator site2 = Sites2_.begin(); site2 != Sites2_.end(); ++site2)
       {
         if (site1 != *site2) {
           Vec3 com2 = getCenter( frm.Frm(), *site2 );
-          D = DIST2(imageOpt_.ImagingType(), com1.Dptr(), com2.Dptr(), frm.Frm().BoxCrd());
+          //D = DIST2(imageOpt_.ImagingType(), com1.Dptr(), com2.Dptr(), frm.Frm().BoxCrd());
+          D = dcalc.Dist2( com2.Dptr() );
           if (D <= maximum2_) {
             D = sqrt(D);
             //mprintf("MASKLOOP: %10i %10i %10.4f\n",atom1,atom2,D);
@@ -734,11 +704,17 @@ Action::RetType Action_Radial::DoAction(int frameNum, ActionFrame& frm) {
 #   pragma omp parallel private(nmask2,atom2,D,idx,mythread)
     {
     mythread = omp_get_thread_num();
+    Cpptraj::Dcalc dcalc(frm.Frm(), imageOpt_.ImagingType());
+    dcalc.SetXYZ1( coord_center.Dptr() );
 #   pragma omp for
+#   else
+    Cpptraj::Dcalc dcalc(frm.Frm(), imageOpt_.ImagingType());
+    dcalc.SetXYZ1( coord_center.Dptr() );
 #   endif
     for (nmask2 = 0; nmask2 < mask2_max; nmask2++) {
       atom2 = InnerMask_[nmask2];
-      D = DIST2(imageOpt_.ImagingType(), coord_center.Dptr(), frm.Frm().XYZ(atom2), frm.Frm().BoxCrd());
+      D = dcalc.Dist2( frm.Frm().XYZ(atom2) );
+      //D = DIST2(imageOpt_.ImagingType(), coord_center.Dptr(), frm.Frm().XYZ(atom2), frm.Frm().BoxCrd());
       if (D <= maximum2_) {
         // NOTE: Can we modify the histogram to store D^2?
         D = sqrt(D);

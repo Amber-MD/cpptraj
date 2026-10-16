@@ -1,6 +1,7 @@
-#include <cmath> // sqrt
 #include "DistRoutines.h"
-#include "Box.h"
+#include "Dist_Imaged.h"
+#include "Matrix_3x3.h"
+#include <cmath> // sqrt
 
 /** \param a1 First set of XYZ coordinates.
   * \param a2 Second set of XYZ coordinates.
@@ -346,7 +347,8 @@ double DIST2_ImageNonOrtho(Vec3 const& a1, Vec3 const& a2,
                            Matrix_3x3 const& ucell, Matrix_3x3 const& recip) 
 { 
   int ixyz[3];
-  return DIST2_ImageNonOrthoRecip(recip * a2, recip * a1, -1.0, ixyz, ucell);
+  //return DIST2_ImageNonOrthoRecip(recip * a2, recip * a1, -1.0, ixyz, ucell);
+  return Cpptraj::Dist2_Imaged_Cart(a1, a2, ucell, recip, ixyz);
 }
 
 /** \param a1 First set of XYZ coordinates.
@@ -359,51 +361,18 @@ double DIST2_ImageNonOrtho(const double* a1, const double* a2,
                            Matrix_3x3 const& ucell, Matrix_3x3 const& recip)
 {
   int ixyz[3];
-  Vec3 f1( ((recip[0]*a1[0]) + (recip[1]*a1[1]) + (recip[2]*a1[2])),
-           ((recip[3]*a1[0]) + (recip[4]*a1[1]) + (recip[5]*a1[2])),
-           ((recip[6]*a1[0]) + (recip[7]*a1[1]) + (recip[8]*a1[2]))  );
-  Vec3 f2( ((recip[0]*a2[0]) + (recip[1]*a2[1]) + (recip[2]*a2[2])),
-           ((recip[3]*a2[0]) + (recip[4]*a2[1]) + (recip[5]*a2[2])),
-           ((recip[6]*a2[0]) + (recip[7]*a2[1]) + (recip[8]*a2[2]))  );
-  return DIST2_ImageNonOrthoRecip(f1, f2, -1.0, ixyz, ucell);
+//  Vec3 f1( ((recip[0]*a1[0]) + (recip[1]*a1[1]) + (recip[2]*a1[2])),
+//           ((recip[3]*a1[0]) + (recip[4]*a1[1]) + (recip[5]*a1[2])),
+//           ((recip[6]*a1[0]) + (recip[7]*a1[1]) + (recip[8]*a1[2]))  );
+//  Vec3 f2( ((recip[0]*a2[0]) + (recip[1]*a2[1]) + (recip[2]*a2[2])),
+//           ((recip[3]*a2[0]) + (recip[4]*a2[1]) + (recip[5]*a2[2])),
+//           ((recip[6]*a2[0]) + (recip[7]*a2[1]) + (recip[8]*a2[2]))  );
+//  return DIST2_ImageNonOrthoRecip(f1, f2, -1.0, ixyz, ucell);
+  return Cpptraj::Dist2_Imaged_Cart(Vec3(a1), Vec3(a2), ucell, recip, ixyz);
 }
 
-// Frame::DIST2_ImageOrtho()
-/** Return the minimum orthorhombic imaged distance^2 between coordinates a1 
-  * and a2.
-  */
-
-/** Return the minimum orthorhombic imaged distance^2 between coordinates a1 
-  * and a2.
-  */
-double DIST2_ImageOrtho(Vec3 const& a1, Vec3 const& a2, Box const& box) {
-  return DIST2_ImageOrtho(a1.Dptr(), a2.Dptr(), box);
-}
-
-// Frame::DIST2_NoImage()
-/** Return distance^2 between coordinates in a1 and a2.
-  */
-
-/// \return Distance squared, no imaging.
-double DIST2_NoImage( Vec3 const& a1, Vec3 const& a2 ) {
-  Vec3 vec = a1 - a2;
-  return vec.Magnitude2();
-}
-
-/// \return Distance, no imaging.
+/** \return Distance, no imaging.*/
 double DIST_NoImage( Vec3 const& a1, Vec3 const& a2 ) {
   Vec3 vec = a1 - a2;
   return sqrt( vec.Magnitude2() );
-}
-
-/** \return Distance squared using either minimum-image convention or no imaging. */
-
-/** \return Distance squared using either minimum-image convention or no imaging. */
-double DIST2(ImageOption::Type itype, Vec3 const& a1, Vec3 const& a2, Box const& box) {
-  return DIST2(itype, a1.Dptr(), a2.Dptr(), box);
-}
-
-/** \return Distance using either minimum-image convention or no imaging. */
-double DIST(ImageOption::Type itype, Vec3 const& a1, Vec3 const& a2, Box const& box) {
-  return sqrt(DIST2(itype, a1.Dptr(), a2.Dptr(), box));
 }

@@ -143,7 +143,8 @@ Action::RetType Action_PairDist::Setup(ActionSetup& setup) {
 void Action_PairDist::BinHist( std::vector<double>& tmp,
                                const double* XYZ1, const double* XYZ2, Box const& box)
 {
-  double Dist = DIST(imageOpt_.ImagingType(), XYZ1, XYZ2, box);
+  double Dist2 = DIST2(imageOpt_.ImagingType(), XYZ1, XYZ2, box);
+  double Dist = sqrt(Dist2);
 
   unsigned long bin = (unsigned long) (Dist / delta_);
   // Resize on the fly if necessary
