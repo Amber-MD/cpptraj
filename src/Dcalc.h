@@ -24,29 +24,26 @@ class Dcalc {
       boxY_( frmIn.BoxCrd().Param(Box::Y) ),
       boxZ_( frmIn.BoxCrd().Param(Box::Z) ),
       xyz1_(0),
-      isOrtho_(false),
-      isNonortho_(false)
+      itype_(ImageOption::NO_IMAGE)
     {
       if (boxX_ != 0.0 && boxY_ != 0.0 && boxZ_ != 0.0) {
-        if (itype == ImageOption::ORTHO)
-          isOrtho_ = true;
-        else if (itype == ImageOption::NONORTHO)
-          isNonortho_ = true;
+        itype_ = itype;
       }
     }
     /// Set xyz1 - typically the coordinate from an outer loop
     void SetXYZ1(const double* xyz1) {
       xyz1_ = xyz1;
-      if (isNonortho_) {
+      if (itype_ == ImageOption::NONORTHO) {
         f1_ = fcell_ * Vec3(xyz1_);
         wrap_frac(f1_);
       }
     }
+  private:
     /// \return Dist^2 for xyz2 from previously set xyz1
-    double Dist2(const double* xyz2) const
+    double Dist2_ortho(const double* xyz2) const
     {
       // -----------------------------------------
-      if (isOrtho_) {
+//      if (isOrtho_) {
         double x = xyz1_[0] - xyz2[0];
         double y = xyz1_[1] - xyz2[1];
         double z = xyz1_[2] - xyz2[2];
@@ -64,7 +61,10 @@ class Dcalc {
         if (D < z) z = D;
         return (x*x + y*y + z*z);
       // -----------------------------------------
-      } else if (isNonortho_) {
+    }
+    double Dist2_nonortho(const double* xyz2) const
+    {
+//      } else if (isNonortho_) {
         //return DIST2_ImageNonOrtho(xyz1, xyz2, box.UnitCell(), box.FracCell());
         // Wrap each coordinate in fractional coordinates back to the main unit cell
         // (so each frac coord is between 0 and 1).
@@ -117,7 +117,10 @@ class Dcalc {
         } // END loop over X image indices
         //mprintf("minD %12.4f\n", sqrt(minD2));
         return minD2;
-      } else {
+    }
+    double Dist2_noimage(const double* xyz2) const
+    {
+//      } else {
       // -----------------------------------------
         //return DIST2_NoImage(xyz1_, xyz2);
         double x = xyz1_[0] - xyz2[0];
@@ -127,15 +130,23 @@ class Dcalc {
         //fprintf(stdout,"Mask1=%8.3f %8.3f %8.3f Mask2=%8.3f %8.3f %8.3f D=%8.3f\n",
         //        a1[0],a1[1],a1[2],a2[0],a2[1],a2[2],D);
         return (x*x + y*y + z*z);
-       }
      }
+  public:
+    double Dist2(const double* xyz2) const {
+      switch (itype_) {
+        case ImageOption::ORTHO : return Dist2_ortho(xyz2);
+        case ImageOption::NONORTHO : return Dist2_nonortho(xyz2);
+        case ImageOption::NO_IMAGE : return Dist2_noimage(xyz2);
+      }
+      return -1.0;
+    }
   private:
     Matrix_3x3 const& ucell_;
     Matrix_3x3 const& fcell_;
     Vec3 f1_;
     double boxX_, boxY_, boxZ_;
     const double* xyz1_;
-    bool isOrtho_, isNonortho_;
+    ImageOption::Type itype_;
 };
 }
 #endif
