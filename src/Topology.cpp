@@ -701,7 +701,7 @@ int Topology::CommonSetup(bool molsearch, bool renumberResidues)
   // Check for duplicate atom names in residues
 //  Timer t_anamecheck;
 //  t_anamecheck.Start();
-  if (!atom_altloc_.empty()) {
+  if (!atom_altloc_.empty() || lesparm_.HasLES()) {
     // If alternate location IDs are present, append to name to check for true uniqueness
     std::set<std::string> anames;
     for (std::vector<Residue>::const_iterator res = residues_.begin(); res != residues_.end(); ++res)
@@ -713,7 +713,12 @@ int Topology::CommonSetup(bool molsearch, bool renumberResidues)
         anames.clear();
         for (int iat = res->FirstAtom(); iat != res->LastAtom(); iat++)
         {
-          std::pair<std::set<std::string>::iterator, bool> ret = anames.insert( atoms_[iat].Name().Truncated() + std::string(1, atom_altloc_[iat]) );
+          std::string aname(atoms_[iat].Name().Truncated());
+          if (!atom_altloc_.empty())
+            aname += atom_altloc_[iat];
+          if (lesparm_.HasLES())
+            aname.append( integerToString( lesparm_.Array()[iat].Copy() ) );
+          std::pair<std::set<std::string>::iterator, bool> ret = anames.insert( aname );
           if (!ret.second) {
             mprintf("Warning: '%s': In residue %s duplicate atom name detected: %s\n",
                     c_str(), TruncResNameNum(res-residues_.begin()).c_str(), ret.first->c_str() );
