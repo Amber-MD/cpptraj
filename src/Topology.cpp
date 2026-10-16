@@ -698,6 +698,30 @@ int Topology::CommonSetup(bool molsearch, bool renumberResidues)
   // Determine # of extra points.
   DetermineNumExtraPoints();
 
+  // Check for duplicate atom names in residues
+//  Timer t_anamecheck;
+//  t_anamecheck.Start();
+  std::set<NameType> anames;
+  for (std::vector<Residue>::const_iterator res = residues_.begin(); res != residues_.end(); ++res)
+  {
+    // Skip solvent.
+    bool is_solvent = false;
+    if (!molecules_.empty()) is_solvent = molecules_[atoms_[res->FirstAtom()].MolNum()].IsSolvent();
+    if (!is_solvent) {
+      anames.clear();
+      for (int iat = res->FirstAtom(); iat != res->LastAtom(); iat++)
+      {
+        std::pair<std::set<NameType>::iterator, bool> ret = anames.insert( atoms_[iat].Name() );
+        if (!ret.second) {
+          mprintf("Warning: '%s': In residue %s duplicate atom name detected: %s\n",
+                  c_str(), TruncResNameNum(res-residues_.begin()).c_str(), *(atoms_[iat].Name()) );
+        }
+      }
+    }
+  }
+//  t_anamecheck.Stop();
+//  t_anamecheck.WriteTiming(1, "Atom Name Check");
+
   return 0;
 }
 
