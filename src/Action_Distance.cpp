@@ -2,6 +2,7 @@
 #include "CpptrajStdio.h"
 #include "DistRoutines.h"
 #include "AssociatedData_NOE.h"
+#include <cmath>
 
 // CONSTRUCTOR
 Action_Distance::Action_Distance() :
@@ -168,7 +169,8 @@ Action::RetType Action_Distance::DoAction(int frameNum, ActionFrame& frm) {
       a1 = frm.Frm().VGeometricCenter( Mask1_ );
   }
 
-  double Dist = DIST(imageOpt_.ImagingType(), a1, a2_, frm.Frm().BoxCrd());
+  double Dist2 = DIST2(imageOpt_.ImagingType(), a1, a2_, frm.Frm().BoxCrd());
+  double Dist = sqrt(Dist2);
 
   dist_->Add(frameNum, &Dist);
 
