@@ -519,6 +519,7 @@ LIBCPPTRAJ_CORE_OBJECTS= \
   CpptrajStdio.o \
   StringRoutines.o \
   DistRoutines.o \
+  Dist_Imaged.o \
   ArgList.o \
   TextFormat.o \
   PairList.o \
