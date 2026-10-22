@@ -295,6 +295,7 @@ COMMON_SOURCES= \
         Exec_Desc.cpp \
         Exec_Emin.cpp \
         Exec_ExtendedComparison.cpp \
+        Exec_FixAtomNames.cpp \
         Exec_Flatten.cpp \
         Exec_Flush.cpp \
         Exec_GenerateAmberRst.cpp \
