@@ -271,13 +271,8 @@ int Traj_Mol2File::writeFrame(int set, Frame const& frameOut) {
   //@<TRIPOS>SUBSTRUCTURE section
   file_.WriteHeader(Mol2File::SUBSTRUCT);
   int resnum = 1;
-  if (mol2Top_->Modxna().HasModxna()) {
-    for (Topology::res_iterator Res = mol2Top_->ResStart(); Res!=mol2Top_->ResEnd(); Res++)
-      file_.WriteModxnaSubstructure(resnum++, Res->c_str(), Res->FirstAtom()+1);
-  } else {
-    for (Topology::res_iterator Res = mol2Top_->ResStart(); Res!=mol2Top_->ResEnd(); Res++)
-      file_.WriteMol2Substructure(resnum++, Res->c_str(), Res->FirstAtom()+1);
-  }
+  for (Topology::res_iterator Res = mol2Top_->ResStart(); Res!=mol2Top_->ResEnd(); Res++)
+    file_.WriteMol2Substructure(resnum++, Res->c_str(), Res->FirstAtom()+1);
   // If writing 1 mol2 per frame, close output file
   if (mol2WriteMode_==MULTI)
     file_.CloseFile();
