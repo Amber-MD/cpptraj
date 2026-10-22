@@ -102,9 +102,27 @@ int Exec_FixAtomNames::AtomName::DissectName(NameType const& anameIn)
 
 /** Naively increment the atom name. */
 int Exec_FixAtomNames::AtomName::IncrementName(int maxWidth) {
-  int errval = 1;
-  // Start at the last token and work up
   int currentWidth = NameWidth();
+  int errval = 1;
+  // If we have no integer token, add one before any OTHER tokens.
+  bool has_int = false;
+  for (NameTokenArray::const_iterator it = tokens_.begin(); it != tokens_.end(); ++it) {
+    if (it->TokenType() == NameToken::INT) {
+      has_int = true;
+      break;
+    }
+  }
+  if (!has_int) {
+    //FIXME shouldnt put this after a prime
+    if (currentWidth == maxWidth) {
+      mprinterr("Error: Name %s is already at max width (%i), cannot add digit.\n", NameString().c_str(), maxWidth);
+      return 1;
+    }
+    tokens_.push_back( NameToken(1) );
+    return 0;
+  }
+
+  // Start at the last token and work up
   for (NameTokenArray::reverse_iterator rit = tokens_.rbegin(); rit != tokens_.rend(); ++rit)
   {
     if ( rit->TokenType() == NameToken::INT) {
