@@ -132,10 +132,16 @@ int Exec_FixAtomNames::AtomName::IncrementName(int maxWidth) {
 
 // -----------------------------------------------------------------------------
 
+static inline void WARNING() {
+  mprintf("WARNING: THIS COMMAND IS STILL EXPERIMENTAL. USE AT YOUR OWN RISK.\n");
+}
+
 // Exec_FixAtomNames::Help()
 void Exec_FixAtomNames::Help() const
 {
-
+  mprintf("\t{ %s | crdset <COORDS SET>} [<mask>]\n"
+          "  Attempt to fix duplicated atom names in residues of the specified topology.\n");
+  WARNING();
 }
 
 // Exec_FixAtomNames::Execute()
@@ -157,7 +163,7 @@ Exec::RetType Exec_FixAtomNames::Execute(CpptrajState& State, ArgList& argIn)
     mprintf("\tUsing topology: %s\n", parm->c_str());
   }
   if (parm == 0) return CpptrajState::ERR;
-
+  WARNING();
 
   Topology const& currentTop = static_cast<Topology const&>(*parm);
   // Select residues to check
@@ -171,6 +177,7 @@ Exec::RetType Exec_FixAtomNames::Execute(CpptrajState& State, ArgList& argIn)
     mprinterr("Error: Could not set up mask '%s'\n", mask.MaskString());
     return CpptrajState::ERR;
   }
+  mask.MaskInfo();
 
   std::vector<int> resnums = currentTop.ResnumsSelectedBy( mask );
 
