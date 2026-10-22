@@ -30,6 +30,8 @@ class Exec_FixAtomNames : public Exec {
         int Ival() const { return ival_; }
         std::string const& Sval() const { return sval_; }
         Type TokenType() const { return type_; }
+
+        void SetIval(int i) { ival_ = i; }
       private:
         int ival_;
         std::string sval_;
@@ -41,6 +43,7 @@ class Exec_FixAtomNames : public Exec {
         AtomName() {}
         //void AddToken(NameToken const& n) { tokens_.push_back( n ); }
         void PrintName() const;
+        std::string NameString() const;
         int DissectName(NameType const&);
         int NameWidth() const;
         /// Naively increment the name

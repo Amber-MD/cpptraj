@@ -38,6 +38,18 @@ void Exec_FixAtomNames::AtomName::PrintName() const {
   }
 }
 
+/** Convert to a string */
+std::string Exec_FixAtomNames::AtomName::NameString() const {
+  std::string aname;
+  for (NameTokenArray::const_iterator it = tokens_.begin(); it != tokens_.end(); ++it) {
+    if (it->TokenType() == NameToken::INT)
+      aname.append( integerToString(it->Ival()) );
+    else
+      aname.append( it->Sval() );
+  }
+  return aname;
+}
+
 /** \return Token type from character */
 Exec_FixAtomNames::NameToken::Type Exec_FixAtomNames::get_type(char cIn)
 {
@@ -90,6 +102,7 @@ int Exec_FixAtomNames::AtomName::DissectName(NameType const& anameIn)
 
 /** Naively increment the atom name. */
 int Exec_FixAtomNames::AtomName::IncrementName(int maxWidth) {
+  int errval = 1;
   // Start at the last token and work up
   int currentWidth = NameWidth();
   for (NameTokenArray::reverse_iterator rit = tokens_.rbegin(); rit != tokens_.rend(); ++rit)
@@ -101,10 +114,20 @@ int Exec_FixAtomNames::AtomName::IncrementName(int maxWidth) {
       int availableWidth = maxWidth - otherWidth;
       int maxDigit = pow(10, availableWidth) - 1;
       mprintf("DEBUG: digit=%i MaxDigit = %i\n", rit->Ival(), maxDigit);
+      int newDigit = rit->Ival() + 1;
+      if (newDigit <= maxDigit) {
+        // Increment should be ok. Can bail out now.
+        rit->SetIval( newDigit );
+        errval = 0;
+        break;
+      } else {
+        // Reset to 1. Have to increment something else.
+        rit->SetIval( 1 );
+      }
     }
   }
 
-  return 0;
+  return errval;
 }
 
 // -----------------------------------------------------------------------------
@@ -187,11 +210,26 @@ const
   if (duplicateName.DissectName( topIn[duplicateIdx].Name() )) return 1;
   // DEBUG
   duplicateName.PrintName();
-  duplicateName.IncrementName(4);
   // Create a set of current atom names in the residue. They will all be unique.
   std::set<NameType> anames;
   for (int iat = res.FirstAtom(); iat != res.LastAtom(); iat++)
     anames.insert( topIn[iat].Name() );
+  // Try to increment the name until we do not get a clash
+  bool tryNewNames = true;
+  while (tryNewNames) {
+    if (duplicateName.IncrementName(4) != 0) {
+      mprinterr("Error: Ran out of names to increment for %s.\n", topIn.AtomMaskName(duplicateIdx).c_str());
+      return 1;
+    }
+    NameType newName( duplicateName.NameString() );
+    std::set<NameType>::iterator it = anames.find( newName );
+    if (it == anames.end()) {
+      // Name is no longer duplicated!
+      mprintf("\tNew name: %s\n", *newName);
+      topIn.SetAtom(duplicateIdx).SetName( newName );
+      tryNewNames = false;
+    }
+  }
 
   return 0;
 }
