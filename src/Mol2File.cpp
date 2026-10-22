@@ -113,8 +113,10 @@ bool Mol2File::ReadMolecule( ) {
   // Scan charges type
   if ( Gets(linebuffer_, BUF_SIZE) ) return true;
   chargetype_.assign( NoTrailingWhitespace(linebuffer_) );
-  mprintf("\tMolecule type : %s\n", moltype_.c_str());
-  mprintf("\tCharge type   : %s\n", chargetype_.c_str());
+  if (mol2debug_>0) {
+    mprintf("\tMolecule type : %s\n", moltype_.c_str());
+    mprintf("\tCharge type   : %s\n", chargetype_.c_str());
+  }
   return false;
 }
 

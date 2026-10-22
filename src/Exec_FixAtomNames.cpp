@@ -19,7 +19,7 @@ int Exec_FixAtomNames::AtomName::NameWidth() const {
 
 /** Print name to stdout */
 void Exec_FixAtomNames::AtomName::PrintName() const {
-  mprintf("\t");
+  mprintf("\t Current Name: ");
   for (NameTokenArray::const_iterator it = tokens_.begin(); it != tokens_.end(); ++it) {
     if (it->TokenType() == NameToken::INT)
       mprintf("%i", it->Ival());
@@ -113,7 +113,7 @@ int Exec_FixAtomNames::AtomName::IncrementName(int maxWidth) {
       int otherWidth = currentWidth - digitWidth;
       int availableWidth = maxWidth - otherWidth;
       int maxDigit = pow(10, availableWidth) - 1;
-      mprintf("DEBUG: digit=%i MaxDigit = %i\n", rit->Ival(), maxDigit);
+      //mprintf("DEBUG: digit=%i MaxDigit = %i\n", rit->Ival(), maxDigit);
       int newDigit = rit->Ival() + 1;
       if (newDigit <= maxDigit) {
         // Increment should be ok. Can bail out now.
@@ -191,15 +191,20 @@ Exec::RetType Exec_FixAtomNames::Execute(CpptrajState& State, ArgList& argIn)
       if (!ret.second) {
         mprintf("Warning: '%s': In residue %s duplicate atom name detected: %s\n",
                 currentTop.c_str(), currentTop.TruncResNameNum(*rnum).c_str(), *(currentTop[iat].Name()) );
-        fixDuplicate(*parm, iat, *rnum);
+        if (fixDuplicate(*parm, iat, *rnum)) {
+          mprinterr("Error: Could not fix duplicated name %s\n", *(*(ret.first)));
+          return CpptrajState::ERR;
+        }
+        // Add the fixed (not duplicated) name
+        anames.insert( currentTop[iat].Name() );
       }
     }
     // DEBUG TEST dissect all names
-    for (std::set<NameType>::const_iterator it = anames.begin(); it != anames.end(); ++it) {
-      AtomName atomName;
-      if (atomName.DissectName( *it )) return CpptrajState::ERR;
-      atomName.PrintName();
-    }
+//    for (std::set<NameType>::const_iterator it = anames.begin(); it != anames.end(); ++it) {
+//      AtomName atomName;
+//      if (atomName.DissectName( *it )) return CpptrajState::ERR;
+//      atomName.PrintName();
+//    }
   }
 
   return CpptrajState::OK;
@@ -235,7 +240,8 @@ const
       mprintf("\tNew name: %s\n", *newName);
       topIn.SetAtom(duplicateIdx).SetName( newName );
       tryNewNames = false;
-    }
+    } else
+      mprintf("\tName %s already exists.\n", *newName);
   }
 
   return 0;
