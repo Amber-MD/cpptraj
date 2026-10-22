@@ -290,6 +290,14 @@ void Mol2File::WriteMol2Substructure(int rnum, const char* rname, int firstatom)
   Printf("%7d %-4s %14d ****               0 ****  **** \n", rnum, rname, firstatom);
 }
 
+/** FIXME this is a placeholder routine to ensure the rewritten modxna
+  *       fragments with fixed atom names do not differ from the current
+  *       format. DRR 2026-10-22
+  */
+void Mol2File::WriteModxnaSubstructure(int rnum, const char* rname, int firstatom) {
+  Printf("%6d %-4s %8d TEMP              0 ****  ****    0 ROOT\n", rnum, rname, firstatom);
+}
+
 void Mol2File::ClearAmberMapping() {
   Atype_to_Sybyl_.clear();
   Apair_to_Bond_.clear();
