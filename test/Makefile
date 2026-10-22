@@ -578,6 +578,9 @@ test.build:
 test.modxna:
 	@-cd Test_ModXNA && ./RunTest.sh $(OPT)
 
+test.fixatomnames:
+	@-cd Test_FixAtomNames && ./RunTest.sh $(OPT)
+
 # Only GPU-specific tests should go here
 GPUTESTS=test.closest \
          test.solvent \
@@ -767,7 +770,8 @@ COMPLETETESTS=test.general \
               test.watershellclosest \
               test.mutate \
               test.build \
-              test.modxna
+              test.modxna \
+              test.fixatomnames
 
 test.all:
 	$(MAKE) test.complete summary
