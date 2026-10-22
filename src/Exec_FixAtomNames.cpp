@@ -140,7 +140,8 @@ static inline void WARNING() {
 void Exec_FixAtomNames::Help() const
 {
   mprintf("\t{ %s | crdset <COORDS SET>} [<mask>]\n"
-          "  Attempt to fix duplicated atom names in residues of the specified topology.\n");
+          "  Attempt to fix duplicated atom names in residues of the specified topology.\n",
+          DataSetList::TopArgs);
   WARNING();
 }
 
