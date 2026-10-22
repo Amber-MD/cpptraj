@@ -107,10 +107,18 @@ bool Mol2File::ReadMolecule( ) {
     mprintf("\tMol2 #atoms: %i\n",mol2atoms_);
     mprintf("\tMol2 #bonds: %i\n",mol2bonds_);
   }
+  // Scan molecule type
+  if ( Gets(linebuffer_, BUF_SIZE) ) return true;
+  moltype_.assign( NoTrailingWhitespace(linebuffer_) );
+  // Scan charges type
+  if ( Gets(linebuffer_, BUF_SIZE) ) return true;
+  chargetype_.assign( NoTrailingWhitespace(linebuffer_) );
+  mprintf("\tMolecule type : %s\n", moltype_.c_str());
+  mprintf("\tCharge type   : %s\n", chargetype_.c_str());
   return false;
 }
 
-bool Mol2File::WriteMolecule(bool hasCharges, int mol2res) {
+bool Mol2File::WriteMolecule(bool hasCharges, int mol2res, std::string const& mtype, std::string const& ctype) {
   Printf("%s\n", TRIPOSTAGTEXT[MOLECULE]);
   // mol_name
   // num_atoms [num_bonds [num_subst [num_feat [num_sets]]]]
@@ -120,10 +128,16 @@ bool Mol2File::WriteMolecule(bool hasCharges, int mol2res) {
   // [mol_comment]]
   Printf("%s\n", mol2title_.c_str());
   Printf("%5i %5i %5i %5i %5i\n", mol2atoms_, mol2bonds_, mol2res, 0, 0);
-  Printf("SMALL\n"); // May change this later
-  if ( hasCharges )
-    Printf("USER_CHARGES\n"); // May change this later
+  if (mtype.empty())
+    Printf("SMALL\n"); // May change this later
   else
+    Printf("%s\n", mtype.c_str());
+  if ( hasCharges ) {
+    if (ctype.empty())
+      Printf("USER_CHARGES\n"); // May change this later
+    else
+      Printf("%s\n", ctype.c_str());
+  } else
     Printf("NO_CHARGES\n");
   Printf("\n\n");
   return false;

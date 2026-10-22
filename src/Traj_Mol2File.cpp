@@ -226,7 +226,7 @@ int Traj_Mol2File::writeFrame(int set, Frame const& frameOut) {
     if (file_.OpenWriteNumbered( set + 1, prependExt_ )) return 1;
   }
   //@<TRIPOS>MOLECULE section
-  file_.WriteMolecule( hasCharges_, mol2Top_->Nres() );
+  file_.WriteMolecule( hasCharges_, mol2Top_->Nres(), mol2Top_->MoleculeType(), mol2Top_->ChargeType() );
   //@<TRIPOS>ATOM section
   file_.WriteHeader(Mol2File::ATOM);
   const double *Xptr = frameOut.xAddress();

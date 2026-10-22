@@ -24,6 +24,8 @@ int Parm_Mol2::ReadParm(FileName const& fname, Topology &parmOut) {
     delete modxna;
   }
   parmOut.SetParmName( infile.Mol2Title(), infile.Filename() );
+  parmOut.SetMolType( infile.MolType() );
+  parmOut.SetChargeType( infile.ChargeType() );
 
   // Get @<TRIPOS>ATOM information
   if (infile.ScanTo( Mol2File::ATOM)) return 1;
