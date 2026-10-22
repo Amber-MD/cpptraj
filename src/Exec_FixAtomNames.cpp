@@ -23,6 +23,57 @@ void Exec_FixAtomNames::AtomName::PrintName() const {
     }
   }
 }
+
+/** \return Token type from character */
+Exec_FixAtomNames::NameToken::Type Exec_FixAtomNames::get_type(char cIn)
+{
+  if (isalpha(cIn))      return NameToken::STRING;
+  else if (isdigit(cIn)) return NameToken::INT;
+  else                   return NameToken::OTHER;
+}
+
+/** Dissect name into an array of tokens (AtomName) */
+int Exec_FixAtomNames::AtomName::DissectName(NameType const& anameIn)
+{
+  std::string aname = anameIn.Truncated();
+  std::string currentToken;
+  tokens_.clear(); 
+  // Sanity check
+  if (aname.empty()) {
+    mprinterr("Internal Error: Exec_FixAtomNames::AtomName::DissectName(): Atom name is empty.\n");
+    return 1;
+  }
+  // Figure out the type of the first token
+  std::string::const_iterator it = aname.begin();
+  NameToken::Type currentType = get_type( *it );
+  for (std::string::const_iterator it = aname.begin(); it != aname.end(); ++it)
+  {
+    currentToken.push_back( *it );
+    // If the next char is a different token type or the end, add the token
+    NameToken::Type nextType = NameToken::UNKNOWN;
+    bool push_token = false;
+    if ( (it+1) == aname.end())
+      push_token = true;
+    else {
+      nextType = get_type( *(it+1) );
+      if (nextType != currentType)
+        push_token = true;
+    }
+    if (push_token) {
+      if (currentType == NameToken::STRING)
+        tokens_.push_back( NameToken( currentToken ) );
+      else if (currentType == NameToken::INT)
+        tokens_.push_back( NameToken( convertToInteger(currentToken) ) );
+      else
+        tokens_.push_back( NameToken( NameToken::OTHER, currentToken ) );
+      currentToken.clear();
+    }
+    // Update the curren type with next type
+    currentType = nextType;
+  }
+  return 0;
+}
+
 // -----------------------------------------------------------------------------
 
 // Exec_FixAtomNames::Help()
@@ -80,58 +131,15 @@ Exec::RetType Exec_FixAtomNames::Execute(CpptrajState& State, ArgList& argIn)
         fixDuplicate(*parm, iat, *rnum);
       }
     }
+    // DEBUG TEST dissect all names
+    for (std::set<NameType>::const_iterator it = anames.begin(); it != anames.end(); ++it) {
+      AtomName atomName;
+      if (atomName.DissectName( *it )) return CpptrajState::ERR;
+      atomName.PrintName();
+    }
   }
 
   return CpptrajState::OK;
-}
-
-Exec_FixAtomNames::NameToken::Type Exec_FixAtomNames::get_type(char cIn)
-{
-  if (isalpha(cIn))      return NameToken::STRING;
-  else if (isdigit(cIn)) return NameToken::INT;
-  else                   return NameToken::OTHER;
-}
-
-/** Dissect name into an array of tokens (AtomName) */
-Exec_FixAtomNames::AtomName Exec_FixAtomNames::dissectName(NameType const& anameIn)
-{
-  std::string aname = anameIn.Truncated();
-  std::string currentToken;
-  AtomName atomName;
-  // Sanity check
-  if (aname.empty()) {
-    mprinterr("Internal Error: Exec_FixAtomNames::dissectName(): Atom name is empty.\n");
-    return atomName;
-  }
-  // Figure out the type of the first token
-  std::string::const_iterator it = aname.begin();
-  NameToken::Type currentType = get_type( *it );
-  for (std::string::const_iterator it = aname.begin(); it != aname.end(); ++it)
-  {
-    currentToken.push_back( *it );
-    // If the next char is a different token type or the end, add the token
-    NameToken::Type nextType = NameToken::UNKNOWN;
-    bool push_token = false;
-    if ( (it+1) == aname.end())
-      push_token = true;
-    else {
-      nextType = get_type( *(it+1) );
-      if (nextType != currentType)
-        push_token = true;
-    }
-    if (push_token) {
-      if (currentType == NameToken::STRING)
-        atomName.AddToken( NameToken( currentToken ) );
-      else if (currentType == NameToken::INT)
-        atomName.AddToken( NameToken( convertToInteger(currentToken) ) );
-      else
-        atomName.AddToken( NameToken( NameToken::OTHER, currentToken ) );
-      currentToken.clear();
-    }
-    // Update the curren type with next type
-    currentType = nextType;
-  }
-  return atomName;
 }
 
 /** Given the index of an atom that has a duplicated name in a reside, change
@@ -142,18 +150,14 @@ const
 {
   Residue const& res = topIn.Res(rnum);
   // Dissect this name.
-  AtomName duplicateName = dissectName( topIn[duplicateIdx].Name() );
+  AtomName duplicateName;
+  if (duplicateName.DissectName( topIn[duplicateIdx].Name() )) return 1;
   // DEBUG
   duplicateName.PrintName();
   // Create a set of current atom names in the residue. They will all be unique.
   std::set<NameType> anames;
   for (int iat = res.FirstAtom(); iat != res.LastAtom(); iat++)
     anames.insert( topIn[iat].Name() );
-  // DEBUG TEST dissect all names
-  for (std::set<NameType>::const_iterator it = anames.begin(); it != anames.end(); ++it) {
-    AtomName atomName = dissectName( *it );
-    atomName.PrintName();
-  }
 
   return 0;
 }

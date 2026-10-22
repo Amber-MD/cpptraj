@@ -41,14 +41,13 @@ class Exec_FixAtomNames : public Exec {
         AtomName() {}
         void AddToken(NameToken const& n) { tokens_.push_back( n ); }
         void PrintName() const;
+        int DissectName(NameType const&);
       private:
         typedef std::vector<NameToken> NameTokenArray;
         NameTokenArray tokens_;
     };
 
     static inline NameToken::Type get_type(char);
-
-    static AtomName dissectName(NameType const&);
 
     int fixDuplicate(Topology&, int, int) const;
 
