@@ -39,9 +39,12 @@ class Exec_FixAtomNames : public Exec {
     class AtomName {
       public:
         AtomName() {}
-        void AddToken(NameToken const& n) { tokens_.push_back( n ); }
+        //void AddToken(NameToken const& n) { tokens_.push_back( n ); }
         void PrintName() const;
         int DissectName(NameType const&);
+        int NameWidth() const;
+        /// Naively increment the name
+        int IncrementName(int);
       private:
         typedef std::vector<NameToken> NameTokenArray;
         NameTokenArray tokens_;

@@ -4,6 +4,20 @@
 #include <cctype> // isalpha, isdigit
 
 // -----------------------------------------------------------------------------
+/** \return name width in characters */
+int Exec_FixAtomNames::AtomName::NameWidth() const {
+  int width = 0;
+  for (NameTokenArray::const_iterator it = tokens_.begin(); it != tokens_.end(); ++it)
+  {
+    if (it->TokenType() == NameToken::INT)
+      width += DigitWidth( it->Ival() );
+    else
+      width += it->Sval().size();
+  }
+  return width;
+}
+
+/** Print name to stdout */
 void Exec_FixAtomNames::AtomName::PrintName() const {
   mprintf("\t");
   for (NameTokenArray::const_iterator it = tokens_.begin(); it != tokens_.end(); ++it) {
@@ -12,7 +26,7 @@ void Exec_FixAtomNames::AtomName::PrintName() const {
     else
       mprintf("%s", it->Sval().c_str());
   }
-  mprintf("\n");
+  mprintf(" (%i)\n", NameWidth());
     
   for (NameTokenArray::const_iterator it = tokens_.begin(); it != tokens_.end(); ++it) {
     switch (it->TokenType()) {
@@ -71,6 +85,25 @@ int Exec_FixAtomNames::AtomName::DissectName(NameType const& anameIn)
     // Update the curren type with next type
     currentType = nextType;
   }
+  return 0;
+}
+
+/** Naively increment the atom name. */
+int Exec_FixAtomNames::AtomName::IncrementName(int maxWidth) {
+  // Start at the last token and work up
+  int currentWidth = NameWidth();
+  for (NameTokenArray::reverse_iterator rit = tokens_.rbegin(); rit != tokens_.rend(); ++rit)
+  {
+    if ( rit->TokenType() == NameToken::INT) {
+      // What is the max digit width we can accomodate?
+      int digitWidth = DigitWidth( rit->Ival() );
+      int otherWidth = currentWidth - digitWidth;
+      int availableWidth = maxWidth - otherWidth;
+      int maxDigit = pow(10, availableWidth) - 1;
+      mprintf("DEBUG: digit=%i MaxDigit = %i\n", rit->Ival(), maxDigit);
+    }
+  }
+
   return 0;
 }
 
@@ -154,6 +187,7 @@ const
   if (duplicateName.DissectName( topIn[duplicateIdx].Name() )) return 1;
   // DEBUG
   duplicateName.PrintName();
+  duplicateName.IncrementName(4);
   // Create a set of current atom names in the residue. They will all be unique.
   std::set<NameType> anames;
   for (int iat = res.FirstAtom(); iat != res.LastAtom(); iat++)
