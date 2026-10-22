@@ -16345,7 +16345,7 @@ The following topology related commands are available:
 \begin_layout Standard
 \align center
 \begin_inset Tabular
-<lyxtabular version="3" rows="24" columns="2">
+<lyxtabular version="3" rows="25" columns="2">
 <features tabularvalignment="middle">
 <column alignment="center" valignment="top">
 <column alignment="center" valignment="top">
@@ -16536,6 +16536,26 @@ dihedralinfo,
 
 \begin_layout Plain Layout
 Print dihedral info for selected atoms.
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+fixatomnames
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Attempt to fix duplicate atom names in residues.
 \end_layout
 
 \end_inset
@@ -16818,7 +16838,8 @@ timap
 \begin_inset Text
 
 \begin_layout Plain Layout
-Map a residue onto a user template and write a sorted Amber OFF library; optional dual-topology TI pair.
+Map a residue onto a user template and write a sorted Amber OFF library;
+ optional dual-topology TI pair.
 \end_layout
 
 \end_inset
@@ -18061,6 +18082,80 @@ If 4 masks are given instead of 1,
  second atom in <mask2>,
  third atom in <mask3>,
  and fourth atom in <mask4>.
+\end_layout
+
+\begin_layout Subsection
+fixatomnames
+\end_layout
+
+\begin_layout LyX-Code
+fixatomnames { parm <name> | parmindex <#> | crdset <COORDS SET>} [<mask>]
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+parm
+\begin_inset space ~
+\end_inset
+
+<name>
+\begin_inset space ~
+\end_inset
+
+|
+\begin_inset space ~
+\end_inset
+
+parmindex
+\begin_inset space ~
+\end_inset
+
+<#>
+\begin_inset space ~
+\end_inset
+
+|
+\begin_inset space ~
+\end_inset
+
+<#>
+\begin_inset space ~
+\end_inset
+
+|
+\begin_inset space ~
+\end_inset
+
+crdset
+\begin_inset space ~
+\end_inset
+
+<COORDS
+\begin_inset space ~
+\end_inset
+
+set> Topology to change.
+\end_layout
+
+\end_deeper
+\begin_layout Standard
+
+\series bold
+WARNING:
+ THIS COMMAND IS STILL EXPERIMENTAL.
+ USE AT YOUR OWN RISK.
+\end_layout
+
+\begin_layout Standard
+Attempt to fix duplicated atom names in the residues of the specified topology.
+ If no mask is given,
+ all residues will be checked.
+ The algorithm used is extremely simple.
+ When an atom is found with a duplicated name,
+ if it has a digit that digit will be incremented.
+ If multiple digits are present (e.g.
+ H1N1) the right-most digit will be incremented first.
+ If no digits are present one will be appended.
 \end_layout
 
 \begin_layout Subsection
@@ -19418,32 +19513,36 @@ Align atoms in topology
 tiout
 \series default
  is given.
- This is intended for preparing residue libraries for thermodynamic integration (TI) of nucleic acids, amino acids, and small molecules,
+ This is intended for preparing residue libraries for thermodynamic integration (TI) of nucleic acids,
+ amino acids,
+ and small molecules,
  where two (or more) end states must list common atoms in the same order.
- For a series of analogs with no predetermined parent, 
+ For a series of analogs with no predetermined parent,
+ 
 \series bold
 series
 \series default
- auto-selects a minimum parent that shares the most with the rest, then maps every analog onto it.
+ auto-selects a minimum parent that shares the most with the rest,
+ then maps every analog onto it.
  Unlike 
 \series bold
 atommap
 \series default
-, a one-to-one correspondence is not required: extra atoms on the target are insertions.
+,
+ a one-to-one correspondence is not required:
+ extra atoms on the target are insertions.
  Partial maps are expected and useful.
 \end_layout
 
 \begin_layout Standard
-The template atom order 
-\series emph
-is
-\series default
- the shared-atom order used for mapping.
- Any topology can be a template (mol2, Amber OFF unit loaded with 
+The template atom order is the shared-atom order used for mapping.
+ Any topology can be a template (mol2,
+ Amber OFF unit loaded with 
 \series bold
 readdata
 \series default
-, and so on).
+,
+ and so on).
  Example ModXNA fragments used by the tests live in 
 \series bold
 test/Test_TIMap/
@@ -19461,16 +19560,14 @@ template
 \begin_inset space ~
 \end_inset
 
-<name> Parent topology whose 
-\series emph
-current
-\series default
- atom order is the shared-atom order.
- If omitted, 
+<name> Parent topology whose current atom order is the shared-atom order.
+ If omitted,
+ 
 \series bold
 <tgt>
 \series default
- is mapped to itself; combine with 
+ is mapped to itself;
+ combine with 
 \series bold
 naorder
 \series default
@@ -19491,7 +19588,8 @@ out
 \series bold
 maponly
 \series default
- is not given): 
+ is not given):
+ 
 \series bold
 <residue>.sorted.lib
 \series default
@@ -19503,7 +19601,10 @@ mapout
 \begin_inset space ~
 \end_inset
 
-<file> Write the atom map (output index, target atom, template atom, insertion flag).
+<file> Write the atom map (output index,
+ target atom,
+ template atom,
+ insertion flag).
 \end_layout
 
 \begin_layout Description
@@ -19519,7 +19620,8 @@ maponly Write the map (and
 \series bold
 tiout
 \series default
- files, if requested) but do not write the default aligned 
+ files,
+ if requested) but do not write the default aligned 
 \series bold
 .lib
 \series default
@@ -19572,7 +19674,8 @@ naorder Walk the template as P
 \end_inset
 
  O3' .
- No parent is required: 
+ No parent is required:
+ 
 \series bold
 <tgt>
 \series default
@@ -19581,7 +19684,9 @@ naorder Walk the template as P
 \series bold
 template
 \series default
- is also given, that parent is walked instead, then 
+ is also given,
+ that parent is walked instead,
+ then 
 \series bold
 <tgt>
 \series default
@@ -19593,11 +19698,13 @@ aaorder Walk
 \series bold
 <tgt>
 \series default
- (or the template, if given) in ff19SB 
+ (or the template,
+ if given) in ff19SB 
 \series bold
 amino19.lib
 \series default
- order: N 
+ order:
+ N 
 \begin_inset Formula $\rightarrow$
 \end_inset
 
@@ -19613,7 +19720,9 @@ amino19.lib
 \begin_inset Formula $\rightarrow$
 \end_inset
 
- side chain from CB (each heavy atom, then its hydrogens; smaller branch first) 
+ side chain from CB (each heavy atom,
+ then its hydrogens;
+ smaller branch first) 
 \begin_inset Formula $\rightarrow$
 \end_inset
 
@@ -19630,7 +19739,8 @@ amino19.lib
 \begin_inset Formula $\rightarrow$
 \end_inset
 
- ... 
+ ...
+ 
 \begin_inset Formula $\rightarrow$
 \end_inset
 
@@ -19653,7 +19763,8 @@ amino19.lib
 .lib
 \series default
  into the same shared-atom order as Amber ff19SB for TI.
- The walk is built into the command; it does not read 
+ The walk is built into the command;
+ it does not read 
 \series bold
 amino19.lib
 \series default
@@ -19671,7 +19782,9 @@ seed How the correspondence is started.
 \series bold
 auto
 \series default
- (default) uses nucleic-acid scaffold roles when they are detected, otherwise amino-acid N/CA/C/O/CB when a peptide motif is found, otherwise unique atom names.
+ (default) uses nucleic-acid scaffold roles when they are detected,
+ otherwise amino-acid N/CA/C/O/CB when a peptide motif is found,
+ otherwise unique atom names.
  
 \series bold
 names
@@ -19723,7 +19836,8 @@ tiout
 \series bold
 <prefix>.0.lib
 \series default
-, 
+,
+ 
 \series bold
 <prefix>.1.mol2
 \series default
@@ -19731,16 +19845,21 @@ tiout
 \series bold
 <prefix>.1.lib
 \series default
-, 
+,
+ 
 \series bold
 <prefix>.scmask
 \series default
- (pmemd scmask1 / scmask2), and 
+ (pmemd scmask1 / scmask2),
+ and 
 \series bold
 <prefix>.atoms
 \series default
 .
- Dummy atoms copy the partner's name and coordinates, have charge 0, mass 0, and Amber type DUM.
+ Dummy atoms copy the partner's name and coordinates,
+ have charge 0,
+ mass 0,
+ and Amber type DUM.
  Does not suppress the default aligned 
 \series bold
 .lib
@@ -19766,14 +19885,19 @@ series
 \begin_inset space ~
 \end_inset
 
-<a> <b> ... List two or more analog topologies.
- Chooses one parent that shares the most with the rest, then maps every listed analog onto that parent (star topology for TI).
+<a> <b> ...
+ List two or more analog topologies.
+ Chooses one parent that shares the most with the rest,
+ then maps every listed analog onto that parent (star topology for TI).
  Do not combine with 
 \series bold
 template
 \series default
 .
- Parent selection: maximize the sum of mapped atoms when every other member is matched onto the candidate; on ties prefer the fewest atoms, then a leadopt-style similarity sum 
+ Parent selection:
+ maximize the sum of mapped atoms when every other member is matched onto the candidate;
+ on ties prefer the fewest atoms,
+ then a leadopt-style similarity sum 
 \begin_inset Formula $\sum_{j}\exp(-0.1\cdot(\mathrm{insertions}_{j}+\mathrm{unmapped}_{j}))$
 \end_inset
 
@@ -19782,15 +19906,9 @@ template
 \series bold
 util/leadopt/similarity.py
 \series default
- (
-\series emph
-exp_delta
-\series default
- / 
-\series emph
-by_heavy_atom_count
-\series default
-; Summa Lab / Jonathan Redmann & Christopher Summa, University of New Orleans).
+ (exp_delta / by_heavy_atom_count;
+ Summa Lab / Jonathan Redmann & Christopher Summa,
+ University of New Orleans).
  The common substructure is approximated by 
 \series bold
 TIMatch
@@ -19799,11 +19917,13 @@ TIMatch
 \series bold
 util/leadopt/mcs.py
 \series default
-, 
+,
+ 
 \series bold
 rule.py
 \series default
-, 
+,
+ 
 \series bold
 graph.py
 \series default
@@ -19829,11 +19949,13 @@ outprefix
 \series bold
 series
 \series default
-, write each aligned OFF library as 
+,
+ write each aligned OFF library as 
 \series bold
 <pfx><name>.sorted.lib
 \series default
- (default: 
+ (default:
+ 
 \series bold
 <name>.sorted.lib
 \series default
@@ -19849,15 +19971,18 @@ tioutprefix
 \series bold
 series
 \series default
-, write dual-topology TI files for every non-parent member as 
+,
+ write dual-topology TI files for every non-parent member as 
 \series bold
 <pfx><name>.{0,1}.{mol2,lib}
 \series default
-, 
+,
+ 
 \series bold
 .scmask
 \series default
-, and 
+,
+ and 
 \series bold
 .atoms
 \series default
@@ -19873,7 +19998,8 @@ mapoutprefix
 \series bold
 series
 \series default
-, write each atom map as 
+,
+ write each atom map as 
 \series bold
 <pfx><name>.map
 \series default
@@ -19889,10 +20015,12 @@ parentout
 \series bold
 series
 \series default
-, write the selected parent name and per-candidate scores.
+,
+ write the selected parent name and per-candidate scores.
 \end_layout
 
 \begin_layout Standard
+
 \series bold
 Generating your own templates
 \series default
@@ -19901,8 +20029,10 @@ Generating your own templates
 \series bold
 template
 \series default
- is given, that parent's current atom order is used.
- If it is omitted, 
+ is given,
+ that parent's current atom order is used.
+ If it is omitted,
+ 
 \series bold
 naorder
 \series default
@@ -19918,19 +20048,25 @@ aaorder
 \end_layout
 
 \begin_layout LyX-Code
-# 1. Parent given: analog is sorted to that residue's atom order.
+# 1.
+ Parent given:
+ analog is sorted to that residue's atom order.
 \end_layout
 
 \begin_layout LyX-Code
-# 2. No parent: naorder / aaorder invents Amber's canonical walk on the analog.
+# 2.
+ No parent:
+ naorder / aaorder invents Amber's canonical walk on the analog.
 \end_layout
 
 \begin_layout LyX-Code
-# 3. Optional tiout writes dual-topology TI files.
+# 3.
+ Optional tiout writes dual-topology TI files.
 \end_layout
 
 \begin_layout Standard
-Canonical NA order, no parent (sort this residue the way Amber walks a nucleotide).
+Canonical NA order,
+ no parent (sort this residue the way Amber walks a nucleotide).
 \end_layout
 
 \begin_layout LyX-Code
@@ -19946,9 +20082,13 @@ Canonical NA order, no parent (sort this residue the way Amber walks a nucleotid
 \end_layout
 
 \begin_layout Standard
-Nucleic acids onto a parent (example: FLE = unmodified rA onto ERN = unmodified dA).
- Shared atoms keep the dA indices; the 2'-OH is an insertion next to C2'; dA H2'' is unmatched on the template.
- Default: write FLE in ERN atom order as an OFF library.
+Nucleic acids onto a parent (example:
+ FLE = unmodified rA onto ERN = unmodified dA).
+ Shared atoms keep the dA indices;
+ the 2'-OH is an insertion next to C2';
+ dA H2'' is unmatched on the template.
+ Default:
+ write FLE in ERN atom order as an OFF library.
 \end_layout
 
 \begin_layout LyX-Code
@@ -19984,8 +20124,11 @@ tiout
 \end_layout
 
 \begin_layout Standard
-Small molecules (example: phenol onto benzene).
- The ring maps by unique names; OH inserts after C1; benzene H1 is unmatched.
+Small molecules (example:
+ phenol onto benzene).
+ The ring maps by unique names;
+ OH inserts after C1;
+ benzene H1 is unmatched.
 \end_layout
 
 \begin_layout LyX-Code
@@ -20005,14 +20148,17 @@ Small molecules (example: phenol onto benzene).
 \end_layout
 
 \begin_layout Standard
-Amino acids (example: selenocysteine onto cysteine).
+Amino acids (example:
+ selenocysteine onto cysteine).
  Use Amber OFF so selenium is 
 \series bold
 elmnt 34
 \series default
 .
  Mol2 atom name SE is read as sulfur.
- Backbone names map; SE is an insertion at CB; cysteine SG is unmatched.
+ Backbone names map;
+ SE is an insertion at CB;
+ cysteine SG is unmatched.
 \end_layout
 
 \begin_layout LyX-Code
@@ -20032,7 +20178,8 @@ elmnt 34
 \end_layout
 
 \begin_layout Standard
-Canonical amino-acid order, no parent (sort a noncanonical 
+Canonical amino-acid order,
+ no parent (sort a noncanonical 
 \series bold
 .lib
 \series default
@@ -20052,8 +20199,12 @@ Canonical amino-acid order, no parent (sort a noncanonical
 \end_layout
 
 \begin_layout Standard
-Series of analogs (auto-select parent, then map each onto it for TI).
- Example: phenol and benzene; benzene is chosen (same mapped total, fewer atoms).
+Series of analogs (auto-select parent,
+ then map each onto it for TI).
+ Example:
+ phenol and benzene;
+ benzene is chosen (same mapped total,
+ fewer atoms).
 \end_layout
 
 \begin_layout LyX-Code
@@ -20077,14 +20228,14 @@ How the nucleic-acid walk was chosen
 \end_layout
 
 \begin_layout Standard
-ModXNA (
-https://github.com/modna-ff
-) is the baseline chemistry for 
+ModXNA (https://github.com/modna-ff) is the baseline chemistry for 
 \series bold
 naorder
 \series default
 .
- It parameterizes nucleic acids as fragments (nucleobase, sugar, backbone) rather than as whole residues.
+ It parameterizes nucleic acids as fragments (nucleobase,
+ sugar,
+ backbone) rather than as whole residues.
  Combining those fragments into one 
 \series bold
 .lib
@@ -20094,24 +20245,34 @@ naorder
 \series bold
 nastruct
 \series default
- to treat as nucleotides, because 
+ to treat as nucleotides,
+ because 
 \series bold
 nastruct
 \series default
- identifies sugars and bases from connectivity and Amber-like names (C1', N9/N1, and so on), not from file order.
+ identifies sugars and bases from connectivity and Amber-like names (C1',
+ N9/N1,
+ and so on),
+ not from file order.
 \end_layout
 
 \begin_layout Standard
 The walk is therefore not copied from any one ModXNA file.
- The fragment library was grouped by chemical class (backbone with or without phosphate, purine vs pyrimidine base, 2' pattern of the sugar).
- One consensus parent was kept for each class; those 11 example fragments are in 
+ The fragment library was grouped by chemical class (backbone with or without phosphate,
+ purine vs pyrimidine base,
+ 2' pattern of the sugar).
+ One consensus parent was kept for each class;
+ those 11 example fragments are in 
 \series bold
 test/Test_TIMap/
 \series default
  (see PARENTS.txt).
- They are test data, not installed with cpptraj.
+ They are test data,
+ not installed with cpptraj.
  Each parent's atom list is the recommended shared-atom order for mapping other members of that class.
- Combined nucleotides are a separate case: they are mapped to a user residue (for example unmodified rA onto dA), not to those fragments.
+ Combined nucleotides are a separate case:
+ they are mapped to a user residue (for example unmodified rA onto dA),
+ not to those fragments.
 \end_layout
 
 \begin_layout Standard
@@ -20123,12 +20284,17 @@ naorder
 \begin_inset Formula $\rightarrow$
 \end_inset
 
- 3' sugar-phosphate traversal chosen so that (1) the shared scaffold is a fixed prefix independent of how the file was written, (2) chemical insertions sit next to their attachment atom (nucleobase analogs after the glycosidic nitrogen 
+ 3' sugar-phosphate traversal chosen so that (1) the shared scaffold is a fixed prefix independent of how the file was written,
+ (2) chemical insertions sit next to their attachment atom (nucleobase analogs after the glycosidic nitrogen 
 \begin_inset Formula $\chi$
 \end_inset
 
-, 2'-OH / OMe / F after C2'), and (3) the 3' linker O3' remains last among scaffold atoms so unmatched leftovers can be placed just before it.
- Hydrogens follow their heavy atom, sorted by name, matching Amber convention.
+,
+ 2'-OH / OMe / F after C2'),
+ and (3) the 3' linker O3' remains last among scaffold atoms so unmatched leftovers can be placed just before it.
+ Hydrogens follow their heavy atom,
+ sorted by name,
+ matching Amber convention.
 \end_layout
 
 \begin_layout LyX-Code
@@ -20136,7 +20302,8 @@ P -> OP (name-sorted) -> O5' -> C5' -> C4' -> O4' -> C1' ->
 \end_layout
 
 \begin_layout LyX-Code
-  base (BFS from chi, never recrossing C1') -> C3' -> C2' + 2' substituents -> O3'
+  base (BFS from chi,
+ never recrossing C1') -> C3' -> C2' + 2' substituents -> O3'
 \end_layout
 
 \begin_layout Standard
@@ -20149,15 +20316,13 @@ naorder
 template
 \series default
  is given (the residue is walked as itself).
- When a ModXNA parent 
-\series emph
-is
-\series default
- given, 
+ When a ModXNA parent is given,
+ 
 \series bold
 timap
 \series default
- uses that parent's current atom order instead; those files were already written in the class order above.
+ uses that parent's current atom order instead;
+ those files were already written in the class order above.
  The amino-acid walk (
 \series bold
 aaorder
@@ -20170,7 +20335,8 @@ amino19.lib
 \end_layout
 
 \begin_layout Standard
-Alias: 
+Alias:
+ 
 \series bold
 timatch
 \series default
@@ -20178,7 +20344,6 @@ timatch
 \end_layout
 
 \end_deeper
-
 \begin_layout Subsection
 updateparameters
 \end_layout
@@ -26350,35 +26515,6 @@ Calculate the number of waters in the first and second solvation shells based on
 
 \begin_layout Plain Layout
 
-\end_layout
-
-\end_inset
-</cell>
-</row>
-<row>
-<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
-\begin_inset Text
-
-\begin_layout Plain Layout
-xtalsymm
-\end_layout
-
-\end_inset
-</cell>
-<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
-\begin_inset Text
-
-\begin_layout Plain Layout
-Re-image coordinates based on crystal space group symmetry operations and asymmetric unit volume.
-\end_layout
-
-\end_inset
-</cell>
-<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
-\begin_inset Text
-
-\begin_layout Plain Layout
-X
 \end_layout
 
 \end_inset
