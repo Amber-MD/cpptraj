@@ -213,6 +213,9 @@ Improvements and enhancements for GIST.
 * Nikolai Skrynnikov, Danil Yevdokimov, Olga O. Lebedenko and Ivan S. Podkorytov (Purdue University, IN)
 Fix for truncated octahedron cell solvation of large systems.
 
+* Werner Hahn (Indepentent Consultant)
+Speed ups for orthogonal distance imaging in the 'radial' Action. Performance improvements for orthogonal imaged distance routines.
+
 #### Various Contributions
 * David A. Case (Rutgers University, Piscataway, NJ, USA)
 * Hai Nguyen (Rutgers University, Piscataway, NJ, USA)
