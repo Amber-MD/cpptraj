@@ -27,7 +27,7 @@ class Action_PairDist : public Action {
 # endif
   void Print();
 
-  inline void BinHist(std::vector<double>&, const double*, const double*, Box const&);
+  inline void BinHist(std::vector<double>&, double);
   void UpdateHistogramFrames();
 
   DataSet *Pr_;    ///< distance vs P(r)
