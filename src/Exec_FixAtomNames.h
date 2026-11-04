@@ -149,21 +149,21 @@ class Exec_FixAtomNames : public Exec {
         }
     };
         
-    static inline int change_aname(Topology&, int, NameType const&);
+    int change_aname(Topology&, int, NameType const&);
 
     static inline NameToken::Type get_type(char);
 
     int findDuplicatesInResidue(Topology const&, int);
 
-    int fixDuplicateByIncrement(Topology&, int, std::set<NameType>&) const;
+    int fixDuplicateByIncrement(Topology&, int);
 
-    int fixDuplicateSet(Topology&, Iarray const&, int) const;
+    int fixDuplicateSet(Topology&, Iarray const&, int);
 
-    int fixChainedAtoms(Topology&, int, int, std::set<NameType> const&) const;
+    int fixChainedAtoms(Topology&, int, int);
 
-    int RenameBondedHydrogens(Topology&, int, std::set<NameType>&) const;
+    int RenameBondedHydrogens(Topology&, int);
 
-    int MakeTerminalNumberMatch(Topology&, int, int, std::set<NameType>&, AtomName&, AtomName const&) const;
+    int MakeTerminalNumberMatch(Topology&, int, int, AtomName&, AtomName const&);
 
     int RenameAllHydrogens(Topology&, int);
 

@@ -280,8 +280,9 @@ Exec::RetType Exec_FixAtomNames::Execute(CpptrajState& State, ArgList& argIn)
   if (rename_hydrogens)
     mprintf("\tWill rename hydrogens after duplicates are resolved.\n");
 
+  // Determine which residues should be checked
   Iarray resnums = currentTop.ResnumsSelectedBy( mask );
-
+  // Loop over all residues to be checked
   for (Iarray::const_iterator rnum = resnums.begin(); rnum != resnums.end(); ++rnum)
   {
     // Hold atom name and list of duplicated indices
@@ -310,7 +311,7 @@ Exec::RetType Exec_FixAtomNames::Execute(CpptrajState& State, ArgList& argIn)
         mprintf("\n");
         if (fixDuplicateSet(*parm, it->idxs_, *rnum)) return CpptrajState::ERR;
       }
-      // Sanity check
+      // Sanity check - should be no more duplicates
       if (findDuplicatesInResidue(currentTop, *rnum)) {
         for (DuplicateMap::const_iterator it = duplicateMap_.begin(); it != duplicateMap_.end(); ++it)
         {
@@ -321,6 +322,7 @@ Exec::RetType Exec_FixAtomNames::Execute(CpptrajState& State, ArgList& argIn)
         return CpptrajState::ERR;
       }
     } // END residue has duplicates
+    // Rename hydrogens if requested
     if (rename_hydrogens) {
       if (RenameAllHydrogens(*parm, *rnum)) {
         mprinterr("Error: Could not rename hydrogens in residue %s\n", currentTop.TruncResNameNum(*rnum).c_str());
@@ -340,6 +342,7 @@ Exec::RetType Exec_FixAtomNames::Execute(CpptrajState& State, ArgList& argIn)
 
 // ---------------------------------------------------------
 /** Create a count of atom names in a residue, look for duplicated names.
+  * \return true if any atom names are duplicated
   */
 int Exec_FixAtomNames::findDuplicatesInResidue(Topology const& currentTop, int rnum)
 {
@@ -365,13 +368,13 @@ int Exec_FixAtomNames::findDuplicatesInResidue(Topology const& currentTop, int r
   return 0;
 }
 
-/** Try to rename all hydrogens in the specifed resdidue to the PDBV3 standard. */
+/** Try to rename all hydrogens in the specifed resdiue to the PDBV3 standard. */
 int Exec_FixAtomNames::RenameAllHydrogens(Topology& topIn, int rnum) {
   // Create a set of current atom names in the residue. They will all be unique.
   Residue const& res = topIn.Res(rnum);
-  std::set<NameType> anames;
-  for (int iat = res.FirstAtom(); iat != res.LastAtom(); iat++)
-    anames.insert( topIn[iat].Name() );
+  //std::set<NameType> anames;
+  //for (int iat = res.FirstAtom(); iat != res.LastAtom(); iat++)
+  //  anames.insert( topIn[iat].Name() );
 
   for (int iat = res.FirstAtom(); iat != res.LastAtom(); iat++)
   {
@@ -388,13 +391,14 @@ int Exec_FixAtomNames::RenameAllHydrogens(Topology& topIn, int rnum) {
       }
       if (has_h) {
         mprintf("\tRenaming hydrogens bonded to %s\n", topIn.AtomMaskName(iat).c_str());
-        if (RenameBondedHydrogens( topIn, iat, anames )) {
+        RenameBondedHydrogens( topIn, iat );
+        //if (RenameBondedHydrogens( topIn, iat )) {
           // We are not just adding hydrogen names, we may have taken some away.
           // Just regenerate the atom name list.
-          anames.clear();
-          for (int iat = res.FirstAtom(); iat != res.LastAtom(); iat++)
-            anames.insert( topIn[iat].Name() );
-        }
+          //anames.clear();
+          //for (int iat = res.FirstAtom(); iat != res.LastAtom(); iat++)
+          //  anames.insert( topIn[iat].Name() );
+        //}
       }
     } // END current element is not hydrogen
   } // END loop over residue atoms
@@ -411,6 +415,12 @@ int Exec_FixAtomNames::RenameAllHydrogens(Topology& topIn, int rnum) {
   */
 int Exec_FixAtomNames::change_aname(Topology& topIn, int atomIdx, NameType const& newName)
 {
+  // Sanity check. Proposed name should not already exist.
+  DuplicateMap::iterator existing = duplicateMap_.find( newName );
+  if (existing != duplicateMap_.end()) {
+    mprinterr("Internal Error: change_aname() called with existing atom name %s\n", *newName);
+    return 1;
+  }
   // Check if the current name corresponds to a ModXNA mask.
   if (topIn.Modxna().HasModxna()) {
     int mtype = topIn.Modxna().FindMaskWithAtom( topIn[atomIdx].Name().Truncated() );
@@ -420,7 +430,22 @@ int Exec_FixAtomNames::change_aname(Topology& topIn, int atomIdx, NameType const
               topIn.Modxna().maskTypeStr( (ModXNA_Info::MaskType)mtype ),
               topIn.Modxna().AtomMaskString( (ModXNA_Info::MaskType)mtype ).c_str());
   }
+  // Get the existing name
+  existing = duplicateMap_.find( topIn[atomIdx].Name() );
+  if ( existing == duplicateMap_.end()) {
+    mprinterr("Internal Error: Existing name %s for atom %i not found (new name %s)\n", *(topIn[atomIdx].Name()), atomIdx+1, *newName);
+  } else {
+    // Remove this index from the index array
+    Iarray newArray;
+    for (Iarray::const_iterator it = existing->second.begin(); it != existing->second.end(); ++it)
+      if (*it != atomIdx)
+        newArray.push_back( *it );
+    existing->second = newArray;
+  }
+  // Set the atom with the new name
   topIn.SetAtom(atomIdx).SetName( newName );
+  // Add the new name to the map
+  duplicateMap_.insert( DuplicatePair(newName, Iarray(1, atomIdx)) );
   return 0;
 }
 
@@ -429,9 +454,8 @@ int Exec_FixAtomNames::change_aname(Topology& topIn, int atomIdx, NameType const
   * making the terminal number match. This will only work if the atom
   * is the only one of its kind bonded to the bond atom.
   */
-int Exec_FixAtomNames::MakeTerminalNumberMatch(Topology& topIn, int atomIdx, int bondedIdx, std::set<NameType>& anames,
+int Exec_FixAtomNames::MakeTerminalNumberMatch(Topology& topIn, int atomIdx, int bondedIdx, 
                                                AtomName& currentName, AtomName const& bondedName)
-const
 {
   Atom const& currentAtom = topIn[atomIdx];
   Atom const& bondedAtom = topIn[bondedIdx];
@@ -453,14 +477,14 @@ const
       //fixChainedAtoms(topIn, it->Idx(), currentAtom.Bond(0), anames);
     } else {
       NameType proposedName( currentName.NameString() );
-      std::set<NameType>::const_iterator jt = anames.find( proposedName );
-      if (jt == anames.end()) {
+      DuplicateMap::const_iterator jt = duplicateMap_.find( proposedName );
+      if (jt == duplicateMap_.end()) {
         // The proposed name is free.
         mprintf("\t  Changing %s to match bonded atom number.\n", topIn.AtomMaskName(atomIdx).c_str());
         change_aname( topIn, atomIdx, proposedName );
         //keepName[it - atoms.begin()] = true;
         nameChanged = 1;
-        anames.insert( proposedName );
+        //anames.insert( proposedName );
       } else
         mprintf("Warning: Proposed name '%s' is already in use.\n", currentNameStr.c_str());
     }
@@ -471,8 +495,7 @@ const
 /** Given the index of an atom with hydrogens bonded to it, 
   * rename based off the current atom name. 
   */
-int Exec_FixAtomNames::RenameBondedHydrogens(Topology& topIn, int heavyIdx, std::set<NameType>& anames)
-const
+int Exec_FixAtomNames::RenameBondedHydrogens(Topology& topIn, int heavyIdx)
 {
   Iarray hydrogenAtoms;
   Atom const& heavyAtom = topIn[heavyIdx];
@@ -530,8 +553,8 @@ const
       if (proposedName == topIn[*it].Name())
         mprintf("\t  Name is the same as existing name.\n");
       else {
-        std::set<NameType>::const_iterator jt = anames.find( proposedName );
-        if (jt != anames.end()) {
+        DuplicateMap::const_iterator jt = duplicateMap_.find( proposedName );
+        if (jt != duplicateMap_.end()) {
           mprintf("Warning: Proposed name already in use.\n");
           allNamesValid = false;
           break;
@@ -544,7 +567,7 @@ const
   if (allNamesValid) {
     for (IdxNamePairArray::const_iterator kt = idxName.begin(); kt != idxName.end(); ++kt) {
       change_aname(topIn, kt->first, kt->second);
-      anames.insert( kt->second );
+      //anames.insert( kt->second );
     }
   }
   
@@ -583,8 +606,7 @@ static inline void trace_chain(Topology const& topIn, std::vector<int>& chainAto
   * original atom.
   * \return 1 if the chain was renamed, false otherwise
   */
-int Exec_FixAtomNames::fixChainedAtoms(Topology& topIn, int duplicateIdx, int bondedIdx, std::set<NameType> const& anames)
-const
+int Exec_FixAtomNames::fixChainedAtoms(Topology& topIn, int duplicateIdx, int bondedIdx)
 {
   Iarray chainAtoms;
   chainAtoms.push_back( duplicateIdx );
@@ -615,8 +637,8 @@ const
       chainName.SetTerminalNumber( terminalNumber, maxNameWidth_ );
       chainName.PrintName("Proposed name");
       NameType proposedName(chainName.NameString());
-      std::set<NameType>::const_iterator jt = anames.find( proposedName );
-      if (jt != anames.end()) {
+      DuplicateMap::const_iterator jt = duplicateMap_.find( proposedName );
+      if (jt != duplicateMap_.end()) {
         mprintf("Warning: Proposed name already in use.\n");
         allNamesValid = false;
         break;
@@ -641,15 +663,15 @@ const
   * remaining ones with unique names.
   */
 int Exec_FixAtomNames::fixDuplicateSet(Topology& topIn, Iarray const& Indexes, int rnum)
-const
 {
+  // TODO rnum may not be needed anymore
   // Create a set of current atom names in the residue. They will all be unique.
-  Residue const& res = topIn.Res(rnum);
-  std::set<NameType> anames;
-  for (int iat = res.FirstAtom(); iat != res.LastAtom(); iat++)
-    anames.insert( topIn[iat].Name() );
+  //Residue const& res = topIn.Res(rnum);
+  //std::set<NameType> anames;
+  //for (int iat = res.FirstAtom(); iat != res.LastAtom(); iat++)
+  //  anames.insert( topIn[iat].Name() );
 
-  // It is possible that a previous iteration has resolved some name clashes. Check here.
+  // It is possible that a previous iteration has resolved these particular name clashes. Check here.
   std::map<NameType, int> nameCount;
   for (Iarray::const_iterator it = Indexes.begin(); it != Indexes.end(); ++it)
   {
@@ -690,7 +712,7 @@ const
     if (currentAtom.Nbonds() == 1) {
       Atom const& bondedAtom = topIn[currentAtom.Bond(0)];
       if (bondedAtom.Nbonds() < 3) {
-        if (fixChainedAtoms(topIn, it->Idx(), currentAtom.Bond(0), anames))
+        if (fixChainedAtoms(topIn, it->Idx(), currentAtom.Bond(0)))
           nChainsRenamed++;
       }
     }
@@ -702,13 +724,10 @@ const
     std::vector<DupAtom> newAtoms;
     for (std::vector<DupAtom>::const_iterator it = atoms.begin(); it != atoms.end(); ++it)
     {
-      std::set<NameType>::const_iterator jt = anames.find( topIn[it->Idx()].Name() );
-      if (jt != anames.end())
+      DuplicateMap::const_iterator jt = duplicateMap_.find( topIn[it->Idx()].Name() );
+      if (jt->second.size() > 1)
         // Still duplicated
         newAtoms.push_back( *it );
-      else
-        // Not duplicated
-        anames.insert( topIn[it->Idx()].Name() );
     }
     atoms = newAtoms;
   }
@@ -741,7 +760,7 @@ const
     } // END loop over duplicated atoms
     if (bondedIdx != -1) {
       mprintf("\tDuplicated atoms are bonded to %s\n", topIn.AtomMaskName(bondedIdx).c_str());
-      if (RenameBondedHydrogens(topIn, bondedIdx, anames)) {
+      if (RenameBondedHydrogens(topIn, bondedIdx)) {
         mprintf("\tBonded hydrogens have been renamed.\n");
         return 0;
       }
@@ -787,7 +806,7 @@ const
         }
       } else {
         // Can we resolve the clash by making this number match the bonded atom number?
-        if (MakeTerminalNumberMatch(topIn, it->Idx(), currentAtom.Bond(0), anames, currentName, bondedName)) {
+        if (MakeTerminalNumberMatch(topIn, it->Idx(), currentAtom.Bond(0), currentName, bondedName)) {
           keepName[it - atoms.begin()] = true;
         }
       }
@@ -812,13 +831,13 @@ const
     //  mprintf("\t\tbonded to %s\n", topIn.AtomMaskName(*bat).c_str());
     //}
     if (!keepName[idx]) {
-      if (fixDuplicateByIncrement(topIn, it->Idx(), anames)) {
+      if (fixDuplicateByIncrement(topIn, it->Idx())) {
         mprinterr("Error: Could not fix atom %s by name increment.\n", topIn.AtomMaskName(it->Idx()).c_str());
         return 1;
       }
       // If this was not a hydrogen, it may have bonded hydrogens that need to be renamed.
       if (topIn[it->Idx()].Element() != Atom::HYDROGEN) {
-        RenameBondedHydrogens(topIn, it->Idx(), anames);
+        RenameBondedHydrogens(topIn, it->Idx());
       }
     }
   }
@@ -828,8 +847,7 @@ const
 /** Given the index of an atom that has a duplicated name in a residue, change
   * it to a unique name in that residue by incrementing any terminal number.
   */
-int Exec_FixAtomNames::fixDuplicateByIncrement(Topology& topIn, int duplicateIdx, std::set<NameType>& anames)
-const
+int Exec_FixAtomNames::fixDuplicateByIncrement(Topology& topIn, int duplicateIdx)
 {
   // Dissect this name.
   AtomName duplicateName;
@@ -845,13 +863,13 @@ const
       return 1;
     }
     NameType newName( duplicateName.NameString() );
-    std::set<NameType>::iterator it = anames.find( newName );
-    if (it == anames.end()) {
+    DuplicateMap::const_iterator it = duplicateMap_.find( newName );
+    if (it == duplicateMap_.end()) {
       // Name is no longer duplicated!
       mprintf("\t New name: %s\n", *newName);
       change_aname(topIn, duplicateIdx, newName);
       tryNewNames = false;
-      anames.insert( newName );
+      //anames.insert( newName );
     } else
       mprintf("\tName %s already exists.\n", *newName);
   }
