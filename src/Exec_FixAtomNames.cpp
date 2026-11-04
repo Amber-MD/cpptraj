@@ -421,26 +421,44 @@ int Exec_FixAtomNames::change_aname(Topology& topIn, int atomIdx, NameType const
     mprinterr("Internal Error: change_aname() called with existing atom name %s\n", *newName);
     return 1;
   }
-  // Check if the current name corresponds to a ModXNA mask.
-  if (topIn.Modxna().HasModxna()) {
-    int mtype = topIn.Modxna().FindMaskWithAtom( topIn[atomIdx].Name().Truncated() );
-    if (mtype > -1)
-      mprintf("Warning: Old atom name '%s' is in ModXNA mask %s %s ; may need to update ModXNA header.\n",
-              *(topIn[atomIdx].Name()),
-              topIn.Modxna().maskTypeStr( (ModXNA_Info::MaskType)mtype ),
-              topIn.Modxna().AtomMaskString( (ModXNA_Info::MaskType)mtype ).c_str());
-  }
-  // Get the existing name
+  // Get the current (existing) name
+  unsigned int oldNameCount = 0;
   existing = duplicateMap_.find( topIn[atomIdx].Name() );
   if ( existing == duplicateMap_.end()) {
     mprinterr("Internal Error: Existing name %s for atom %i not found (new name %s)\n", *(topIn[atomIdx].Name()), atomIdx+1, *newName);
   } else {
-    // Remove this index from the index array
+    // Remove the atom index from the index array for this name
     Iarray newArray;
     for (Iarray::const_iterator it = existing->second.begin(); it != existing->second.end(); ++it)
       if (*it != atomIdx)
         newArray.push_back( *it );
-    existing->second = newArray;
+    oldNameCount = newArray.size();
+    // Are all the names gone?
+    if (newArray.empty()) {
+      mprintf("\tNo more atoms named %s\n", *(existing->first));
+      duplicateMap_.erase( existing );
+    } else
+      existing->second = newArray;
+  }
+  // Check if the current name corresponds to a ModXNA mask.
+  if (topIn.Modxna().HasModxna()) {
+    int mtype = topIn.Modxna().FindMaskWithAtom( topIn[atomIdx].Name().Truncated() );
+    if (mtype > -1) {
+      if (oldNameCount < 1)
+        // Atom that was renamed was unique. Safe to rename the header.
+        mprintf("\tOld atom name '%s' in ModXNA mask %s %s will be renamed to %s\n",
+                *(topIn[atomIdx].Name()),
+                topIn.Modxna().maskTypeStr( (ModXNA_Info::MaskType)mtype ),
+                topIn.Modxna().AtomMaskString( (ModXNA_Info::MaskType)mtype ).c_str(),
+                *newName);
+      else
+        // Atom that was renamed had at least 1 other duplicate name. Cannot be sure which
+        // is the "right" one, so just warn.
+        mprintf("Warning: Old atom name '%s' is in ModXNA mask %s %s ; may need to update ModXNA header.\n",
+                *(topIn[atomIdx].Name()),
+                topIn.Modxna().maskTypeStr( (ModXNA_Info::MaskType)mtype ),
+                topIn.Modxna().AtomMaskString( (ModXNA_Info::MaskType)mtype ).c_str());
+    }
   }
   // Set the atom with the new name
   topIn.SetAtom(atomIdx).SetName( newName );
