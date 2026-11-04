@@ -122,6 +122,25 @@ int ModXNA_Info::FindMaskWithAtom(std::string const& nameIn) const {
   return -1;
 }
 
+static inline void rename_atoms(std::vector<std::string>& anames,
+                                std::string const& oldname, std::string const& newname)
+{
+  for (std::vector<std::string>::iterator it = anames.begin(); it != anames.end(); ++it) {
+    if (*it == oldname)
+      *it = newname;
+  }
+}
+
+/** Rename any atoms with given name to new name. */
+void ModXNA_Info::RenameAtomInMasks(std::string const& oldname, std::string const& newname) {
+  rename_atoms( head_, oldname, newname );
+  rename_atoms( headStrip_, oldname, newname );
+  rename_atoms( tail_, oldname, newname );
+  rename_atoms( tailStrip_, oldname, newname );
+  rename_atoms( anchor_, oldname, newname );
+  rename_atoms( anchorStrip_, oldname, newname );
+}
+
 /** Generate ModXNA metadata string */
 std::string ModXNA_Info::GenMetadataString() const {
   if (fragmentName_.empty()) return std::string("");

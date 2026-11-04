@@ -444,17 +444,18 @@ int Exec_FixAtomNames::change_aname(Topology& topIn, int atomIdx, NameType const
   if (topIn.Modxna().HasModxna()) {
     int mtype = topIn.Modxna().FindMaskWithAtom( topIn[atomIdx].Name().Truncated() );
     if (mtype > -1) {
-      if (oldNameCount < 1)
+      if (oldNameCount < 1) {
         // Atom that was renamed was unique. Safe to rename the header.
         mprintf("\tOld atom name '%s' in ModXNA mask %s %s will be renamed to %s\n",
                 *(topIn[atomIdx].Name()),
                 topIn.Modxna().maskTypeStr( (ModXNA_Info::MaskType)mtype ),
                 topIn.Modxna().AtomMaskString( (ModXNA_Info::MaskType)mtype ).c_str(),
                 *newName);
-      else
+        topIn.ChangeModxna().RenameAtomInMasks( topIn[atomIdx].Name().Truncated(), newName.Truncated() );
+      } else
         // Atom that was renamed had at least 1 other duplicate name. Cannot be sure which
         // is the "right" one, so just warn.
-        mprintf("Warning: Old atom name '%s' is in ModXNA mask %s %s ; may need to update ModXNA header.\n",
+        mprintf("Warning: Old duplicated atom name '%s' is in ModXNA mask %s %s ; may need to update ModXNA header.\n",
                 *(topIn[atomIdx].Name()),
                 topIn.Modxna().maskTypeStr( (ModXNA_Info::MaskType)mtype ),
                 topIn.Modxna().AtomMaskString( (ModXNA_Info::MaskType)mtype ).c_str());

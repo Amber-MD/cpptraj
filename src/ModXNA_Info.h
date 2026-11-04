@@ -34,6 +34,9 @@ class ModXNA_Info {
     /// \return ModXNA mask type containing the given atom name, -1 if not present.
     int FindMaskWithAtom(std::string const&) const;
 
+    /// Rename an atom in any mask
+    void RenameAtomInMasks(std::string const&, std::string const&);
+
     /// \return ModXNA mask name foe mask type
     static const char* maskTypeStr(MaskType t) { return MaskTypeStr_[t]; }
 
