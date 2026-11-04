@@ -672,26 +672,27 @@ int Exec_FixAtomNames::fixDuplicateSet(Topology& topIn, Iarray const& Indexes, i
   //  anames.insert( topIn[iat].Name() );
 
   // It is possible that a previous iteration has resolved these particular name clashes. Check here.
-  std::map<NameType, int> nameCount;
-  for (Iarray::const_iterator it = Indexes.begin(); it != Indexes.end(); ++it)
-  {
-    std::map<NameType, int>::iterator jt = nameCount.find( topIn[*it].Name() );
-    if (jt == nameCount.end())
-      nameCount.insert( std::pair<NameType, int>(topIn[*it].Name(), 1) );
-    else
-      jt->second++;
-  }
+//  std::map<NameType, int> nameCount;
+//  for (Iarray::const_iterator it = Indexes.begin(); it != Indexes.end(); ++it)
+//  {
+//    std::map<NameType, int>::iterator jt = nameCount.find( topIn[*it].Name() );
+//    if (jt == nameCount.end())
+//      nameCount.insert( std::pair<NameType, int>(topIn[*it].Name(), 1) );
+//    else
+//      jt->second++;
+//  }
 
   // Loop over all atoms with the same name
   std::vector<DupAtom> atoms;
   for (Iarray::const_iterator it = Indexes.begin(); it != Indexes.end(); ++it)
   {
     Atom const& currentAtom = topIn[*it];
-    std::map<NameType, int>::const_iterator jt = nameCount.find( currentAtom.Name() );
-    mprintf("Potential duplicate: %s (%i times)\n", topIn.AtomMaskName(*it).c_str(), jt->second);
-    if (jt->second < 2)
+    DuplicateMap::const_iterator jt = duplicateMap_.find( currentAtom.Name() );
+    //std::map<NameType, int>::const_iterator jt = nameCount.find( currentAtom.Name() );
+    if (jt->second.size() < 2)
       mprintf("\tAtom %s no longer has a duplicated name.\n", topIn.AtomMaskName(*it).c_str());
     else {
+      mprintf("Duplicated name: %s (%zu times)\n", topIn.AtomMaskName(*it).c_str(), jt->second.size());
       // Calculate the weight of all bonded atoms
       int wt = 0;
       for (Atom::bond_iterator bat = currentAtom.bondbegin(); bat != currentAtom.bondend(); ++bat)
