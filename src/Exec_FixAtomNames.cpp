@@ -529,6 +529,7 @@ int Exec_FixAtomNames::RenameBondedHydrogens(Topology& topIn, int heavyIdx)
   heavyName.DissectName( heavyAtom.Name() );
   heavyName.PrintName("Heavy atom name");
   std::string elementName(heavyAtom.ElementName());
+  bool has_prime = heavyName.HasPrime();
   mprintf("\tElement name: '%s'\n", elementName.c_str());
   // Determine the suffix
   std::string suffix("");
@@ -539,7 +540,10 @@ int Exec_FixAtomNames::RenameBondedHydrogens(Topology& topIn, int heavyIdx)
   if (terminalNumber > -1) {
     std::string tnumStr = integerToString(terminalNumber);
     // If the digit is too big just omit the element char
-    if (tnumStr.size() < 2)
+    unsigned int maxterm = 3;
+    if (has_prime)
+      maxterm = 2;
+    if (tnumStr.size() < maxterm)
       suffix.append( tnumStr );
     else
       suffix = tnumStr;
@@ -552,7 +556,6 @@ int Exec_FixAtomNames::RenameBondedHydrogens(Topology& topIn, int heavyIdx)
       mprintf("DEBUG: heavy name '%s' element name '%s' found=%zu  substr='%s'\n", tmpName.c_str(), elementName.c_str(), found, suffix.c_str());
     }
   }
-  bool has_prime = heavyName.HasPrime();
   if (has_prime)
     suffix.append("'");
   // Loop over all bonded hydrogens and rename them
