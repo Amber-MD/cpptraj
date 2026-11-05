@@ -53,6 +53,7 @@ class ModXNA_Info {
 
     static inline void printmxna(const char*, Sarray const&);
 
+    std::string modxnaType_;
     std::string fragmentName_;
     Sarray head_;
     Sarray headStrip_;

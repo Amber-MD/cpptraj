@@ -47,6 +47,7 @@ ModXNA_Info::StatType ModXNA_Info::ParseModxnaStr(std::string const& line) {
     return NOT_MODXNA;
   else if (args[0].compare(0,7,"modXNA-") != 0)
     return NOT_MODXNA;
+  modxnaType_ = args[0];
   args.MarkArg(0);
 
   if (args.Nargs() < 2) {
@@ -95,7 +96,8 @@ void ModXNA_Info::printmxna(const char* desc, Sarray const& anames) {
 /** Print info to stdout */
 void ModXNA_Info::PrintModxna() const {
   if (!HasModxna()) return;
-  mprintf("\tFragment: %s\n", fragmentName_.c_str());
+  mprintf("\tType     : %s\n", modxnaType_.c_str());
+  mprintf("\tFragment : %s\n", fragmentName_.c_str());
   printmxna("\tHead        ", head_);
   printmxna("\tHeadStrip   ", headStrip_);
   printmxna("\tTail        ", tail_);
@@ -164,7 +166,7 @@ void ModXNA_Info::RenameAtomInMasks(std::string const& oldname, std::string cons
 /** Generate ModXNA metadata string */
 std::string ModXNA_Info::GenMetadataString() const {
   if (fragmentName_.empty()) return std::string("");
-  std::string out("modXNA-fragment:" + fragmentName_);
+  std::string out(modxnaType_ + ":" + fragmentName_);
   // Base
   out.append(":HEAD01:" + atomMaskStr(head_, "NONE"));
   out.append(":HEAD01STRIP:" + atomMaskStr(headStrip_, "NONE"));

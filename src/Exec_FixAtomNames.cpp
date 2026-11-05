@@ -528,17 +528,27 @@ int Exec_FixAtomNames::RenameBondedHydrogens(Topology& topIn, int heavyIdx)
   AtomName heavyName;
   heavyName.DissectName( heavyAtom.Name() );
   heavyName.PrintName("Heavy atom name");
+  std::string elementName(heavyAtom.ElementName());
+  mprintf("\tElement name: '%s'\n", elementName.c_str());
+  // Determine the suffix
   std::string suffix("");
+  // For non-carbons, add the element name. TODO do for 2 char names too?
+  if (heavyAtom.Element() != Atom::CARBON && elementName.size() == 1)
+    suffix.append( elementName );
   int terminalNumber = heavyName.TerminalNumber();
-  if (terminalNumber > -1)
-    suffix = integerToString(terminalNumber);
-  else {
+  if (terminalNumber > -1) {
+    std::string tnumStr = integerToString(terminalNumber);
+    // If the digit is too big just omit the element char
+    if (tnumStr.size() < 2)
+      suffix.append( tnumStr );
+    else
+      suffix = tnumStr;
+  } else {
     // Does the element name match?
-    std::string elementName(heavyAtom.ElementName());
     std::string tmpName = heavyAtom.Name().Truncated();
     std::size_t found = tmpName.find( elementName );
     if (found != std::string::npos && found < tmpName.size()) {
-      suffix = tmpName.substr(found+1);
+      suffix.append( tmpName.substr(found+1) );
       mprintf("DEBUG: heavy name '%s' element name '%s' found=%zu  substr='%s'\n", tmpName.c_str(), elementName.c_str(), found, suffix.c_str());
     }
   }
