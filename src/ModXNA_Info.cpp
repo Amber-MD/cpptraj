@@ -21,11 +21,16 @@ ModXNA_Info::Sarray ModXNA_Info::atomNameList(std::string const& mheader, int& e
   // Use SplitString instead of ArgList to handle atom names
   // with leading quotes.
   Sarray anames = SplitString(mheader, "@,");
+  bool has_none = false;
   for (unsigned int iarg = 0; iarg < anames.size(); iarg++) {
     //mprintf("DEBUG: Atom name %u : %s\n", iarg, anames[iarg].c_str());
-    ListOut.push_back( anames[iarg] );
+    // NONE is a special case of blank atom name. TODO check everywhere
+    if ( anames[iarg] == "NONE" )
+      has_none = true;
+    else
+      ListOut.push_back( anames[iarg] );
   }
-  if (ListOut.empty()) {
+  if (ListOut.empty() && !has_none) {
     mprinterr("Error: ModXNA header string '%s' has no valid atom names.\n", mheader.c_str());
     errval++;
   }
@@ -36,9 +41,13 @@ ModXNA_Info::Sarray ModXNA_Info::atomNameList(std::string const& mheader, int& e
 ModXNA_Info::StatType ModXNA_Info::ParseModxnaStr(std::string const& line) {
   if (line.empty()) return NOT_MODXNA;
   ArgList args(line, ":");
-  //args.PrintDebug(); // DEBUG
+  args.PrintDebug(); // DEBUG
 
-  if (args.GetStringNext() != "modXNA-fragment") return NOT_MODXNA;
+  if (args.Nargs() < 1)
+    return NOT_MODXNA;
+  else if (args[0].compare(0,7,"modXNA-") != 0)
+    return NOT_MODXNA;
+  args.MarkArg(0);
 
   if (args.Nargs() < 2) {
     mprinterr("Error: modXNA string is too short.\n"
@@ -46,6 +55,7 @@ ModXNA_Info::StatType ModXNA_Info::ParseModxnaStr(std::string const& line) {
     return ERR;
   }
   fragmentName_ = args[1];
+  args.MarkArg(1);
 
   int errval = 0;
   head_ = atomNameList(args.GetStringKey("HEAD01"), errval);
@@ -60,13 +70,18 @@ ModXNA_Info::StatType ModXNA_Info::ParseModxnaStr(std::string const& line) {
 }
 
 /** Generate mask string from atom names. */
-std::string ModXNA_Info::atomMaskStr(Sarray const& anames)
+std::string ModXNA_Info::atomMaskStr(Sarray const& anames, std::string const& noMask)
 {
-  if (anames.empty()) return std::string("");
+  if (anames.empty()) return noMask;
   std::string maskstr("@" + anames[0]);
   for (unsigned int idx = 1; idx < anames.size(); idx++)
     maskstr.append("," + anames[idx]);
   return maskstr;
+}
+
+/** Generate mask string from atom names. */
+std::string ModXNA_Info::atomMaskStr(Sarray const& anames) {
+  return atomMaskStr(anames, "");
 }
 
 /** Print name array to stdout. */
@@ -151,16 +166,16 @@ std::string ModXNA_Info::GenMetadataString() const {
   if (fragmentName_.empty()) return std::string("");
   std::string out("modXNA-fragment:" + fragmentName_);
   // Base
-  out.append(":HEAD01:" + atomMaskStr(head_));
-  out.append(":HEAD01STRIP:" + atomMaskStr(headStrip_));
+  out.append(":HEAD01:" + atomMaskStr(head_, "NONE"));
+  out.append(":HEAD01STRIP:" + atomMaskStr(headStrip_, "NONE"));
   if (!tail_.empty()) {
     // BB
-    out.append(":TAIL01:" + atomMaskStr(tail_));
-    out.append(":TAIL01STRIP:" + atomMaskStr(tailStrip_));
+    out.append(":TAIL01:" + atomMaskStr(tail_, "NONE"));
+    out.append(":TAIL01STRIP:" + atomMaskStr(tailStrip_, "NONE"));
     if (!anchor_.empty()) {
       // Sugar
-      out.append(":HEAD03:" + atomMaskStr(anchor_));
-      out.append(":HEAD03STRIP:" + atomMaskStr(anchorStrip_));
+      out.append(":HEAD03:" + atomMaskStr(anchor_, "NONE"));
+      out.append(":HEAD03STRIP:" + atomMaskStr(anchorStrip_, "NONE"));
     }
   }
   return out;

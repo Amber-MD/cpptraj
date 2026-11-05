@@ -48,6 +48,7 @@ class ModXNA_Info {
     /// \return an array of atom names from the given modxna header
     static Sarray atomNameList(std::string const&, int&);
 
+    static std::string atomMaskStr(Sarray const&, std::string const&);
     static std::string atomMaskStr(Sarray const&);
 
     static inline void printmxna(const char*, Sarray const&);
