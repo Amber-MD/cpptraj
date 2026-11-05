@@ -1,6 +1,7 @@
 #include "ModXNA_Info.h"
 #include "ArgList.h"
 #include "CpptrajStdio.h"
+#include "StringRoutines.h" // SplitString
 
 /** CONSTRUCTOR */
 ModXNA_Info::ModXNA_Info() {}
@@ -17,9 +18,13 @@ ModXNA_Info::Sarray ModXNA_Info::atomNameList(std::string const& mheader, int& e
 {
   Sarray ListOut;
   if (mheader.empty()) return ListOut;
-  ArgList anames( mheader, "@," );
-  for (int iarg = 0; iarg < anames.Nargs(); iarg++)
+  // Use SplitString instead of ArgList to handle atom names
+  // with leading quotes.
+  Sarray anames = SplitString(mheader, "@,");
+  for (unsigned int iarg = 0; iarg < anames.size(); iarg++) {
+    mprintf("DEBUG: Atom name %u : %s\n", iarg, anames[iarg].c_str());
     ListOut.push_back( anames[iarg] );
+  }
   if (ListOut.empty()) {
     mprinterr("Error: ModXNA header string '%s' has no valid atom names.\n", mheader.c_str());
     errval++;
@@ -31,7 +36,7 @@ ModXNA_Info::Sarray ModXNA_Info::atomNameList(std::string const& mheader, int& e
 ModXNA_Info::StatType ModXNA_Info::ParseModxnaStr(std::string const& line) {
   if (line.empty()) return NOT_MODXNA;
   ArgList args(line, ":");
-  //args.PrintDebug(); // DEBUG
+  args.PrintDebug(); // DEBUG
 
   if (args.GetStringNext() != "modXNA-fragment") return NOT_MODXNA;
 

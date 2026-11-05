@@ -1,4 +1,5 @@
 #include <cmath>     // log10
+#include <cstring>   // strtok
 #include <cctype>    // isspace, isdigit
 #include <ctime>     // for TimeString()
 #include <locale>    // for ToLower()
@@ -500,4 +501,29 @@ std::string ArrayToRangeExpression(std::vector<int> const& arrayIn, int offsetIn
   }
  
   return out;
+}
+
+/** Split the given string according to the given separator(s). */
+std::vector<std::string> SplitString(std::string const& inputString, const char* separator) {
+  std::vector<std::string> Out;
+  if (inputString.empty() || separator==0) return Out;
+  // Copy inputString to temp since it is destroyed by tokenize.
+  size_t inputStringSize = inputString.size();
+  if (inputStringSize < 1) return Out;
+  char* tempString = new char[ inputStringSize+1 ];
+  inputString.copy( tempString, inputStringSize, 0 );
+  tempString[ inputStringSize ] = '\0'; // copy() does not append null
+  // Remove newline char from tempString if present
+  if ( tempString[ inputStringSize - 1 ] == '\n' )
+    tempString[ inputStringSize - 1 ] = '\0';
+   // Begin tokenization
+  char* pch = strtok(tempString, separator);
+  if (pch != 0) {
+    while (pch != 0) {
+      Out.push_back( std::string(pch) );
+      pch = strtok(0,separator); // Next argument
+    } // END while loop
+  }
+  delete[] tempString;
+  return Out;
 }
