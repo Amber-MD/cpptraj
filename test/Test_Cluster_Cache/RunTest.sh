@@ -21,7 +21,7 @@ Cluster() {
   SAVEARG=$3
   cat > cluster.in <<EOF
 parm ../ala10.e16.mbondi2.parm7
-trajin ../ala10.4states.nc
+trajin ../ala10.4states.crd
 strip @H=
 $RNG
 
