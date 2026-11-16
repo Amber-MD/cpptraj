@@ -2,7 +2,8 @@
 
 . ../MasterTest.sh
 
-CleanFiles setvel.in tz2.vel.rst7 V1.dat tz2.scale.rst7 tz2.add.rst7 temp.rst7
+CleanFiles setvel.in tz2.vel.rst7 V1.dat tz2.scale.rst7 tz2.add.rst7 temp.rst7 \
+           t2z.vel.zeromomentum.crd
 
 INPUT='-i setvel.in'
 
@@ -25,12 +26,15 @@ printdata V0
 clear trajin
 trajin tz2.vel.rst7
 setvelocity modify zeromomentum
-vector V1 momentum out V1.dat
+vector V1 momentum magnitude
+create V1.dat V1[Mag]
+trajout t2z.vel.zeromomentum.crd mdvel
 go
 EOF
 RunCpptraj "$UNITNAME"
 DoTest tz2.vel.rst7.save tz2.vel.rst7
 DoTest V1.dat.save V1.dat
+DoTest t2z.vel.zeromomentum.crd.save t2z.vel.zeromomentum.crd
 
 UNITNAME='Scale velocity test'
 cat > setvel.in <<EOF
