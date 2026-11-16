@@ -1,17 +1,15 @@
-#Clustering: 5 clusters 101 frames
-#Cluster 0 has average-distance-to-centroid 1.286585
-#Cluster 1 has average-distance-to-centroid 1.055150
-#Cluster 2 has average-distance-to-centroid 1.535737
-#Cluster 3 has average-distance-to-centroid 1.714581
-#Cluster 4 has average-distance-to-centroid 1.272984
-#DBI: 0.915507
-#pSF: 81.794520
-#SSR/SST: 0.773145
-#Algorithm: HierAgglo linkage average-linkage nclusters 5 epsilon 1.79769e+308
-.............XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX......................................
-.............................................................................XXXXXXXXXXXXXXXXXXXXXXXX
-...............................................................XXXXXXXXXXXXXX........................
-..XXXXXXXXXXX........................................................................................
-XX...................................................................................................
-#Representative frames: 24 101 76 12 1
+#Clustering: 4 clusters 100 frames
+#Cluster 0 has average-distance-to-centroid 0.095503
+#Cluster 1 has average-distance-to-centroid 0.099789
+#Cluster 2 has average-distance-to-centroid 0.089067
+#Cluster 3 has average-distance-to-centroid 0.097266
+#DBI: 0.044551
+#pSF: 46610.385034
+#SSR/SST: 0.999314
+#Algorithm: HierAgglo linkage average-linkage nclusters 4 epsilon 1.79769e+308
+XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX...................................XXXXXXXXXXXXXXX....................
+..............................XXXXXXXXXXXXXXXXXXXX..............................XXXXXXXXXX..........
+..................................................XXXXXXXXXX..............................XXXXX.....
+............................................................XXXXX..............................XXXXX
+#Representative frames: 78 32 60 63
 #Sieve value: 5

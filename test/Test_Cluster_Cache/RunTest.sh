@@ -20,13 +20,13 @@ Cluster() {
   SIEVEARG=$2
   SAVEARG=$3
   cat > cluster.in <<EOF
-parm ../tz2.parm7
-trajin ../tz2.nc
-strip !@CA
+parm ../ala10.e16.mbondi2.parm7
+trajin ../ala10.4states.nc
+strip @H=
 $RNG
 
 cluster C1 \
-        hieragglo clusters 5 rms $SIEVEARG $SAVEARG \
+        hieragglo clusters 4 rms $SIEVEARG $SAVEARG \
         out     $PREFIX.cnumvtime.dat \
         summary $PREFIX.summary.dat \
         info    $PREFIX.info.dat
