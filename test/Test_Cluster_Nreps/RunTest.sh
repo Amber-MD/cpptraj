@@ -24,29 +24,31 @@ EOF
   DoTest summary.2.dat.save summary.2.dat
 fi
 
+CTOP=../ala10.e16.mbondi2.parm7
+CTRJ=../ala10.4states.crd
 UNITNAME='Test cumulative best rep'
 cat > cluster.in <<EOF
-parm ../tz2.parm7
-trajin ../tz2.crd
-cluster hieragglo clusters 5 rms @CA bestrep cumulative singlerepout cumulative
+parm $CTOP
+trajin $CTRJ
+cluster hieragglo clusters 4 rms @CA bestrep cumulative singlerepout cumulative
 EOF
 RunCpptraj "$UNITNAME"
 DoTest cumulative.save cumulative
 
 UNITNAME='Test centroid best rep'
 cat > cluster.in <<EOF
-parm ../tz2.parm7
-trajin ../tz2.crd
-cluster hieragglo clusters 5 rms @CA bestrep centroid singlerepout centroid
+parm $CTOP
+trajin $CTRJ
+cluster hieragglo clusters 4 rms @CA bestrep centroid singlerepout centroid
 EOF
 RunCpptraj "$UNITNAME"
 DoTest centroid.save centroid
 
 UNITNAME='Test cumulative, no sieve best rep'
 cat > cluster.in <<EOF
-parm ../tz2.parm7
-trajin ../tz2.crd
-cluster hieragglo clusters 5 rms @CA sieve 5 bestrep cumulative_nosieve singlerepout cumulative_nosieve
+parm $CTOP
+trajin $CTRJ
+cluster hieragglo clusters 4 rms @CA sieve 5 bestrep cumulative_nosieve singlerepout cumulative_nosieve
 EOF
 RunCpptraj "$UNITNAME"
 DoTest cumulative_nosieve.save cumulative_nosieve
