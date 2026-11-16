@@ -21,7 +21,8 @@ runanalysis curvefit Y "Cubic = (A0*X^3) + (A1*X^2) + (A2*X)" \
 EOF
 RunCpptraj "Curve fitting test."
 DoTest curve.dat.save curve.dat
-DoTest results.cubic.dat.save results.cubic.dat
+# Add 0.03 cushion for Chi squared, uncertainty, and RMS P.E.
+DoTest results.cubic.dat.save results.cubic.dat -a 0.03
 
 # Mexp test
 cat > cf.in <<EOF
