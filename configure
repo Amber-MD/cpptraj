@@ -2944,6 +2944,10 @@ if [ "$WORKDIR" != '.' ] ; then
 fi
 #CPPTRAJSRC=$CURRENTDIR
 
+if [ $use_bundled_readline -eq 1 ] ; then
+  echo "  Will use bundled readline even if system readline is available."
+fi
+
 # Basic checks and directives
 BasicChecks
 
