@@ -135,8 +135,8 @@ COMPERR='cpptrajcfg.compile.err'
 COMPOUT='cpptrajcfg.compile.out'
 
 # ----- Variables for downloading libraries ------
-NETCDF_SRCTAR='v4.9.2.tar.gz'
-NETCDF_SRCDIR='netcdf-c-4.9.2'
+NETCDF_SRCTAR='v4.9.3.tar.gz'
+NETCDF_SRCDIR='netcdf-c-4.9.3'
 NETCDF_URL="https://github.com/Unidata/netcdf-c/archive/refs/tags/$NETCDF_SRCTAR"
 NETCDF_OPTS=" --disable-byterange --disable-libxml2 --disable-netcdf-4 --disable-dap --disable-nczarr $windows_hostflag --disable-shared --disable-doxygen"
 NETCDF4_OPTS=" --disable-byterange --disable-libxml2 --disable-dap --disable-nczarr $windows_hostflag --disable-shared --disable-doxygen"
@@ -166,7 +166,7 @@ LAPACK_SRCDIR='lapack-3.9.0'
 LAPACK_URL="https://github.com/Reference-LAPACK/lapack/archive/$LAPACK_SRCTAR"
 LAPACK_OPTS=''
 
-PNETCDF_SRCTAR='pnetcdf-1.12.2.tar.gz'
+PNETCDF_SRCTAR='pnetcdf-1.14.1.tar.gz'
 PNETCDF_SRCDIR=''
 PNETCDF_URL="https://parallel-netcdf.github.io/Release/$PNETCDF_SRCTAR"
 PNETCDF_OPTS='--disable-fortran --disable-cxx'
