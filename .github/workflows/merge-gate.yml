@@ -142,7 +142,7 @@ jobs:
         channels: conda-forge
         channel-priority: strict
         environment-file: devtools/ci/environment.yml
-        activate-environment: base
+        activate-environment: cpptraj-ci 
     - name: Install cpptraj
       run: |
         echo "CONDA root: $CONDA"

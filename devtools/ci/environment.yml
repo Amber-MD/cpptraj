@@ -1,4 +1,4 @@
-name: base
+name: cpptraj-ci 
 channels:
     - conda-forge
 dependencies:
