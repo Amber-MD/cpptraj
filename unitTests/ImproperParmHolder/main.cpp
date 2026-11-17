@@ -33,7 +33,7 @@ int main() {
   ip1a.AddName("HO");
 
   ImproperParmHolder IP0;
-  Cpptraj::Parm::RetType ret = IP0.AddParm( ip1, DihedralParmType( 3.0, 1.0, 0.0 ), false );
+  Cpptraj::Parm::RetType ret = IP0.AddParm( ip1, DihedralParmArray(1, DihedralParmType( 3.0, 1.0, 0.0 )), false );
   if (ret == Cpptraj::Parm::ERR) return Err("Could not add improper parameter");
   bool found;
   DihedralParmArray impropers = IP0.FindParam( ip1a, found );
@@ -46,7 +46,7 @@ int main() {
   ip2.AddName("O");
 
   ImproperParmHolder IP;
-  ret = IP.AddParm( ip2, DihedralParmType( 2.0, 1.0, 3.14159/2.0 ), false );
+  ret = IP.AddParm( ip2, DihedralParmArray(1, DihedralParmType( 2.0, 1.0, 3.14159/2.0 )), false );
   if (ret == Cpptraj::Parm::ERR) return Err("Could not add improper parameter");
   //ip2.SortImproperByAlpha("X");
   
