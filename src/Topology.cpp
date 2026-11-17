@@ -749,6 +749,35 @@ int Topology::CommonSetup(bool molsearch, bool renumberResidues)
 //  t_anamecheck.Stop();
 //  t_anamecheck.WriteTiming(1, "Atom Name Check");
 
+  // If modxna info is present, make sure there are no duplicated atoms in the headers.
+  if (modxna_.HasModxna()) {
+    if (debug_ > 0) mprintf("DEBUG: Modxna check.\n");
+    for (int idx = 0; idx <= (int)ModXNA_Info::ANCHORSTRIP; idx++) {
+      ModXNA_Info::Sarray const& anames = modxna_.AtomNames( (ModXNA_Info::MaskType)idx );
+      if (!anames.empty()) {
+        for (ModXNA_Info::Sarray::const_iterator it = anames.begin(); it != anames.end(); ++it)
+        {
+          AtomMask tmpMask("@" + *it);
+          SetupIntegerMask( tmpMask );
+          if (debug_ > 0) tmpMask.MaskInfo(); // DEBUG
+          if (tmpMask.Nselected() < 1) {
+            mprintf("Warning: In ModXNA mask %s [%s], [%s] selects no atoms.\n",
+                     ModXNA_Info::maskTypeStr( (ModXNA_Info::MaskType)idx ),
+                     modxna_.AtomMaskString( (ModXNA_Info::MaskType)idx ).c_str(),
+                     tmpMask.MaskString());
+          } else if (tmpMask.Nselected() > 1) {
+            mprinterr("Error: In ModXNA mask %s [%s], [%s] selects more than one atom:\n",
+                       ModXNA_Info::maskTypeStr( (ModXNA_Info::MaskType)idx ),
+                       modxna_.AtomMaskString( (ModXNA_Info::MaskType)idx ).c_str(),
+                       tmpMask.MaskString());
+            for (AtomMask::const_iterator at = tmpMask.begin(); at != tmpMask.end(); ++at)
+              mprinterr("Error:\tModXNA mask atom %8i %s\n", *at + 1, AtomMaskName(*at).c_str());
+          }
+        } // END loop over modxna atom names for this mask
+      }
+    } // END loop over modxna mask types
+  }
+
   return 0;
 }
 
