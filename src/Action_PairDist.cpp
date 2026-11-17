@@ -2,7 +2,7 @@
 #include "Action_PairDist.h"
 #include "CpptrajStdio.h"
 #include "StringRoutines.h"
-#include "DistRoutines.h"
+#include "Dcalc.h"
 #include "DataSet_Mesh.h"
 #ifdef MPI
 # include "Stats_Reduce.h"
@@ -140,10 +140,9 @@ Action::RetType Action_PairDist::Setup(ActionSetup& setup) {
 }
 
 /** Do histogram binning */
-void Action_PairDist::BinHist( std::vector<double>& tmp,
-                               const double* XYZ1, const double* XYZ2, Box const& box)
+void Action_PairDist::BinHist(std::vector<double>& tmp,
+                             double Dist2)
 {
-  double Dist2 = DIST2(imageOpt_.ImagingType(), XYZ1, XYZ2, box);
   double Dist = sqrt(Dist2);
 
   unsigned long bin = (unsigned long) (Dist / delta_);
@@ -164,21 +163,24 @@ Action::RetType Action_PairDist::DoAction(int frameNum, ActionFrame& frm) {
   if (imageOpt_.ImagingEnabled())
     imageOpt_.SetImageType( frm.Frm().BoxCrd().Is_X_Aligned_Ortho() );
 
+  Cpptraj::Dcalc dcalc(frm.Frm(), imageOpt_.ImagingType());
+
   if (single_mask_) {
     // Only 1 mask
     for (int idx1 = 0; idx1 != mask1_.Nselected(); idx1++) {
+      dcalc.SetXYZ1(frm.Frm().XYZ(mask1_[idx1]));
+
       for (int idx2 = idx1 + 1; idx2 != mask1_.Nselected(); idx2++) {
-        //frame_ = frameNum; // DEBUG
-        //idx1_ = idx1; // DEBUG
-        //idx2_ = idx2; // DEBUG
-        BinHist(tmp, frm.Frm().XYZ(mask1_[idx1]), frm.Frm().XYZ(mask1_[idx2]), frm.Frm().BoxCrd());
+        BinHist(tmp, dcalc.Dist2(frm.Frm().XYZ(mask1_[idx2])));
       }
     }
   } else {
     // 2 non-overlapping masks
     for (int idx1 = 0; idx1 != mask1_.Nselected(); idx1++) {
+      dcalc.SetXYZ1(frm.Frm().XYZ(mask1_[idx1]));
+
       for (int idx2 = 0; idx2 != mask2_.Nselected(); idx2++) {
-        BinHist(tmp, frm.Frm().XYZ(mask1_[idx1]), frm.Frm().XYZ(mask2_[idx2]), frm.Frm().BoxCrd());
+        BinHist(tmp, dcalc.Dist2(frm.Frm().XYZ(mask2_[idx2])));
       }
     }
   }
