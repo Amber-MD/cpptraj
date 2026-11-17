@@ -196,7 +196,7 @@ Enhancements to entropy calculation in original Action\_Gist.
 Code for the CUDA version of the 'closest' Action.
 
 * Nathan D. Levinzon (University of Utah, UT)
-Action\surftension.
+Action\_surftension and TIMap.
 
 * Andrew Simmonett (National Institutes of Health)
 Code for the reciprocal part of the particle mesh Ewald calculation (electrostatic and Lennard-Jones).
@@ -212,6 +212,9 @@ Improvements and enhancements for GIST.
 
 * Nikolai Skrynnikov, Danil Yevdokimov, Olga O. Lebedenko and Ivan S. Podkorytov (Purdue University, IN)
 Fix for truncated octahedron cell solvation of large systems.
+
+* Werner Hahn (Indepentent Consultant)
+Speed ups for orthogonal distance imaging in the 'radial' Action. Performance improvements for orthogonal imaged distance routines.
 
 #### Various Contributions
 * David A. Case (Rutgers University, Piscataway, NJ, USA)

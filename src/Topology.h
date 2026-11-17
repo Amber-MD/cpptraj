@@ -23,6 +23,8 @@ class Topology {
     void SetIpol(int iIn)                    { ipol_ = iIn;                  }
     void SetPindex(int pIn)                  { pindex_ = pIn;                }
     void SetGBradiiSet(std::string const& s) { radius_set_ = s;              }
+    void SetMolType(std::string const& m)    { mol_type_ = m;                }
+    void SetChargeType(std::string const& c) { charge_type_ = c;             }
     void CopyTopMetadata(Topology const&);
     void SetParmTitle(std::string const&);
     void SetParmName(std::string const&, FileName const&);
@@ -43,6 +45,8 @@ class Topology {
     std::string const& ParmName()         const { return parmName_;       }
     FileName const& OriginalFilename()    const { return fileName_;       }
     std::string const& GBradiiSet()       const { return radius_set_;     }
+    std::string const& MoleculeType()     const { return mol_type_;       }
+    std::string const& ChargeType()       const { return charge_type_;    }
     const char *c_str() const; //FIXME rename
     // ---- Atom-specific routines ---------------
     typedef std::vector<Atom>::const_iterator atom_iterator;
@@ -376,6 +380,8 @@ class Topology {
     FileName fileName_; 
     std::string parmName_;
     std::string radius_set_;
+    std::string mol_type_;
+    std::string charge_type_;
 
     BondArray bonds_;
     BondArray bondsh_;

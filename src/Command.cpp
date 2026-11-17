@@ -73,9 +73,11 @@
 #include "Exec_ParmStrip.h"
 #include "Exec_ParmWrite.h"
 #include "Exec_ScaleDihedralK.h"
+#include "Exec_TIMap.h"
 #include "Exec_Top.h"
 #include "Exec_UpdateParameters.h"
 #include "Exec_Desc.h"
+#include "Exec_FixAtomNames.h"
 // ----- ACTION ----------------------------------------------------------------
 #include "Action_Angle.h"
 #include "Action_Distance.h"
@@ -317,6 +319,7 @@ void Command::Init() {
   Command::AddCmd( new Exec_CompareTop(),    Cmd::EXE, 1, "comparetop" );
   Command::AddCmd( new Exec_Desc(),          Cmd::EXE, 1, "desc" ); // HIDDEN
   Command::AddCmd( new Exec_DihedralInfo(),Cmd::EXE, 3,"dihedrals","dihedralinfo","printdihedrals");
+  Command::AddCmd( new Exec_FixAtomNames(),  Cmd::EXE, 1, "fixatomnames");
   Command::AddCmd( new Exec_HmassRepartition(),Cmd::EXE, 1, "hmassrepartition" );
   Command::AddCmd( new Exec_ImproperInfo(),Cmd::EXE, 3,"impropers","improperinfo","printimpropers");
   Command::AddCmd( new Exec_MassInfo(),      Cmd::EXE, 1, "mass" );
@@ -329,6 +332,7 @@ void Command::Init() {
   Command::AddCmd( new Exec_ParmWrite(),     Cmd::EXE, 1, "parmwrite" );
   Command::AddCmd( new Exec_ResInfo(),       Cmd::EXE, 1, "resinfo" );
   Command::AddCmd( new Exec_ScaleDihedralK(),Cmd::EXE, 1, "scaledihedralk" );
+  Command::AddCmd( new Exec_TIMap(),         Cmd::EXE, 2, "timap", "timatch" );
   Command::AddCmd( new Exec_UBInfo(),        Cmd::EXE, 2, "ubinfo", "printub" );
   Command::AddCmd( new Exec_UpdateParameters(), Cmd::EXE, 1, "updateparameters");
   // ACTION

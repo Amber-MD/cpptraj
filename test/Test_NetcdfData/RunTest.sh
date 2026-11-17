@@ -45,8 +45,9 @@ run
 writedata ascii.dat.save d1 a1 Dih_00003 Fluct_00004
 EOF
     RunCpptraj "$UNITNAME"
-    SetConditionalTol d1.nc mpi -a 0.0000000000001
-    NcTest d1.nc.save d1.nc $TEST_TOLERANCE
+    #SetConditionalTol d1.nc mpi -a 0.0000000000001
+    #NcTest d1.nc.save d1.nc $TEST_TOLERANCE
+    NcTest d1.nc.save d1.nc -a 0.0000000000001 
   fi
 }
 

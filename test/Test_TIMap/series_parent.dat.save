@@ -1,0 +1,7 @@
+# timap series parent selection
+# score = sum_j exp(-0.1*(insertions+unmapped)) mapping j onto candidate
+# adapted from util/leadopt/similarity.py (Redmann & Summa / Summa Lab)
+parent benzene
+#Idx Name                 Natom   SimSum  MappedSum
+   1 phenol                  13   0.740818         11
+   2 benzene                 12   0.740818         11 parent

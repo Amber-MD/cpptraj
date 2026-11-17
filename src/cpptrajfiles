@@ -296,6 +296,7 @@ COMMON_SOURCES= \
         Exec_Desc.cpp \
         Exec_Emin.cpp \
         Exec_ExtendedComparison.cpp \
+        Exec_FixAtomNames.cpp \
         Exec_Flatten.cpp \
         Exec_Flush.cpp \
         Exec_GenerateAmberRst.cpp \
@@ -330,6 +331,7 @@ COMMON_SOURCES= \
         Exec_Source.cpp \
         Exec_SplitCoords.cpp \
         Exec_System.cpp \
+        Exec_TIMap.cpp \
         Exec_Top.cpp \
         Exec_Traj.cpp \
         Exec_UpdateParameters.cpp \
@@ -438,6 +440,7 @@ COMMON_SOURCES= \
         StringRoutines.cpp \
         StructureCheck.cpp \
         StructureMapper.cpp \
+        TIMatch.cpp \
         SymmetricRmsdCalc.cpp \
         TextBlockBuffer.cpp \
         TextFormat.cpp \
@@ -518,6 +521,7 @@ LIBCPPTRAJ_CORE_OBJECTS= \
   CpptrajStdio.o \
   StringRoutines.o \
   DistRoutines.o \
+  Dist_Imaged.o \
   ArgList.o \
   TextFormat.o \
   PairList.o \

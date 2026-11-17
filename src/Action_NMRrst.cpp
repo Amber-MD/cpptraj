@@ -551,7 +551,8 @@ Action::RetType Action_NMRrst::DoAction(int frameNum, ActionFrame& frm) {
         a2 = frm.Frm().VGeometricCenter( noe->dMask2_ );
       }
 
-      double Dist = DIST(imageOpt_.ImagingType(), a1, a2, frm.Frm().BoxCrd());
+      double Dist2 = DIST2(imageOpt_.ImagingType(), a1, a2, frm.Frm().BoxCrd());
+      double Dist = sqrt(Dist2);
 
       noe->dist_->Add(frameNum, &Dist);
     }

@@ -93,7 +93,7 @@ double Cpptraj::Dist2_Imaged(Vec3 const& xyz1, Vec3 const& xyz2,
   * TODO use in place of DIST2_ImageNonOrthoRecip()
   */
 double Cpptraj::Dist2_Imaged_Frac(Vec3 const& f1, Vec3 const& f2,
-                                  Matrix_3x3 const& ucell, Matrix_3x3 const& fcell,
+                                  Matrix_3x3 const& ucell,
                                   int* ixyz)
 {
   // Calculate f2 to f1 in fractional space
@@ -185,5 +185,5 @@ double Cpptraj::Dist2_Imaged_Cart(Vec3 const& xyz1, Vec3 const& xyz2,
   wrap_frac(f1);
   wrap_frac(f2);
 
-  return Dist2_Imaged_Frac(f1, f2, ucell, fcell, ixyz);
+  return Dist2_Imaged_Frac(f1, f2, ucell, ixyz);
 }

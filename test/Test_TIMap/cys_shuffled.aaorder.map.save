@@ -1,0 +1,15 @@
+# timap tgt='CYS[CYS]' template='CYS[CYS]'
+# kind tgt=amino template=amino
+# mapped= 11  insertion= 0  unmapped_template= 0  n_tgt= 11  n_tpl= 11
+#Out    TgtAt TgtName  TplAt TplName Ins
+     1      3 N           3 N      0
+     2      4 H           4 H      0
+     3      5 CA          5 CA     0
+     4      6 HA          6 HA     0
+     5      7 CB          7 CB     0
+     6      8 HB2         8 HB2    0
+     7      9 HB3         9 HB3    0
+     8     10 SG         10 SG     0
+     9     11 HG         11 HG     0
+    10      1 C           1 C      0
+    11      2 O           2 O      0

@@ -23,7 +23,7 @@ class Mol2File : private CpptrajFile {
     /// Check for modXNA info in the title
     ModXNA_Info* CheckForModxna();
     /// Write Mol2 info
-    bool WriteMolecule(bool,int);
+    bool WriteMolecule(bool,int,std::string const&,std::string const&);
     //// Used to only read # atoms in next MOLECULE record.
     int NextMolecule();
     /// Read in the next Mol2 BOND line. Get the indices of the bonded atoms.
@@ -50,6 +50,8 @@ class Mol2File : private CpptrajFile {
     int Mol2Natoms()                    const { return mol2atoms_; }
     int Mol2Nbonds()                    const { return mol2bonds_; }
     std::string const& Mol2Title()      const { return mol2title_; }
+    std::string const& MolType()        const { return moltype_;   }
+    std::string const& ChargeType()     const { return chargetype_; }
     // CpptrajFile functions that should be accessible.
     using CpptrajFile::SetupRead;
     using CpptrajFile::SetupWrite;
@@ -66,6 +68,8 @@ class Mol2File : private CpptrajFile {
     int mol2atoms_;
     int mol2bonds_;
     std::string mol2title_;
+    std::string moltype_;
+    std::string chargetype_;
     //typedef std::map<NameType, NameType, NameType::Compare> AtypeMap;
     typedef std::map<NameType, NameType> AtypeMap;
     AtypeMap Atype_to_Sybyl_; ///< Map Amber type name to SYBYL type name. 
