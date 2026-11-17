@@ -253,6 +253,8 @@ class Topology {
     void SetModxna(ModXNA_Info const& m) { modxna_ = m; }
     /// \return modxna info
     ModXNA_Info const& Modxna() const { return modxna_; }
+    /// \return changeable modxna info
+    ModXNA_Info& ChangeModxna() { return modxna_; }
     // ----- Misc routines -----------------------
     /// Format: <res name>_<res num>@<atom name>
     std::string TruncResAtomName(int) const;

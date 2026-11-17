@@ -422,12 +422,12 @@ KDE.o : KDE.cpp AssociatedData.h Constants.h CpptrajFile.h CpptrajStdio.h DataSe
 LeapInterface.o : LeapInterface.cpp ArgList.h Atom.h AtomMask.h Box.h Constants.h CoordinateInfo.h CpptrajFile.h CpptrajStdio.h FileIO.h FileName.h File_TempName.h Frame.h LeapInterface.h MaskToken.h Matrix_3x3.h ModXNA_Info.h Molecule.h NameType.h Parallel.h ParameterTypes.h Range.h ReplicaDimArray.h Residue.h Segment.h StringRoutines.h SymbolExporting.h Topology.h Unit.h Vec3.h
 MapAtom.o : MapAtom.cpp Atom.h MapAtom.h NameType.h SymbolExporting.h
 MaskArray.o : MaskArray.cpp Atom.h AtomMask.h Box.h Constants.h CoordinateInfo.h CpptrajStdio.h FileName.h Frame.h MaskArray.h MaskToken.h Matrix_3x3.h ModXNA_Info.h Molecule.h NameType.h Parallel.h ParameterTypes.h Range.h ReplicaDimArray.h Residue.h Segment.h SymbolExporting.h Topology.h Unit.h Vec3.h
-MaskToken.o : MaskToken.cpp ArgList.h Atom.h Box.h CpptrajStdio.h DistRoutines.h ImageOption.h MaskToken.h Matrix_3x3.h Molecule.h NameType.h Parallel.h Residue.h Segment.h StringRoutines.h SymbolExporting.h Unit.h Vec3.h
+MaskToken.o : MaskToken.cpp Atom.h Box.h CpptrajStdio.h DistRoutines.h ImageOption.h MaskToken.h Matrix_3x3.h Molecule.h NameType.h Parallel.h Residue.h Segment.h StringRoutines.h SymbolExporting.h Unit.h Vec3.h
 Matrix_3x3.o : Matrix_3x3.cpp Constants.h CpptrajStdio.h Matrix_3x3.h Parallel.h Vec3.h
 MdOpts.o : MdOpts.cpp ArgList.h Constants.h Constraints.h CpptrajStdio.h MdOpts.h ParameterTypes.h
 MetaData.o : MetaData.cpp CpptrajStdio.h FileName.h MetaData.h Range.h StringRoutines.h
 Minimize_SteepestDescent.o : Minimize_SteepestDescent.cpp ActionFrameCounter.h ArgList.h AssociatedData.h Atom.h AtomMask.h BaseIOtype.h Box.h CharMask.h Constants.h CoordinateInfo.h CpptrajFile.h CpptrajStdio.h DataSet.h DataSetList.h DataSet_1D.h DataSet_Coords.h DataSet_Coords_REF.h Dimension.h EnergyArray.h FileIO.h FileName.h FileTypes.h Frame.h MaskToken.h Matrix_3x3.h MetaData.h Minimize_SteepestDescent.h ModXNA_Info.h Molecule.h NameType.h OutputTrajCommon.h Parallel.h ParameterTypes.h PotentialFunction.h PotentialTerm.h Range.h ReferenceFrame.h ReplicaDimArray.h Residue.h Segment.h SymbolExporting.h TextFormat.h Timer.h Topology.h TrajectoryFile.h Trajout_Single.h Unit.h Vec3.h
-ModXNA_Info.o : ModXNA_Info.cpp ArgList.h CpptrajStdio.h ModXNA_Info.h
+ModXNA_Info.o : ModXNA_Info.cpp ArgList.h CpptrajStdio.h ModXNA_Info.h StringRoutines.h
 Mol.o : Mol.cpp Atom.h AtomMask.h Box.h Constants.h CoordinateInfo.h CpptrajStdio.h FileName.h Frame.h MaskToken.h Matrix_3x3.h ModXNA_Info.h Mol.h Molecule.h NameType.h Parallel.h ParameterTypes.h Range.h ReplicaDimArray.h Residue.h Segment.h SymbolExporting.h Topology.h Unit.h Vec3.h
 Mol2File.o : Mol2File.cpp Atom.h CpptrajFile.h CpptrajStdio.h FileIO.h FileName.h ModXNA_Info.h Mol2File.h NameType.h Parallel.h Residue.h StringRoutines.h SymbolExporting.h
 NC_Routines.o : NC_Routines.cpp CpptrajStdio.h NC_Routines.h

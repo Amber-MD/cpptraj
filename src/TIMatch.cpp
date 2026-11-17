@@ -525,11 +525,11 @@ static void NameHints(Graph const& g, Scaffold& sc) {
 static void ApplyModxna(Graph const& g, Scaffold& sc) {
   ModXNA_Info const& mx = g.Top().Modxna();
   if (!mx.HasModxna()) return;
-  std::string head = mx.Head();
+  std::string head = mx.AtomMaskString(ModXNA_Info::HEAD);
   if (!head.empty() && head[0] == '@') head = head.substr(1);
-  std::string tail = mx.Tail();
+  std::string tail = mx.AtomMaskString(ModXNA_Info::TAIL);
   if (!tail.empty() && tail[0] == '@') tail = tail.substr(1);
-  std::string anchor = mx.Anchor();
+  std::string anchor = mx.AtomMaskString(ModXNA_Info::ANCHOR);
   if (!anchor.empty() && anchor[0] == '@') anchor = anchor.substr(1);
   Iarray hh = head.empty() ? Iarray() : g.FindByName(head);
   Iarray tt = tail.empty() ? Iarray() : g.FindByName(tail);

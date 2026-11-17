@@ -18089,7 +18089,7 @@ fixatomnames
 \end_layout
 
 \begin_layout LyX-Code
-fixatomnames { parm <name> | parmindex <#> | crdset <COORDS SET>} [<mask>]
+fixatomnames { parm <name> | parmindex <#> | crdset <COORDS SET>} [<mask>] [renameh]
 \end_layout
 
 \begin_deeper
@@ -18137,6 +18137,10 @@ crdset
 set> Topology to change.
 \end_layout
 
+\begin_layout Description
+renameh Rename hydrogens according to PDB V3 standard even if bonded heavy atom name is not changed.
+\end_layout
+
 \end_deeper
 \begin_layout Standard
 
@@ -18151,11 +18155,32 @@ Attempt to fix duplicated atom names in the residues of the specified topology.
  If no mask is given,
  all residues will be checked.
  The algorithm used is extremely simple.
- When an atom is found with a duplicated name,
- if it has a digit that digit will be incremented.
+ When a set of atoms in a residue with the same name is found,
+ CPPTRAJ attempts to identify which atom the name should go to by prioritizing 1) the total atomic weight of atoms bonded to that atom and 2) the original atom index.
+ If a duplicated atom name is bonded to another atom with a digit,
+ CPPTRAJ attempts to resolve the name clash by changing the digit to match the bonded atom digit (e.g.
+ an oxygen bonded to a carbon named 'C8' would be named 'O8').
+ If the duplicated atoms are hydrogens bonded to a common heavy atom,
+ the hydrogens are renamed according to the PDB V3 standard ('H' plus number/digit of bonded heavy atom plus index).
+ Otherwise,
+ if the atom name has a digit,
+ that digit will be incremented to resolve the clash.
  If multiple digits are present (e.g.
  H1N1) the right-most digit will be incremented first.
  If no digits are present one will be appended.
+ This is repeated until no more clashes in the residue occur.
+ 
+\end_layout
+
+\begin_layout Standard
+If a heavy atom is renamed,
+ any bonded hydrogens will be renamed according to the PDB V3 standard.
+ If 
+\series bold
+'renameh'
+\series default
+ is specified,
+ hydrogens will be renamed according to the PDB V3 standard even if the bonded heavy atom name is not changed.
 \end_layout
 
 \begin_layout Subsection

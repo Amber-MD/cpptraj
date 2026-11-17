@@ -1,9 +1,8 @@
 #include <locale>
 #include <stack> // Tokenize()
 #include "MaskToken.h"
-#include "ArgList.h" // Tokenize()
 #include "CpptrajStdio.h"
-#include "StringRoutines.h" // convertToInteger, convertToDouble
+#include "StringRoutines.h" // convertToInteger, convertToDouble, SplitString
 #include "DistRoutines.h" // selection by distance
 #include "RangeToken.h" // for parsing <num>-<num> tokens
 
@@ -510,10 +509,9 @@ int MaskTokenArray::Tokenize() {
         }
         //mprintf("DEBUG: buffer=[%s]  tokenString=[%s]\n",buffer.c_str(),tokenString.c_str());
         // Split operand by comma
-        ArgList commaList(tokenString, ",");
-        //commaList.PrintList();
+        std::vector<std::string> commaList = SplitString(tokenString, ",");
         // Assign each comma-separated arg to a new token
-        for (ArgList::const_iterator arg = commaList.begin(); arg != commaList.end(); ++arg) {
+        for (std::vector<std::string>::const_iterator arg = commaList.begin(); arg != commaList.end(); ++arg) {
           if (token.SetToken( tokenType, *arg ))
             return 1;
           maskTokens_.push_back( token );

@@ -61,4 +61,6 @@ std::string ByteString(unsigned long long, ByteType);
 std::string AvailableMemoryStr();
 /// \return String containing given array converted to a range, with optional offset
 std::string ArrayToRangeExpression(std::vector<int> const&, int);
+/// Split the given string according to the given separator(s).
+std::vector<std::string> SplitString(std::string const&, const char*);
 #endif
