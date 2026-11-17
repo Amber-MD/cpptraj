@@ -52,7 +52,7 @@
 
 #ifndef member
 #  ifndef strchr
-extern char *strchr ();
+extern char *strchr (const char*, int);
 #  endif
 #define member(c, s) ((c) ? ((char *)strchr ((s), (c)) != (char *)NULL) : 0)
 #endif
