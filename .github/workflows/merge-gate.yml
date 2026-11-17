@@ -8,7 +8,7 @@ on:
 jobs:
   linux_build:
     runs-on: ubuntu-latest
-    name: Build ${{ matrix.compiler }} with CMake ${{ matrix.use_cmake }}, MPI ${{ matrix.use_mpi }}, OpenMP ${{ matrix.use_openmp }}
+    name: Build ${{ matrix.compiler }} with CMake ${{ matrix.use_cmake }}
     strategy:
       fail-fast: false
       matrix:
