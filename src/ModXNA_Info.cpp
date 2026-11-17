@@ -41,7 +41,7 @@ ModXNA_Info::Sarray ModXNA_Info::atomNameList(std::string const& mheader, int& e
 ModXNA_Info::StatType ModXNA_Info::ParseModxnaStr(std::string const& line) {
   if (line.empty()) return NOT_MODXNA;
   ArgList args(line, ":");
-  args.PrintDebug(); // DEBUG
+  //args.PrintDebug(); // DEBUG
 
   if (args.Nargs() < 1)
     return NOT_MODXNA;
@@ -96,8 +96,8 @@ void ModXNA_Info::printmxna(const char* desc, Sarray const& anames) {
 /** Print info to stdout */
 void ModXNA_Info::PrintModxna() const {
   if (!HasModxna()) return;
-  mprintf("\tType     : %s\n", modxnaType_.c_str());
-  mprintf("\tFragment : %s\n", fragmentName_.c_str());
+  mprintf("\tType        : %s\n", modxnaType_.c_str());
+  mprintf("\tFragment    : %s\n", fragmentName_.c_str());
   printmxna("\tHead        ", head_);
   printmxna("\tHeadStrip   ", headStrip_);
   printmxna("\tTail        ", tail_);
