@@ -63,7 +63,7 @@
 
 /* This typedef is equivalent to the one for Function; it allows us
    to say SigHandler *foo = signal (SIGKILL, SIG_IGN); */
-typedef RETSIGTYPE SigHandler ();
+typedef RETSIGTYPE SigHandler (int);
 
 #if defined (HAVE_POSIX_SIGNALS)
 typedef struct sigaction sighandler_cxt;
@@ -113,8 +113,7 @@ static sighandler_cxt old_winch;
 /* Readline signal handler functions. */
 
 static RETSIGTYPE
-rl_signal_handler (sig)
-     int sig;
+rl_signal_handler (int sig)
 {
 #if defined (HAVE_POSIX_SIGNALS)
   sigset_t set;
@@ -197,8 +196,7 @@ rl_signal_handler (sig)
 
 #if defined (SIGWINCH)
 static RETSIGTYPE
-rl_sigwinch_handler (sig)
-     int sig;
+rl_sigwinch_handler (int sig)
 {
   SigHandler *oh;
 
@@ -242,10 +240,7 @@ rl_sigaction (sig, nh, oh)
    information in OHANDLER.  Return the old signal handler, like
    signal(). */
 static SigHandler *
-rl_set_sighandler (sig, handler, ohandler)
-     int sig;
-     SigHandler *handler;
-     sighandler_cxt *ohandler;
+rl_set_sighandler (int sig, SigHandler* handler, sighandler_cxt* ohandler)
 {
   sighandler_cxt old_handler;
 #if defined (HAVE_POSIX_SIGNALS)
@@ -270,10 +265,7 @@ rl_set_sighandler (sig, handler, ohandler)
 }
 
 static void
-rl_maybe_set_sighandler (sig, handler, ohandler)
-     int sig;
-     SigHandler *handler;
-     sighandler_cxt *ohandler;
+rl_maybe_set_sighandler (int sig, SigHandler* handler, sighandler_cxt* ohandler)
 {
   sighandler_cxt dummy;
   SigHandler *oh;

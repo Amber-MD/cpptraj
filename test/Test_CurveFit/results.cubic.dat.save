@@ -1,0 +1,8 @@
+#Fit equation 'Cubic = (A0*X^3) + (A1*X^2) + (A2*X)' to set 'Y'
+#Final Param A0 = 3
+#Final Param A1 = 2
+#Final Param A2 = 0.5
+#Correlation coefficient: 1
+#Chi squared: 1.32748e-24
+#Uncertainty coefficient: 8.02408e-16
+#RMS percent error: 0.1
