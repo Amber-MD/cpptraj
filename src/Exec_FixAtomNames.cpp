@@ -234,9 +234,13 @@ static inline void WARNING() {
 // Exec_FixAtomNames::Help()
 void Exec_FixAtomNames::Help() const
 {
-  mprintf("\t{ %s | crdset <COORDS SET>} [<mask>]\n"
+  mprintf("\t{ %s | crdset <COORDS SET>} [<mask>] [renameh]\n"
           "  Attempt to fix duplicated atom names in residues of the specified topology.\n",
           DataSetList::TopArgs);
+  mprintf("  If a heavy atom is renamed, any bonded hydrogens will be renamed\n"
+          "  according to the PDB V3 standard.\n"
+          "  If 'renameh' is specified, attempt to rename all hydrogens according\n"
+          "  to the PDB V3 standard whether or not the heavy atom is renamed.\n");
   WARNING();
 }
 
