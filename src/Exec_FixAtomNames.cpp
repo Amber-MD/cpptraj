@@ -320,7 +320,7 @@ Exec::RetType Exec_FixAtomNames::Execute(CpptrajState& State, ArgList& argIn)
         for (DuplicateMap::const_iterator it = duplicateMap_.begin(); it != duplicateMap_.end(); ++it)
         {
           if (it->second.size() > 1) {
-            mprinterr("Error: %s is still duplicated (%i times)\n", *(it->first), it->second.size());
+            mprinterr("Error: %s is still duplicated (%zu times)\n", *(it->first), it->second.size());
           }
         }
         return CpptrajState::ERR;
