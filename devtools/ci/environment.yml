@@ -15,3 +15,4 @@ dependencies:
     - gfortran_linux-64
     - netcdf4
     - fftw
+    - zlib

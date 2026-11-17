@@ -145,32 +145,32 @@ jobs:
         activate-environment: cpptraj-ci 
     - name: Install cpptraj
       run: |
-        echo "CONDA root: $CONDA"
+        echo "CONDA root: $CONDA_PREFIX"
         conda info
         conda list
         python --version
         export PATH=$HOME/bin:${PATH}
         export LD_LIBRARY_PATH=$HOME/lib:${LD_LIBRARY_PATH}
-        export PATH=$CONDA/bin:${PATH}
-        export LD_LIBRARY_PATH=$CONDA/lib:${LD_LIBRARY_PATH}
+        export PATH=$CONDA_PREFIX/bin:${PATH}
+        export LD_LIBRARY_PATH=$CONDA_PREFIX/lib:${LD_LIBRARY_PATH}
         echo $PATH
         echo $LD_LIBRARY_PATH
-        ls $CONDA/lib
+        ls $CONDA_PREFIX/lib
         export MAKE_COMMAND="make -j2"
-        ./configure -makeblas --buildlibs -openmp -shared --with-zlib=$CONDA --with-bzlib=$CONDA --with-hdf5=$CONDA --with-netcdf=$CONDA --with-fftw3=$CONDA gnu
+        ./configure -makeblas --buildlibs -openmp -shared --with-zlib=$CONDA_PREFIX --with-bzlib=$CONDA_PREFIX --with-hdf5=$CONDA_PREFIX --with-netcdf=$CONDA_PREFIX --with-fftw3=$CONDA_PREFIX gnu
         source cpptraj.sh
         make -j2 libcpptraj
     - name: Install pytraj
       run: |        
         git clone https://github.com/Amber-MD/pytraj.git
-        export PATH=$CONDA/bin:${PATH}
-        export LD_LIBRARY_PATH=$CONDA/lib:${LD_LIBRARY_PATH}
+        export PATH=$CONDA_PREFIX/bin:${PATH}
+        export LD_LIBRARY_PATH=$CONDA_PREFIX/lib:${LD_LIBRARY_PATH}
         source cpptraj.sh
         cd pytraj
         python setup.py install
         cd ..
     - name: Test with pytest
       run: |
-        export PATH=$CONDA/bin:${PATH}
-        export LD_LIBRARY_PATH=$CONDA/lib:${LD_LIBRARY_PATH}
+        export PATH=$CONDA_PREFIX/bin:${PATH}
+        export LD_LIBRARY_PATH=$CONDA_PREFIX/lib:${LD_LIBRARY_PATH}
         source cpptraj.sh && cd pytraj/tests && pytest -vs --ignore=test_parallel_pmap
