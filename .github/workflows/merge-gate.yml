@@ -127,30 +127,28 @@ jobs:
 
   build-pytraj:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash -l {0}
     strategy:
       max-parallel: 5
     steps:
-    - name: Install prerequisite packages
-      run: |
-        sudo apt-get install clang
-        sudo apt-get install cmake-data cmake    
     - uses: actions/checkout@v5
-    - name: Set up Python 3.12
-      uses: actions/setup-python@v6
+    - name: Set up conda
+      uses: conda-incubator/setup-miniconda@v4
       with:
-        python-version: '3.12'
-    - name: Add conda to system path
-      run: |
-        # $CONDA is an environment variable pointing to the root of the miniconda directory
-        echo $CONDA/bin >> $GITHUB_PATH
-    - name: Install conda packages
-      run: |
-        which conda
-        conda install conda python=3.12
-        conda --version
-        conda env update --file devtools/ci/environment.yml --name base
+        miniforge-version: latest
+        auto-update-conda: true
+        channels: conda-forge
+        channel-priority: strict
+        environment-file: devtools/ci/environment.yml
+        activate-environment: base
     - name: Install cpptraj
       run: |
+        echo "CONDA root: $CONDA"
+        conda info
+        conda list
+        python --version
         export PATH=$HOME/bin:${PATH}
         export LD_LIBRARY_PATH=$HOME/lib:${LD_LIBRARY_PATH}
         export PATH=$CONDA/bin:${PATH}
