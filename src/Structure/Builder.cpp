@@ -761,7 +761,7 @@ int Cpptraj::Structure::Builder::TorsionModel::BuildMockExternals(Iarray const& 
     } // END inner loop over ICs
   } // END outer loop over ICs
   if (nused < used.size()) {
-    mprinterr("Error: There are %u torsions left over for mock coords.\n", used.size() - nused);
+    mprinterr("Error: There are %lu torsions left over for mock coords.\n", used.size() - nused);
     return 1;
   }
 # ifdef CPPTRAJ_DEBUG_BUILDER
