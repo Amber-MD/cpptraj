@@ -116,7 +116,7 @@ void ParameterSet::Print(CpptrajFile& Out) const {
   if (!ljcParm_.empty()) {
     Out.Printf("LJ C parameters:\n");
     Out.Printf("\t%6s %6s : %12s\n", "Type1", "Type2", "C");
-    for (ParmHolder<NonbondType>::const_iterator nb = nb14Parm_.begin(); nb != nb14Parm_.end(); ++nb)
+    for (ParmHolder<double>::const_iterator nb = ljcParm_.begin(); nb != ljcParm_.end(); ++nb)
       Out.Printf("\t%6s %6s : %12.4E\n", (*nb->first[0]), (*nb->first[1]), nb->second);
   }
   if (!HBparm_.empty()) {
