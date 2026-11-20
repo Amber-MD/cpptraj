@@ -51054,7 +51054,7 @@ cluster
 
 \begin_layout LyX-Code
   Algorithm Args:
- [{hieragglo|dbscan|kmeans|dpeaks}]
+ [{hieragglo|dbscan|kmeans|dpeaks|nocluster}]
 \end_layout
 
 \begin_layout LyX-Code
@@ -51571,6 +51571,14 @@ randompoint
 \end_layout
 
 \end_deeper
+\begin_layout Description
+nocluster Do not perform clustering - useful for generating new output from reading in previous clustering results via 
+\series bold
+readinfo infofile <file>
+\series default
+.
+\end_layout
+
 \begin_layout Standard
 Distance Metric Options:
 \end_layout
