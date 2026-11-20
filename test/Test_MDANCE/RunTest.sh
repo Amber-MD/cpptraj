@@ -6,7 +6,7 @@ TESTNAME='MDANCE tests'
 
 INPUT='mdance.in'
 
-CleanFiles mdance.in cnumvtime.dat noh.cnumvtime.dat cpptraj.json
+CleanFiles mdance.in cnumvtime.dat noh.cnumvtime.dat cpptraj.json ala10.cnumvtime.dat ala10.info.dat
 
 UNITNAME='MDANCE CSV data test'
 cat > mdance.in <<EOF
@@ -47,6 +47,17 @@ EOF
   RunCpptraj "$UNITNAME"
   DoTest noh.cnumvtime.dat.save noh.cnumvtime.dat
 fi
+
+UNITNAME='MDANCE Kmeans, Ala10'
+cat > mdance.in <<EOF
+parm ../ala10.e16.mbondi2.parm7
+loadcrd ../ala10.4states.crd name MyCrd
+crdaction MyCrd align first @CA
+mdance crdset MyCrd clusters 4 out ala10.cnumvtime.dat info ala10.info.dat mask @CA kseed 1
+EOF
+RunCpptraj "$UNITNAME"
+DoTest ala10.cnumvtime.dat.save ala10.cnumvtime.dat
+DoTest ala10.info.dat.save ala10.info.dat
 
 EndTest
 
