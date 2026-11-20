@@ -14,6 +14,7 @@ class DataIO_Coords : public DataIO {
     int WriteData(FileName const&, DataSetList const&);
     bool ID_DataFormat(CpptrajFile&);
   private:
+    int readAsCSV(DataSet*, DataSet::DataType, FileName const&, DataSetList&, std::string const&);
     //bool is_parm_fmt_; ///< Set to true if format contains topology info
     //bool is_traj_fmt_; ///< Set to true if format contains coordinates
 };

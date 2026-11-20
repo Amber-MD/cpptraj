@@ -5,6 +5,7 @@ target_sources(cpptraj_common_obj PRIVATE
   ${CMAKE_CURRENT_LIST_DIR}/Algorithm_DPeaks.cpp
   ${CMAKE_CURRENT_LIST_DIR}/Algorithm_HierAgglo.cpp
   ${CMAKE_CURRENT_LIST_DIR}/Algorithm_Kmeans.cpp
+  ${CMAKE_CURRENT_LIST_DIR}/Algorithm_None.cpp
   ${CMAKE_CURRENT_LIST_DIR}/BestReps.cpp
   ${CMAKE_CURRENT_LIST_DIR}/CentroidArray.cpp
   ${CMAKE_CURRENT_LIST_DIR}/Centroid_Coord.cpp

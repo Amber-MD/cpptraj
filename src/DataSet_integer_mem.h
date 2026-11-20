@@ -7,6 +7,8 @@ class DataSet_integer_mem : public DataSet_integer {
   public:
     DataSet_integer_mem() {}
     static DataSet* Alloc() { return (DataSet*)new DataSet_integer_mem();}
+    /// \return Underlying std::vector array
+    std::vector<int> const& Array() const { return Data_; }
     // ----- DataSet_integer functions -----------
     void SetElement(size_t idx, int val) { Data_[idx] = val; }
     int  operator[](size_t idx) const { return Data_[idx];         }

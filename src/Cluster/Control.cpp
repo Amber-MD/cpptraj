@@ -17,6 +17,7 @@
 #include "Algorithm_DBscan.h"
 #include "Algorithm_Kmeans.h"
 #include "Algorithm_DPeaks.h"
+#include "Algorithm_None.h"
 // Results
 #include "Results_Coords.h"
 
@@ -71,6 +72,7 @@ Cpptraj::Cluster::Algorithm* Cpptraj::Cluster::Control::AllocateAlgorithm(Algori
     case Algorithm::DBSCAN    : alg = new Algorithm_DBscan(); break;
     case Algorithm::KMEANS    : alg = new Algorithm_Kmeans(); break;
     case Algorithm::DPEAKS    : alg = new Algorithm_DPeaks(); break;
+    case Algorithm::NOCLUSTER : alg = new Algorithm_None(); break;
     default : mprinterr("Error: Unhandled Algorithm in AllocateAlgorithm.\n");
   }
   return alg;
@@ -78,7 +80,7 @@ Cpptraj::Cluster::Algorithm* Cpptraj::Cluster::Control::AllocateAlgorithm(Algori
 
 /** Recognized algorithm keywords. */
 const char* Cpptraj::Cluster::Control::AlgorithmArgs_ =
-  "{hieragglo|dbscan|kmeans|dpeaks}";
+  "{hieragglo|dbscan|kmeans|dpeaks|nocluster}";
 
 /** Set up Algorithm from keyword + arguments. */
 int Cpptraj::Cluster::Control::AllocateAlgorithm(ArgList& analyzeArgs) {
@@ -88,6 +90,7 @@ int Cpptraj::Cluster::Control::AllocateAlgorithm(ArgList& analyzeArgs) {
   else if (analyzeArgs.hasKey("kmeans") ||
            analyzeArgs.hasKey("means")    ) atype = Algorithm::KMEANS;
   else if (analyzeArgs.hasKey("dpeaks"   )) atype = Algorithm::DPEAKS;
+  else if (analyzeArgs.hasKey("nocluster")) atype = Algorithm::NOCLUSTER;
   else {
     mprintf("Warning: No clustering algorithm specified; defaulting to 'hieragglo'\n");
     atype = Algorithm::HIERAGGLO;

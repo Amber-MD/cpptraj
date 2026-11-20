@@ -291,6 +291,9 @@ std::string Cpptraj::Defines() {
 #ifdef ENABLE_DTR
   defined_str.append(" -DENABLE_DTR");
 #endif
+#ifdef HAS_EIGEN
+  defined_str.append(" -DHAS_EIGEN");
+#endif
   return defined_str;
 }
 

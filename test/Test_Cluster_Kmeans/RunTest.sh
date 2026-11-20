@@ -2,7 +2,8 @@
 
 . ../MasterTest.sh
 
-CleanFiles kmeans.in ptraj.txt ptraj.c? summary.dat info.dat cpptraj.crd.c? random.dat rinfo.dat random.crd.c?
+CleanFiles kmeans.in ptraj.txt ptraj.c? summary.dat info.dat cpptraj.crd.c? \
+           random.dat rinfo.dat random.crd.c? pp.summary.dat pp.info.dat
 TESTNAME='Cluster k-means tests'
 #Requires netcdf
 TOP=../tz2.parm7
@@ -42,11 +43,32 @@ EOF
   DoTest cpptraj.crd.c0.save random.crd.c0
 }
 
+KmeansPPTest() {
+  cat > kmeans.in <<EOF
+trajin ../tz2.crd
+cluster means kseed 1 clusters 5 rms @CA summary pp.summary.dat info pp.info.dat init kmpp
+EOF
+  RunCpptraj "Cpptraj Kmeans++"
+  DoTest pp.summary.dat.save pp.summary.dat
+  DoTest pp.info.dat.save pp.info.dat
+  #DoTest cpptraj.crd.c0.save cpptraj.crd.c0
+#  cat > kmeans.in <<EOF
+#trajin ../tz2.crd
+#random setdefault marsaglia
+#cluster means randompoint kseed 1 clusters 5 rms @CA summary random.dat info rinfo.dat clusterout random.crd
+#EOF
+#  RunCpptraj "Cpptraj Kmeans random"
+#  DoTest random.dat.save random.dat
+#  DoTest info.dat.save rinfo.dat
+#  DoTest cpptraj.crd.c0.save random.crd.c0
+}
+
 # ------------------------------------------------------------------------------
 
 #RunPtraj
 
 KmeansTest
+KmeansPPTest
 
 EndTest
 

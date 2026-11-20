@@ -28,7 +28,14 @@ void Random_Number::SetDefaultRng(RngType r) {
 
 /** CONSTRUCTOR */
 Random_Number::Random_Number() :
-  rng_(0)
+  rng_(0),
+  currentType_(N_RNG_TYPES)
+{}
+
+/** CONSTRUCTOR - Allocate with a specific RNG */
+Random_Number::Random_Number(RngType r) :
+  rng_(0),
+  currentType_(r)
 {}
 
 /** DESTRUCTOR */
@@ -45,6 +52,7 @@ const char* Random_Number::CurrentDefaultRngStr() {
     case MERSENNE_TWISTER : str = "Mersenne Twister (mt19937)"; break;
     case PCG32            : str = "Permuted Congruential Generator (32 bit)"; break;
     case XOSHIRO128PP     : str = "Xoshiro128++"; break;
+    case N_RNG_TYPES      : str = "NONE"; break; // Should never get here
   }
   return str;
 }
@@ -53,7 +61,10 @@ const char* Random_Number::CurrentDefaultRngStr() {
 void Random_Number::allocateRng() {
   if (rng_ != 0) delete rng_;
   rng_ = 0;
-  switch (defaultType_) {
+  RngType allocType = currentType_;
+  if (allocType == N_RNG_TYPES)
+    allocType = defaultType_;
+  switch (allocType) {
     case MARSAGLIA  :
       mprintf("\tRNG: Marsaglia\n");
       rng_ = new Cpptraj::RNG_Marsaglia();
@@ -73,12 +84,22 @@ void Random_Number::allocateRng() {
     case XOSHIRO128PP     :
       mprintf("\tRNG: Xoshiro128++\n");
       rng_ = new Cpptraj::RNG_Xoshiro128pp();
-    break;
-  } 
+      break;
+    case N_RNG_TYPES :
+      mprintf("\tRNG: None\n"); // Should never get here
+      break;
+  }
 }
 
 /** Allocate RNG, initialize with given seed. */
 int Random_Number::rn_set(int seedIn) {
+  allocateRng();
+  return rng_->Set_Seed( seedIn );
+}
+
+/** Allocate specific RNG, initialize with given seed. */
+int Random_Number::rn_set(int seedIn, RngType typeIn) {
+  currentType_ = typeIn;
   allocateRng();
   return rng_->Set_Seed( seedIn );
 }

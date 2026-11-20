@@ -12,7 +12,7 @@ class MetricArray;
 /// Abstract base class for implementing clustering algorithms.
 class Algorithm {
   public:
-    enum AType { HIERAGGLO = 0, DBSCAN, DPEAKS, KMEANS, UNSPECIFIED };
+    enum AType { HIERAGGLO = 0, DBSCAN, DPEAKS, KMEANS, NOCLUSTER, UNSPECIFIED };
 
     Algorithm(AType t) : debug_(0), type_(t) {}
     virtual ~Algorithm() {}

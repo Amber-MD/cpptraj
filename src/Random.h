@@ -7,10 +7,13 @@ namespace Cpptraj {
 /// Wrapper around RNG
 class Random_Number {
   public:
-    Random_Number();
-    ~Random_Number();
     /// Different possible RNGs
-    enum RngType { MARSAGLIA = 0, STDLIB, MERSENNE_TWISTER, PCG32, XOSHIRO128PP };
+    enum RngType { MARSAGLIA = 0, STDLIB, MERSENNE_TWISTER, PCG32, XOSHIRO128PP, N_RNG_TYPES };
+    /// CONSTRUCTOR - Default Type
+    Random_Number();
+    /// CONSTRUCTOR - Allocate with a specific RNG
+    Random_Number(RngType);
+    ~Random_Number();
 
     static void SetDefaultRng(RngType);
 
@@ -20,6 +23,8 @@ class Random_Number {
 
     /// Allocate and initialize the random number generator with the given seed
     int rn_set(int);
+    /// Allocate and initialize a specific random number generator with the given seed
+    int rn_set(int, RngType);
     /// Initialize RN generator with 71277 (Amber default)
     //void rn_set();
     /// Generate a random number between 0.0 and 1.0
@@ -48,5 +53,6 @@ class Random_Number {
 
     static RngType defaultType_; ///< Default RNG type
     //static int defaultSeed_;     ///< Default RNG seed
+    RngType currentType_;        ///< Current RNG type
 };
 #endif

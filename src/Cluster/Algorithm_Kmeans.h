@@ -18,9 +18,12 @@ class Algorithm_Kmeans : public Algorithm {
   private:
     typedef std::vector<int> Iarray;
     enum KmeansModeType { SEQUENTIAL, RANDOM };
+    enum KmeansInitType { INIT_SPREAD=0, INIT_KMPP };
 
     Iarray FindSeedsFromClusters(List&, MetricArray&) const;
     int FindKmeansSeeds(Cframes const&, MetricArray&);
+    /// Kmeans++ initialization
+    int init_kmeanspp(List&, Cframes const&, MetricArray&);
 
     Random_Number RN_;
     int nclusters_; ///< Target number of clusters.
@@ -29,6 +32,7 @@ class Algorithm_Kmeans : public Algorithm {
     Iarray SeedIndices_; ///< Hold indices into framesToCluster of seed frames
     KmeansModeType mode_;
     bool clusterToClusterCentroid_;
+    KmeansInitType init_; ///< Initialization strategy
 };
 
 }

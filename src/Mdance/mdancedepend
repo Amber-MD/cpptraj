@@ -1,0 +1,8 @@
+KMeans.o : KMeans.cpp ../Random.h KMeans.h bts.h esim.h scores.h types.h
+bts.o : bts.cpp bts.h esim.h types.h
+cluster.o : cluster.cpp cluster.h types.h
+esim.o : esim.cpp esim.h types.h
+hc_utils.o : hc_utils.cpp hc_utils.h types.h
+helm.o : helm.cpp bts.h esim.h hc_utils.h helm.h scores.h types.h
+result_utils.o : result_utils.cpp bts.h esim.h hc_utils.h result_utils.h scores.h types.h
+scores.o : scores.cpp scores.h types.h

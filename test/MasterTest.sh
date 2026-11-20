@@ -881,6 +881,7 @@ CheckDefines() {
       '-DHASGZ'         ) export CPPTRAJ_ZLIB=$DEFINE ;;
       '-DHASBZ2'        ) export CPPTRAJ_BZLIB=$DEFINE ;;
       '-DBINTRAJ'       ) export CPPTRAJ_NETCDFLIB=$DEFINE ;;
+      '-DHAS_EIGEN'     ) export CPPTRAJ_EIGEN=$DEFINE ;;
       '-DHAS_HDF5'      ) export CPPTRAJ_HDF5=$DEFINE ;;
       '-DC11_SUPPORT'   ) export CPPTRAJ_C11_SUPPORT=$DEFINE ;;
       '-DLIBPME'        ) export CPPTRAJ_LIBPME=$DEFINE ;;
@@ -1103,6 +1104,7 @@ CheckEnv() {
     #echo "DEBUG: $DESCRIP: Checking requirement: $1"
     case "$1" in
       'netcdf'    ) TestLibrary "NetCDF"             "$CPPTRAJ_NETCDFLIB" ;;
+      'eigen'     ) TestLibrary "Eigen"              "$CPPTRAJ_EIGEN" ;;
       'hdf5'      ) TestLibrary "HDF5"               "$CPPTRAJ_HDF5" ;;
       'c++11'     ) TestLibrary "C++11"              "$CPPTRAJ_C11_SUPPORT" ;;
       'libpme'    ) TestLibrary "libPME"             "$CPPTRAJ_LIBPME" ;;

@@ -220,6 +220,7 @@
 #include "Analysis_TICA.h"
 #include "Analysis_CalcDiffusion.h"
 #include "Analysis_Project.h"
+#include "Analysis_MDANCE.h"
 
 CmdList Command::commands_ = CmdList();
 
@@ -457,6 +458,7 @@ void Command::Init() {
   Command::AddCmd( new Analysis_KDE(),         Cmd::ANA, 1, "kde" );
   Command::AddCmd( new Analysis_Lifetime(),    Cmd::ANA, 1, "lifetime" );
   Command::AddCmd( new Analysis_LowestCurve(), Cmd::ANA, 1, "lowestcurve" );
+  Command::AddCmd( new Analysis_MDANCE(),      Cmd::ANA, 1, "mdance" );
   Command::AddCmd( new Analysis_MeltCurve(),   Cmd::ANA, 1, "meltcurve" );
   Command::AddCmd( new Analysis_Modes(),       Cmd::ANA, 1, "modes" );
   Command::AddCmd( new Analysis_Multicurve(),  Cmd::ANA, 1, "multicurve" );

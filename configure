@@ -54,6 +54,7 @@ UsageFull() {
   echo "    -makeblas          : Have cpptraj build its own LAPACK/BLAS."
   echo "    -makerl            : Have cpptraj build its own readline."
   echo "    --libdir=<dir>     : Look for libraries in <dir> (useful to point to e.g. a previous CPPTRAJ install."
+  echo "    --with-eigen=<dir> : Look for Eigen headers in <dir> (required for MDANCE)."
   echo "    Libraries: netcdf pnetcdf zlib bzlib blas lapack arpack fftw3 readline sanderlib xdrfile tng openmm"
   echo "    Note: pnetcdf is needed for writing NetCDF trajectories with MPI."
   echo "  LINKING OPTIONS"
@@ -198,6 +199,8 @@ USE_STATIC=0      # 0 = dynamic linking, 1 = static linking, 2 = static link for
 USE_SHARED=0      # 1 = Use flag for position-independent code (required for libcpptraj)
 USE_PROFILE=0     # 0 = no profiling, 1 = C++ profiling, 2 = GLIBC profiling, 3 = Intel Vtune
 USE_AMBERLIB=0    # 1 = Use AMBERHOME to fill in NetCDF/BLAS/LAPACK/ARPACK as needed
+USE_EIGEN=1       # 1 = Try to use eigen libraries
+EIGEN_DIR='/usr/include/eigen3'
 BUILD_LIBS=0      # 1 = Means automatically say yes to building enabled libs when not present.
 BUILD_MPI=''      # If not empty, attempt to download and build specified mpi dist.
 icpp=0            # Used to count cmake_prefix_paths
@@ -1063,6 +1066,27 @@ EOF
   fi
 }
 
+TestEigen() {
+  cat > testp.cpp <<EOF
+#include <cstdio>
+#include <Eigen/Dense>
+
+int main() {
+  Eigen::ArrayXd Vec;
+  int N = 10;
+  Vec = Eigen::ArrayXd::Ones(N);
+  return 0;
+}
+EOF
+  TestProgram silent "  Checking for Eigen" "$CXX" "$CXXFLAGS -I$EIGEN_DIR" testp.cpp
+  if [ $? -eq 1 ] ; then
+    echo "FAILED. Could not compile with Eigen from dir $EIGEN_DIR. MDANCE will be disabled."
+    USE_EIGEN=0
+  else
+    CXXFLAGS="$CXXFLAGS -I$EIGEN_DIR"
+  fi
+}
+
 TestFFTW3() {
   cat > testp.cpp <<EOF
 #include <cstdio>
@@ -1346,6 +1370,7 @@ SetupFinalFlags() {
     fi
   fi
   if [ $USE_LEAP_PI -eq 1 ] ; then DIRECTIVES="$DIRECTIVES -DCPPTRAJ_USE_LEAP_PI" ; fi
+  if [ $USE_EIGEN -eq 1 ] ; then DIRECTIVES="$DIRECTIVES -DHAS_EIGEN" ; fi
   # Determine if this is a GitHub or AmberTools build
   if [ ! -z "$AMBERHOME" ] ; then
     AMBCFGDIR=`pwd | grep "AmberTools/src"`
@@ -2902,6 +2927,7 @@ while [ ! -z "$1" ] ; do
     '--buildlibs'       ) BUILD_LIBS=1 ;;
     '--nobuildlibs'     ) BUILD_LIBS=0 ; BUILDTESTOPT='' ;;
     '--libdir'          ) SPECIFIED_LIB_DIR=$VALUE ;;
+    '--with-eigen'      ) EIGEN_DIR=$VALUE ;;
     # Install options
     '--compile-verbose' ) COMPILE_VERBOSE=1 ;;
     '-noclean'          ) CLEAN='no' ;;
@@ -3016,6 +3042,10 @@ SetupLibraries
 # Test external libraries
 TestLibraries
 
+if [ $USE_EIGEN -gt 0 ] ; then
+  TestEigen
+fi
+
 # Set final compile flags
 SetupFinalFlags
 
@@ -3107,6 +3137,11 @@ elif [ $USE_STATIC -eq 2 ] ; then
 fi
 if [ $USE_LEAP_PI -eq 1 ] ; then
   echo "  Using LEaP's value of PI for converting radians/degrees."
+fi
+if [ $USE_EIGEN -eq 1 ] ; then
+  echo "  Using Eigen from $EIGEN_DIR. MDANCE enabled."
+else
+  echo "  Eigen not found. Disabling MDANCE."
 fi
 #echo DIRECTIVES $DIRECTIVES
 #echo CFLAGS $CFLAGS

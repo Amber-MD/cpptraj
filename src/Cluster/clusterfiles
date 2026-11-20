@@ -5,6 +5,7 @@ CLUSTER_SOURCES= \
   Algorithm_DPeaks.cpp \
   Algorithm_HierAgglo.cpp \
   Algorithm_Kmeans.cpp \
+  Algorithm_None.cpp \
   BestReps.cpp \
   CentroidArray.cpp \
   Centroid_Coord.cpp \

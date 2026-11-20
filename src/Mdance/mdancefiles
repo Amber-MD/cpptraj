@@ -1,0 +1,10 @@
+# Files for Mdance subdirectory.
+MDANCE_SOURCES= \
+  bts.cpp \
+  cluster.cpp \
+  esim.cpp \
+  hc_utils.cpp \
+  helm.cpp \
+  KMeans.cpp \
+  result_utils.cpp \
+  scores.cpp
