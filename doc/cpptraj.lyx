@@ -48427,7 +48427,7 @@ trajin
 \begin_layout Standard
 \align center
 \begin_inset Tabular
-<lyxtabular version="3" rows="50" columns="3">
+<lyxtabular version="3" rows="51" columns="3">
 <features islongtable="true" longtabularalignment="center">
 <column alignment="center" valignment="top" width="25text%">
 <column alignment="center" valignment="top" width="50text%">
@@ -49282,6 +49282,36 @@ the lowest N points over specified bins.
 
 \begin_layout Plain Layout
 
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+mdance
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Molecular Dynamics Analysis with N-ary Clustering Ensembles (MDANCE).
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+COORDS,
+ N 1D scalar
 \end_layout
 
 \end_inset
@@ -56104,6 +56134,377 @@ lowest> Number of lowest points in each bin to average over.
 Calculate a curve of the average of the # lowest points in bins of stepsize.
  Essentially each input data set is binned over bins of stepsize,
  then the lowest <#> points are averaged over for each bin.
+\end_layout
+
+\begin_layout Subsection
+mdance
+\end_layout
+
+\begin_layout LyX-Code
+mdance crdset <COORDS set> clusters <#> [mask <mask>]
+\end_layout
+
+\begin_layout LyX-Code
+	   [metric <metric>] [vthresh <vectthreshold>]
+\end_layout
+
+\begin_layout LyX-Code
+	   [kinit <init>] [pct <percentage>] [kseed <#>]
+\end_layout
+
+\begin_layout LyX-Code
+	   [name <set name>] [out <cnumvtime file>]
+\end_layout
+
+\begin_layout LyX-Code
+	   [clusterout <trajfileprefix> [clusterfmt <trajformat>]]
+\end_layout
+
+\begin_layout LyX-Code
+	   [centerout <trajfilename> [centerfmt <trajformat>]]
+\end_layout
+
+\begin_layout LyX-Code
+	   [info <infofile>] [summary <summaryfile>] [nosort]
+\end_layout
+
+\begin_layout LyX-Code
+	   [json <jsonfile>]
+\end_layout
+
+\begin_layout LyX-Code
+  <metric> = msd bub fai gle ja jt rt rr sm ss1 ss2
+\end_layout
+
+\begin_layout LyX-Code
+  <init>   = all reduced compsim divselect kmeanspp random vanillakmpp
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+crdset
+\begin_inset space ~
+\end_inset
+
+<COORDS
+\begin_inset space ~
+\end_inset
+
+set> COORDS set to perform clustering on.
+\end_layout
+
+\begin_layout Description
+clusters
+\begin_inset space ~
+\end_inset
+
+<#> Target number of clusters.
+\end_layout
+
+\begin_layout Description
+[mask
+\begin_inset space ~
+\end_inset
+
+<mask>] Mask of atoms to cluster.
+\end_layout
+
+\begin_layout Description
+[metric
+\begin_inset space ~
+\end_inset
+
+<metric>] Distance metric to use.
+ See 
+\begin_inset CommandInset ref
+LatexCommand vref
+reference "subsec:cpptraj-extendedcomp"
+plural "false"
+caps "false"
+noprefix "false"
+nolink "false"
+
+\end_inset
+
+ for more details.
+\end_layout
+
+\begin_layout Description
+[vthres
+\begin_inset space ~
+\end_inset
+
+<vectthreshold>] Vectorization threshold for distance matrix computation.
+ Default 16.
+\end_layout
+
+\begin_layout Description
+[kinit
+\begin_inset space ~
+\end_inset
+
+<init>] K-Means initialization strategy.
+ 
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+all:
+ (default) A number of bins are computed based on specified percentage of the data.
+ Stratified sampling is then applied,
+ and the first k points from the stratified data are selected as the initial centers.
+ 
+\end_layout
+
+\begin_layout Description
+reduced Identifies high-density regions using complementary similarity,
+ selecting a specified percentage of points.
+ Applies stratified sampling to this subset using a number of bins based on the subset size,
+ and selects the first k points as initial centers.
+\end_layout
+
+\begin_layout Description
+compsim Identifies high-density regions using complementary similarity,
+ selecting a percentage% of the data.
+ From this subset,
+ diversity selection (with comp_sim as the sampling method) is used to choose the first k points as the initial centers.
+ 
+\end_layout
+
+\begin_layout Description
+divselect Applies diversity selection (using comp_sim as the sampling method) on specified percentage% of points.
+ First k points are the initial centers.
+ 
+\end_layout
+
+\begin_layout Description
+kmeanspp Selects the initial centers based on the greedy k-means++ algorithm.
+\end_layout
+
+\begin_layout Description
+random Selects the initial centers randomly.
+ 
+\end_layout
+
+\begin_layout Description
+vanillakmeanspp Selects the initial centers based on the vanilla k-means++ algorithm.
+\end_layout
+
+\end_deeper
+\begin_layout Description
+[pct
+\begin_inset space ~
+\end_inset
+
+<percentage>] Percentage of the dataset to be used for the initial selection of the initial centers.
+ Default 10.
+\end_layout
+
+\begin_layout Description
+[kseed
+\begin_inset space ~
+\end_inset
+
+<#>] Integer seed for random number generator.
+ If not specified,
+ use wallclock time.
+\end_layout
+
+\begin_layout Description
+[name
+\begin_inset space ~
+\end_inset
+
+<set
+\begin_inset space ~
+\end_inset
+
+name>] Output data set name.
+\end_layout
+
+\begin_layout Description
+[out
+\begin_inset space ~
+\end_inset
+
+<cnumvtime
+\begin_inset space ~
+\end_inset
+
+file>] Cluster number vs frame file.
+\end_layout
+
+\begin_layout Description
+[clusterout
+\begin_inset space ~
+\end_inset
+
+<trajfileprefix>
+\begin_inset space ~
+\end_inset
+
+[clusterfmt
+\begin_inset space ~
+\end_inset
+
+<trajformat>]] If specified,
+ write frames in each cluster to files named <trajfileprefix>.cX,
+ where X is the cluster number.
+ See 
+\begin_inset CommandInset ref
+LatexCommand vref
+reference "tab:cpptraj-trajformats"
+plural "false"
+caps "false"
+noprefix "false"
+nolink "false"
+
+\end_inset
+
+ for format keywords.
+\end_layout
+
+\begin_layout Description
+[centerout
+\begin_inset space ~
+\end_inset
+
+<trajfilename>
+\begin_inset space ~
+\end_inset
+
+[centerfmt
+\begin_inset space ~
+\end_inset
+
+<trajformat>] If specified,
+ write cluster centroids to file named <trajfilename>.
+ See 
+\begin_inset CommandInset ref
+LatexCommand vref
+reference "tab:cpptraj-trajformats"
+plural "false"
+caps "false"
+noprefix "false"
+nolink "false"
+
+\end_inset
+
+ for format keywords.
+\end_layout
+
+\begin_layout Description
+[info
+\begin_inset space ~
+\end_inset
+
+<infofile>] Write a cluster info file similar to what the 
+\series bold
+\emph on
+cluster
+\series default
+\emph default
+ command produces.
+ See 
+\begin_inset CommandInset ref
+LatexCommand vref
+reference "subsec:cpptraj-cluster-analysis"
+plural "false"
+caps "false"
+noprefix "false"
+nolink "false"
+
+\end_inset
+
+ for more details.
+\end_layout
+
+\begin_layout Description
+[summary
+\begin_inset space ~
+\end_inset
+
+<summaryfile>] Write a cluster summary file similar to what the 
+\series bold
+\emph on
+cluster
+\series default
+\emph default
+ command produces.
+ See 
+\begin_inset CommandInset ref
+LatexCommand vref
+reference "subsec:cpptraj-cluster-analysis"
+plural "false"
+caps "false"
+noprefix "false"
+nolink "false"
+
+\end_inset
+
+ for more details.
+\end_layout
+
+\begin_layout Description
+[nosort] By default,
+ CPPTRAJ will sort clusters by population,
+ with the highest population cluster being assigned to cluster 0.
+ Specify this to retain the original MDANCE ordering (useful for comparing results to other MDANCE implementations).
+\end_layout
+
+\begin_layout Description
+[json
+\begin_inset space ~
+\end_inset
+
+<jsonfile>] Write MDANCE clustering results to an MDANCE-specific JSON file.
+ Useful for comparing results to other MDANCE implementations.
+\end_layout
+
+\begin_layout Standard
+DataSets Created:
+\end_layout
+
+\begin_layout Description
+<name> Cluster number vs time set.
+\end_layout
+
+\begin_layout Description
+<name>[centers] COORDS set containing cluster centroids.
+\end_layout
+
+\end_deeper
+\begin_layout Standard
+Implements Molecular Dynamics Analysis with N-ary Clustering Ensembles (MDANCE).
+ Currently only the K-Means NANI algorithm is supported.
+\begin_inset CommandInset citation
+LatexCommand citep
+key "Chen24"
+literal "true"
+
+\end_inset
+
+ Most clustering tools compare frames two at a time.
+ That can become problematic for large trajectories since the cost of the full pairwise matrix grows geometrically.
+ MDANCE is built on n-ary (extended) similarity (see also 
+\begin_inset CommandInset ref
+LatexCommand vref
+reference "subsec:cpptraj-extendedcomp"
+plural "false"
+caps "false"
+noprefix "false"
+nolink "false"
+
+\end_inset
+
+),
+ which compares all frames at once and finds high- and low-density regions in linear time.
+ Its algorithms scale linearly with the number of frames,
+ from O(N2) to O(N),
+ without pairwise distance matrices;
+ use deterministic seeding,
+ so the same input gives the same clusters;
+ and are designed for structural biology and validated against experimental structures.
 \end_layout
 
 \begin_layout Subsection
