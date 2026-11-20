@@ -26,9 +26,8 @@ parm ../tz2.parm7
 trajin ../tz2.nc
 align first
 trajout tz2.aligned.nc
-createcrd MyCrd
 
-mdance crdset MyCrd clusters 5 out cnumvtime.dat kseed 1
+mdance clusters 5 out cnumvtime.dat kseed 1
 EOF
   RunCpptraj "$UNITNAME"
   DoTest cnumvtime.dat.save cnumvtime.dat
