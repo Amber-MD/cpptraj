@@ -322,7 +322,7 @@ const
 {
   std::string buffer;
   
-  outfile.Printf("#Clustering: %zu clusters %u frames\n",
+  outfile.Printf("#Clustering: %u clusters %u frames\n",
                  Clusters.size(), Clusters.Nframes());
   // DBI
   outfile.Printf("#DBI: %f\n", Clusters.DBI());
