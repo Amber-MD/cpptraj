@@ -2279,6 +2279,14 @@ SetSupportedSM() {
   if [ $1 -lt 3 ] ; then
     Err "CUDA < 3 not supported."
   fi
+  # Try to get a list of shader models from NVCC
+  NVCC_SM_LIST=''
+  for SM in `nvcc --list-gpu-code` ; do
+    NVCC_SM_LIST="$NVCC_SM_LIST $SM"
+  done
+  if [ ! -z "$NVCC_SM_LIST" ] ; then
+    echo "  NVCC shader model list :$NVCC_SM_LIST"
+  fi
   if [ $1 -eq 3 ] ; then
     if [ $2 -ge 2 ] ; then
       CUDA_SM_LIST='sm_20 sm_21'
@@ -2317,13 +2325,26 @@ SetSupportedSM() {
     if [ $2 -le 7 ] ; then
       CUDA_SM_LIST='sm_50 sm_52 sm_53 sm_60 sm_61 sm_62 sm_70 sm_72 sm_75 sm_80 sm_86 sm_87 sm_89 sm_90'
     elif [ $2 -eq 8 ] ; then
-      CUDA_SM_LIST='sm_50 sm_52 sm_53 sm_60 sm_61 sm_62 sm_70 sm_72 sm_75 sm_80 sm_86 sm_87 sm_89 sm_90 sm_120'
+      CUDA_SM_LIST='sm_50 sm_52 sm_53 sm_60 sm_61 sm_62 sm_70 sm_72 sm_75 sm_80 sm_86 sm_87 sm_89 sm_90 sm_100 sm_101 sm_120'
     elif [ $2 -eq 9 ] ; then
-      CUDA_SM_LIST='sm_50 sm_52 sm_53 sm_60 sm_61 sm_62 sm_70 sm_72 sm_75 sm_80 sm_86 sm_87 sm_89 sm_90 sm_120 sm_121'
+      CUDA_SM_LIST='sm_50 sm_52 sm_53 sm_60 sm_61 sm_62 sm_70 sm_72 sm_75 sm_80 sm_86 sm_87 sm_89 sm_90 sm_100 sm_101 sm_120 sm_121'
     else
       echo "CUDA 12.$2 has not been tested yet. Set SHADER_MODEL manually."
       exit 1
     fi
+  elif [ $1 -eq 13 ] ; then
+    CUDA_SM_LIST='sm_75 sm_80 sm_86 sm_87 sm_89 sm_90 sm_90 sm_100 sm_110 sm_103 sm_120 sm_121'
+    if [ $2 -gt 2 ] ; then
+      if [ ! -z "$NVCC_SM_LIST" ] ; then
+        CUDA_SM_LIST=$NVCC_SM_LIST
+      fi
+      echo "Warning: CUDA version > 13.2 has not been tested yet. Setting up for the following shader models:"
+      echo "         $CUDA_SM_LIST"
+    fi
+  elif [ ! -z "$NVCC_SM_LIST" ] ; then
+    CUDA_SM_LIST=$NVCC_SM_LIST
+    echo "Warning: CUDA version $1.$2 has not been tested yet. Setting up for the following shader models (from nvcc):"
+    echo "         $CUDA_SM_LIST"
   else
     echo "Automatic shader model detection for CUDA $1.$2 is currently unsupported. Set SHADER_MODEL manually."
     exit 1
@@ -2367,8 +2388,7 @@ SetupCUDA() {
   if [ -z "$NVCCFLAGS" -a -z "$SHADER_MODEL" ] ; then
     # Compile for multiple shader models
     WrnMsg "SHADER_MODEL not set. Compiling for multiple architectures."
-    WrnMsg "To compile for a specific architecture set SHADER_MODEL"
-    WrnMsg "to 'sm_XX', where XX is the shader model version."
+    WrnMsg "To compile for a specific architecture set SHADER_MODEL to 'sm_XX', where XX is the shader model version."
     # TODO determine why Amber has arch=compute_60 for 70 and 75
     SM_CONFIG="Configuring for"
     NVCCFLAGS="$DBFLAG"

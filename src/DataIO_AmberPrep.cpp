@@ -234,7 +234,7 @@ int DataIO_AmberPrep::readAmberPrep(BufferedLine& infile, DataSetList& dsl, std:
       case '5' : ipair.iUnfilled_ = 5; break;
       case '6' : ipair.iUnfilled_ = 6; break;
       default:
-        mprinterr("Error: Atom %s: Illegal chain specified [%s] in PREP file.\n", args[1].c_str(), args[3][0]);
+        mprinterr("Error: Atom %s: Illegal chain specified [%c] in PREP file.\n", args[1].c_str(), args[3][0]);
         return 1;
     }
     ipair.iBack_ = Tree.top().aIdx_;

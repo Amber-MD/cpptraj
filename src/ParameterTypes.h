@@ -932,7 +932,7 @@ class CmapGridType {
     /// Prepare grid for given resolution
     void SetResolution(unsigned int r) {
       grid_.clear();
-      grid_.reserve( r*r );
+      grid_.reserve( (size_t) r * r );
       resolution_ = r;
     }
     /// Add value to the grid
@@ -953,7 +953,7 @@ class CmapGridType {
     void AddResOffset(int i) { resOffsets_.push_back( i ); }
     /// \return True if the CMAP is valid
     bool CmapIsValid() const {
-      if (resolution_ == 0 || resolution_*resolution_ != grid_.size())
+      if (resolution_ == 0 || ((size_t)resolution_*resolution_) != grid_.size())
         return false;
       if (atomNames_.size() != 5)
         return false;

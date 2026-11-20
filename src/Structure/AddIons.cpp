@@ -433,7 +433,7 @@ const
     //Vec3 debugVec = ionFrame.VGeometricCenter();
     //debugVec.Print("DEBUG: check ion center");
     if (debug_ > 0)
-      mprintf("\t  %zu: Placed %s in %s at (%4.2lf, %4.2lf, %4.2lf).\n", iIon1, ionCrd->legend(), topOut.c_str(),
+      mprintf("\t  %i: Placed %s in %s at (%4.2lf, %4.2lf, %4.2lf).\n", iIon1, ionCrd->legend(), topOut.c_str(),
               pos[0], pos[1], pos[2]);
     if (separation_ > 0.0)
       ionPositions.push_back( pos );
