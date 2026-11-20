@@ -56149,7 +56149,7 @@ mdance
 \end_layout
 
 \begin_layout LyX-Code
-mdance crdset <COORDS set> clusters <#> [mask <mask>]
+mdance [crdset <COORDS set>] clusters <#> [mask <mask>]
 \end_layout
 
 \begin_layout LyX-Code
@@ -56190,7 +56190,7 @@ mdance crdset <COORDS set> clusters <#> [mask <mask>]
 
 \begin_deeper
 \begin_layout Description
-crdset
+[crdset
 \begin_inset space ~
 \end_inset
 
@@ -56198,7 +56198,15 @@ crdset
 \begin_inset space ~
 \end_inset
 
-set> COORDS set to perform clustering on.
+set>] COORDS set to perform clustering on.
+ If not specified,
+ any frames read in via 
+\series bold
+\emph on
+'trajin'
+\series default
+\emph default
+ will be used.
 \end_layout
 
 \begin_layout Description

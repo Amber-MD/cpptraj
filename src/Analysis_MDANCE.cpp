@@ -75,7 +75,7 @@ const Cpptraj::Mdance::MD::KinitType Analysis_MDANCE::kinitTypes_[] = {
 // Analysis_MDANCE::Help()
 void Analysis_MDANCE::Help() const {
 # ifdef HAS_EIGEN
-  mprintf("\tcrdset <COORDS set> clusters <#> [mask <mask>]\n"
+  mprintf("\t[crdset <COORDS set>] clusters <#> [mask <mask>]\n"
           "\t[metric <metric>] [vthresh <vectthreshold>]\n"
           "\t[kinit <init>] [pct <percentage>] [kseed <#>]\n"
           "\t[name <set name>] [out <cnumvtime file>]\n"
