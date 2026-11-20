@@ -8,6 +8,8 @@ INPUT='mdance.in'
 
 CleanFiles mdance.in cnumvtime.dat noh.cnumvtime.dat cpptraj.json ala10.cnumvtime.dat ala10.info.dat
 
+Requires eigen
+
 UNITNAME='MDANCE CSV data test'
 cat > mdance.in <<EOF
 readdata sim.csv as coords name MyCrd

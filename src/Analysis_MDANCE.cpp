@@ -22,7 +22,9 @@ Analysis_MDANCE::Analysis_MDANCE() :
   percentage_(0),
   vthresh_(0),
   metric_(ExtendedSimilarity::NO_METRIC),
+#ifdef HAS_EIGEN
   kinit_(MD::KinitType::StratAll),
+#endif
   cnumvtime_(0),
   centers_(0),
   clusterfmt_(TrajectoryFile::UNKNOWN_TRAJ),
@@ -58,6 +60,7 @@ const char* Analysis_MDANCE::kinitStr_[] = {
   "Vanilla Kmeans++"
 };
 
+#ifdef HAS_EIGEN
 const Cpptraj::Mdance::MD::KinitType Analysis_MDANCE::kinitTypes_[] = {
   MD::KinitType::StratAll,
   MD::KinitType::StratReduced,
@@ -67,6 +70,7 @@ const Cpptraj::Mdance::MD::KinitType Analysis_MDANCE::kinitTypes_[] = {
   MD::KinitType::Random,
   MD::KinitType::VanillaKmeansPP
 };
+#endif
 
 // Analysis_MDANCE::Help()
 void Analysis_MDANCE::Help() const {
@@ -563,6 +567,6 @@ Analysis::RetType Analysis_MDANCE::Analyze() {
 
   return Analysis::OK; // DEBUG
 # else /* HAS_EIGEN */
-  return Anlysis::ERR;
+  return Analysis::ERR;
 # endif /* HAS_EIGEN */
 }
