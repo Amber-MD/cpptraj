@@ -8,6 +8,7 @@
 #include "../CpptrajFile.h"
 #include "../CpptrajStdio.h"
 #include "../ProgressBar.h"
+#include <algorithm> // std::min
 
 /** CONSTRUCTOR */
 Cpptraj::Cluster::Algorithm_Kmeans::Algorithm_Kmeans() :
