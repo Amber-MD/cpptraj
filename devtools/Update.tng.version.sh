@@ -68,10 +68,10 @@ for FILE in `git ls-files *` ; do
       diff -w $FILE $SRCFILE > temp.diff
       cat temp.diff
       rm temp.diff
-      if [ "$BASE" = 'bwlzh.c' ] ; then
-        echo DEBUG
-        exit 0
-      fi
+      #if [ "$BASE" = 'bwlzh.c' ] ; then
+      #  echo DEBUG
+      #  exit 0
+      #fi
     else
       echo "$FILE matches."
     fi
