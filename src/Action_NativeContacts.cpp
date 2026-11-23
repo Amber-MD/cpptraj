@@ -5,6 +5,7 @@
 #include "Action_NativeContacts.h"
 #include "CpptrajStdio.h"
 #include "DistRoutines.h"
+#include "Dcalc.h"
 #include "PDBfile.h"
 
 // CONSTRUCTOR
@@ -493,7 +494,7 @@ bool Action_NativeContacts::ValidContact(int a1, int a2, Topology const& parmIn)
   */
 #define UpdateNativeContact(M1_, M2_, CI1_, CI2_) { \
         if (ValidContact(M1_[c1], M2_[c2], *CurrentParm_)) { \
-          double Dist2 = DIST2(imageOpt_.ImagingType(), frm.Frm().XYZ(M1_[c1]), frm.Frm().XYZ(M2_[c2]), frm.Frm().BoxCrd()); \
+          double Dist2 = dcalc.Dist2(frm.Frm().XYZ(M2_[c2])); \
           minDist2 = std::min( Dist2, minDist2 ); \
           maxDist2 = std::max( Dist2, maxDist2 ); \
           if (Dist2 < distance_) { \
@@ -547,23 +548,28 @@ Action::RetType Action_NativeContacts::DoAction(int frameNum, ActionFrame& frm) 
     first_ = false;
   }
   nframes_++;
+  Cpptraj::Dcalc dcalc(frm.Frm(), imageOpt_.ImagingType());
   // Loop over all potential contacts
   int Nnative = 0;
   int NnonNative = 0;
   double maxDist2 = 0.0;
   double minDist2 = DBL_MAX;
   if ( Mask2_.MaskStringSet() ) {
-    for (int c1 = 0; c1 != Mask1_.Nselected(); c1++)
+    for (int c1 = 0; c1 != Mask1_.Nselected(); c1++) {
+      dcalc.SetXYZ1(frm.Frm().XYZ(Mask1_[c1]));
       for (int c2 = 0; c2 != Mask2_.Nselected(); c2++)
       {
         UpdateNativeContact(Mask1_, Mask2_, contactIdx1_, contactIdx2_);
       }
+    }
   } else {
-    for (int c1 = 0; c1 != Mask1_.Nselected(); c1++)
+    for (int c1 = 0; c1 != Mask1_.Nselected(); c1++) {
+      dcalc.SetXYZ1(frm.Frm().XYZ(Mask1_[c1]));
       for (int c2 = c1 + 1; c2 != Mask1_.Nselected(); c2++)
       {
         UpdateNativeContact(Mask1_, Mask1_, contactIdx1_, contactIdx1_);
       }
+    }
   }
   numnative_->Add(frameNum, &Nnative);
   nonnative_->Add(frameNum, &NnonNative);
