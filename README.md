@@ -248,7 +248,7 @@ External code/libraries bundled with CPPTRAJ
 
 * CPPTRAJ uses the [xdrfile](http://www.gromacs.org/Developer\_Zone/Programming\_Guide/XTC\_Library) library for reading XTC files; specifically a somewhat updated version from [MDTRAJ](https://github.com/mdtraj/mdtraj) that includes some bugfixes and enhancements. See `src/xdrfile/README` for details.
 
-* CPPTRAJ uses the [GROMACS TNG](https://github.com/gromacs/tng) library for reading TNG files. See `sec/tng/README` for details.
+* CPPTRAJ uses the [GROMACS TNG](https://github.com/gromacs/tng) library for reading TNG files. See `src/tng/README` for details.
 
 * The reciprocal part of the PME calculation is handled by the [helPME](https://github.com/andysim/helpme) library by Andy Simmonett.
 
