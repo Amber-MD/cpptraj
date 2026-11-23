@@ -1,5 +1,4 @@
 This is the TNG library bundled with CPPTRAJ. Original source taken from:
-https://github.com/gromacs/tng
-commit 14dd68ff46df1ef1cf2d9bcc1f4f5bddb974ce1c
-The Makefile file is not part of the original distribution and is intended only to make a library that can be used by cpptraj.
+5e67383cea1093de10d89b807c448733  gromacs-2026.1.tar.gz
+The Makefile and CMakeLists.txt files are not part of the original distribution and are intended only to make a library that can be used by cpptraj.
 More details can be found in AUTHORS, COPYING, and INSTALL.
