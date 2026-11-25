@@ -223,12 +223,16 @@ Action::RetType Action_Watershell::DoAction(int frameNum, ActionFrame& frm) {
     soluteCoords_[idx+2] = XYZ[2];
   }
 
-  Action_Closest_NoCenter( &V_atom_coords_[0], &V_distances_[0], &soluteCoords_[0],
-                           9999999999999.0, NsolventMolecules_, NAtoms_, soluteMask_.Nselected(),
-                           imageOpt_.ImagingType(),
-                           frm.Frm().BoxCrd().XyzPtr(),
-                           frm.Frm().BoxCrd().UnitCell().Dptr(),
-                           frm.Frm().BoxCrd().FracCell().Dptr() );
+  if (!Action_Closest_NoCenter( &V_atom_coords_[0], &V_distances_[0], &soluteCoords_[0],
+                                9999999999999.0, NsolventMolecules_, NAtoms_, soluteMask_.Nselected(),
+                                imageOpt_.ImagingType(),
+                                frm.Frm().BoxCrd().XyzPtr(),
+                                frm.Frm().BoxCrd().UnitCell().Dptr(),
+                                frm.Frm().BoxCrd().FracCell().Dptr(), cudaWorkspace_ ))
+  {
+    mprinterr("Error: CUDA watershell distance calculation failed.\n");
+    return Action::ERR;
+  }
 
   // V_distances_ now has the closest distance of each solvent molecule to
   // solute. Determine shell status of each.
