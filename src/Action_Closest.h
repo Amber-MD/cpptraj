@@ -4,6 +4,9 @@
 #include "ImageOption.h"
 #include "CharMask.h"
 #include "ActionTopWriter.h"
+#ifdef CUDA
+#include "cuda_kernels/kernel_wrappers.cuh"
+#endif
 /// Modify the state so that only the closest solvent molecules are kept.
 class Action_Closest: public Action {
   public:
@@ -21,6 +24,7 @@ class Action_Closest: public Action {
 #   endif
     void Print() {}
 #   ifdef CUDA
+    ClosestCudaWorkspace cudaWorkspace_;
     double* GPU_MEM_;       ///< Memory block to be sent to GPU.
     double* V_atom_coords_; ///< Hold coordinates for selected solvent atoms.
     double* U_atom_coords_; ///< Hold coordinates for selected solute atoms.

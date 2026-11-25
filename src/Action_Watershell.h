@@ -2,6 +2,9 @@
 #define INC_ACTION_WATERSHELL_H
 #include "Action.h"
 #include "ImageOption.h"
+#ifdef CUDA
+#include "cuda_kernels/kernel_wrappers.cuh"
+#endif
 /// Calculate number of solvent residues in 1st/2nd solvation shell.
 class Action_Watershell : public Action {
   public:
@@ -27,6 +30,7 @@ class Action_Watershell : public Action {
     DataSet* upper_;        ///< Number of solvent in second shell.
     Darray soluteCoords_;   ///< Hold selected solute coords.
 #ifdef CUDA
+    ClosestCudaWorkspace cudaWorkspace_;
     Darray V_atom_coords_;  ///< Hold selected solvent atom coords
     Darray V_distances_;    ///< Hold closest distance of solvent mols to any solute atom
     int NsolventMolecules_; ///< Number of selected solvent mols

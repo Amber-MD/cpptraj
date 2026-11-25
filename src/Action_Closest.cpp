@@ -378,11 +378,15 @@ Action::RetType Action_Closest::DoAction(int frameNum, ActionFrame& frm) {
       U_atom_coords_[nsAtom*3 + 2] = a[2];
     }
 
-    Action_Closest_NoCenter( V_atom_coords_, V_distances_, U_atom_coords_,
-                             maxD, NsolventMolecules_, NAtoms, NSAtoms, imageOpt_.ImagingType(),
-                             frm.Frm().BoxCrd().XyzPtr(),
-                             frm.Frm().BoxCrd().UnitCell().Dptr(),
-                             frm.Frm().BoxCrd().FracCell().Dptr() );
+    if (!Action_Closest_NoCenter( V_atom_coords_, V_distances_, U_atom_coords_,
+                                  maxD, NsolventMolecules_, NAtoms, NSAtoms, imageOpt_.ImagingType(),
+                                  frm.Frm().BoxCrd().XyzPtr(),
+                                  frm.Frm().BoxCrd().UnitCell().Dptr(),
+                                  frm.Frm().BoxCrd().FracCell().Dptr(), cudaWorkspace_ ))
+    {
+      mprinterr("Error: CUDA closest-distance calculation failed.\n");
+      return Action::ERR;
+    }
   }
   // Copy distances back into SolventMols_
   for (int sMol = 0; sMol < NsolventMolecules_; sMol++)
