@@ -1,4 +1,5 @@
 #include "kernel_wrappers.cuh"
+#include <limits>
 #ifdef DEBUG_CUDA
 #include <cstdio>
 #endif
@@ -38,6 +39,9 @@ static bool EnsureDoubleBuffer(double*& ptr, size_t& capacity,
 {
   if (required <= capacity)
     return true;
+
+  if (required > std::numeric_limits<size_t>::max() / sizeof(double))
+    return false;
 
   double* newPtr = 0;
   if (cudaMalloc((void**)&newPtr, required * sizeof(double)) != cudaSuccess)
@@ -203,13 +207,48 @@ bool Action_Closest_NoCenter(const double *SolventMols_, double *D_, const doubl
                              const double* box, const double* ucell, const double* recip,
                              ClosestCudaWorkspace& workspace)
 {
+  // Validate dimensions before using 32-bit CUDA kernel indices.
+  if (NMols <= 0 || NAtoms <= 0 || NAtoms > BLOCKDIM || NSAtoms <= 0)
+    return false;
+
+  const size_t intMax = static_cast<size_t>(std::numeric_limits<int>::max());
+
+  // Solvent indices and their three Cartesian coordinates must fit in int.
+  if (static_cast<size_t>(NMols) >
+      intMax / (static_cast<size_t>(NAtoms) * 3))
+    return false;
+
+  // Solute chunking adds up to 510 before applying min().
+  const size_t chunkSize = (512 / 3) * 3;
+  if (static_cast<size_t>(NSAtoms) > (intMax - chunkSize) / 3)
+    return false;
+
+  const size_t solventCoords =
+      static_cast<size_t>(NMols) * NAtoms * 3;
+  const size_t soluteCoords =
+      static_cast<size_t>(NSAtoms) * 3;
+  const int active_size = (BLOCKDIM / NAtoms) * NAtoms;
+
+  const size_t totalAtoms = static_cast<size_t>(NMols) * NAtoms;
+  const size_t nBlocks =
+      (totalAtoms + active_size - 1) / active_size;
+
+  // Account for inactive threads in the final CUDA block.
+  const size_t lastThread =
+      (nBlocks - 1) * active_size + BLOCKDIM - 1;
+
+  if (nBlocks > intMax || lastThread > intMax)
+    return false;
+
+  const int NBlocks = static_cast<int>(nBlocks);
+
   #ifdef DEBUG_CUDA
   cudaEvent_t start_event, stop_event;
   float time_gpu;
   #endif
   // Allocate device buffers only when more capacity is required.
-  if (!workspace.EnsureCapacity(NMols, NMols * NAtoms * 3,
-                                NSAtoms * 3, type))
+  if (!workspace.EnsureCapacity(static_cast<size_t>(NMols),
+                                solventCoords, soluteCoords, type))
     return false;
 
   double* devO1Ptr = workspace.distances;
@@ -220,12 +259,12 @@ bool Action_Closest_NoCenter(const double *SolventMols_, double *D_, const doubl
   double* recipDev = workspace.recip;
 
   if (cudaMemcpy(devI2Ptr, SolventMols_,
-                 NMols * NAtoms * 3 * sizeof(double),
+                 solventCoords * sizeof(double),
                  cudaMemcpyHostToDevice) != cudaSuccess)
     return false;
 
   if (cudaMemcpy(devI3Ptr, Solute_atoms,
-                 NSAtoms * 3 * sizeof(double),
+                 soluteCoords * sizeof(double),
                  cudaMemcpyHostToDevice) != cudaSuccess)
     return false;
 
@@ -244,8 +283,6 @@ bool Action_Closest_NoCenter(const double *SolventMols_, double *D_, const doubl
                    cudaMemcpyHostToDevice) != cudaSuccess)
       return false;
   }
-  int active_size  =  BLOCKDIM/NAtoms * NAtoms;
-  int NBlocks =  ceil(NMols * NAtoms / float(active_size));
 
   dim3 dimGrid0 = dim3(NBlocks,1);
   dim3 dimBlock0 = dim3(BLOCKDIM,1);
